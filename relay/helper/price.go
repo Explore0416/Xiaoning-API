@@ -32,6 +32,10 @@ func modelPriceNotConfiguredError(modelName string, userId int) error {
 	)
 }
 
+func preConsumeQuotaRangeError(modelName string, clamp *common.QuotaClamp) error {
+	return fmt.Errorf("model %s pre-consume quota is out of range: operation=%s kind=%s value=%g", modelName, clamp.Op, clamp.Kind, clamp.Original)
+}
+
 // https://docs.claude.com/en/docs/build-with-claude/prompt-caching#1-hour-cache-duration
 const claudeCacheCreation1hMultiplier = 6 / 3.75
 
@@ -117,12 +121,20 @@ func ModelPriceHelper(c *gin.Context, info *relaycommon.RelayInfo, promptTokens 
 		audioRatio = ratio_setting.GetAudioRatio(info.OriginModelName)
 		audioCompletionRatio = ratio_setting.GetAudioCompletionRatio(info.OriginModelName)
 		ratio := modelRatio * groupRatioInfo.GroupRatio
-		preConsumedQuota = common.QuotaFromFloat(float64(preConsumedTokens) * ratio)
+		var clamp *common.QuotaClamp
+		preConsumedQuota, clamp = common.QuotaFromFloatChecked(float64(preConsumedTokens) * ratio)
+		if clamp != nil {
+			return types.PriceData{}, preConsumeQuotaRangeError(info.OriginModelName, clamp)
+		}
 	} else {
 		if meta.ImagePriceRatio != 0 {
 			modelPrice = modelPrice * meta.ImagePriceRatio
 		}
-		preConsumedQuota = common.QuotaFromFloat(modelPrice * common.QuotaPerUnit * groupRatioInfo.GroupRatio)
+		var clamp *common.QuotaClamp
+		preConsumedQuota, clamp = common.QuotaFromFloatChecked(modelPrice * common.QuotaPerUnit * groupRatioInfo.GroupRatio)
+		if clamp != nil {
+			return types.PriceData{}, preConsumeQuotaRangeError(info.OriginModelName, clamp)
+		}
 	}
 
 	// check if free model pre-consume is disabled
@@ -199,7 +211,11 @@ func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (types
 	freeModel := false
 
 	if usePrice {
-		quota = common.QuotaFromFloat(modelPrice * common.QuotaPerUnit * groupRatioInfo.GroupRatio)
+		var clamp *common.QuotaClamp
+		quota, clamp = common.QuotaFromFloatChecked(modelPrice * common.QuotaPerUnit * groupRatioInfo.GroupRatio)
+		if clamp != nil {
+			return types.PriceData{}, preConsumeQuotaRangeError(info.OriginModelName, clamp)
+		}
 		if !operation_setting.GetQuotaSetting().EnableFreeModelPreConsume {
 			if groupRatioInfo.GroupRatio == 0 || modelPrice == 0 {
 				quota = 0
@@ -208,7 +224,11 @@ func ModelPriceHelperPerCall(c *gin.Context, info *relaycommon.RelayInfo) (types
 		}
 	} else {
 		// 按量计费：以模型倍率的一半作为预扣额度
-		quota = common.QuotaFromFloat(modelRatio / 2 * common.QuotaPerUnit * groupRatioInfo.GroupRatio)
+		var clamp *common.QuotaClamp
+		quota, clamp = common.QuotaFromFloatChecked(modelRatio / 2 * common.QuotaPerUnit * groupRatioInfo.GroupRatio)
+		if clamp != nil {
+			return types.PriceData{}, preConsumeQuotaRangeError(info.OriginModelName, clamp)
+		}
 		modelPrice = -1
 		if !operation_setting.GetQuotaSetting().EnableFreeModelPreConsume {
 			if groupRatioInfo.GroupRatio == 0 || modelRatio == 0 {
@@ -270,7 +290,10 @@ func modelPriceHelperTiered(c *gin.Context, info *relaycommon.RelayInfo, promptT
 
 	// Expression coefficients are $/1M tokens prices; convert to quota the same way per-call billing does.
 	quotaBeforeGroup := rawCost / 1_000_000 * common.QuotaPerUnit
-	preConsumedQuota := billingexpr.QuotaRound(quotaBeforeGroup * groupRatioInfo.GroupRatio)
+	preConsumedQuota, clamp := billingexpr.QuotaRoundChecked(quotaBeforeGroup * groupRatioInfo.GroupRatio)
+	if clamp != nil {
+		return types.PriceData{}, preConsumeQuotaRangeError(info.OriginModelName, clamp)
+	}
 
 	freeModel := false
 	if !operation_setting.GetQuotaSetting().EnableFreeModelPreConsume {
