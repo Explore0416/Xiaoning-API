@@ -159,7 +159,7 @@ function ChannelCardComponent({
         {/* Last row: groups span the full width, showing every group (no label) */}
         <div className='min-w-0'>
           {groups.length > 0 ? (
-            <div className='-ml-1.5 flex flex-wrap gap-1'>
+            <div className='flex flex-wrap gap-1'>
               {groups.map((g) => (
                 <GroupBadge
                   key={g}

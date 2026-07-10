@@ -129,7 +129,6 @@ export function useDrawingLogsColumns(
           icon={getDrawingTypeIcon(action)}
           size='sm'
           copyable={false}
-          className='-ml-1.5'
         />
       )
     },
@@ -181,7 +180,6 @@ export function useDrawingLogsColumns(
             variant={mjSubmitResultMapper.getVariant(String(code))}
             size='sm'
             copyable={false}
-            className='-ml-1.5'
           />
         )
       },

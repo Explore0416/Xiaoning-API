@@ -87,9 +87,9 @@ export const StatusBadgeTypeContext =
   React.createContext<StatusBadgeType>('badge')
 
 const sizeMap = {
-  sm: 'h-5 gap-1 px-1.5 text-sm leading-none',
-  md: 'h-5 gap-1 px-1.5 text-sm leading-none',
-  lg: 'h-6 gap-1.5 px-2 text-sm leading-none',
+  sm: 'h-5 gap-1 text-sm leading-none',
+  md: 'h-5 gap-1 text-sm leading-none',
+  lg: 'h-6 gap-1.5 text-sm leading-none',
 } as const
 
 const textSizeMap = {
