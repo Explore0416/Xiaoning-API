@@ -92,6 +92,10 @@ func TestPreConsumeBillingRejectsSaturatedQuotaBeforeDeduction(t *testing.T) {
 	require.NotNil(t, apiErr)
 	require.Equal(t, types.ErrorCodeModelPriceError, apiErr.GetErrorCode())
 	require.Equal(t, http.StatusBadRequest, apiErr.StatusCode)
+	require.Same(t, info.QuotaClamp, apiErr.Err)
+	var clamp *common.QuotaClamp
+	require.ErrorAs(t, apiErr, &clamp)
+	require.Same(t, info.QuotaClamp, clamp)
 	require.Nil(t, info.Billing)
 }
 

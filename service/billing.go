@@ -19,9 +19,8 @@ const (
 // 会话存储在 relayInfo.Billing 上，供后续 Settle / Refund 使用。
 func PreConsumeBilling(c *gin.Context, preConsumedQuota int, relayInfo *relaycommon.RelayInfo) *types.NewAPIError {
 	if relayInfo != nil && relayInfo.QuotaClamp != nil {
-		clamp := relayInfo.QuotaClamp
 		return types.NewErrorWithStatusCode(
-			fmt.Errorf("pre-consume quota is out of range: operation=%s kind=%s value=%g", clamp.Op, clamp.Kind, clamp.Original),
+			relayInfo.QuotaClamp,
 			types.ErrorCodeModelPriceError,
 			http.StatusBadRequest,
 			types.ErrOptionWithSkipRetry(),
