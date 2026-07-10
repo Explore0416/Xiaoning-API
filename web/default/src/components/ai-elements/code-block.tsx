@@ -413,7 +413,7 @@ export const CodeBlockFrame = ({
     {showToolbar && (
       <div className='bg-muted/35 border-border/70 flex min-h-10 items-center gap-2 border-b px-2 py-1.5'>
         <div className='min-w-0 flex-1'>
-          <div className='text-muted-foreground truncate font-mono text-[11px] font-medium tracking-wide uppercase'>
+          <div className='text-muted-foreground truncate font-mono text-xs font-medium tracking-wide uppercase'>
             {title}
           </div>
         </div>

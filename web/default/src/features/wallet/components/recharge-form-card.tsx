@@ -353,7 +353,7 @@ export function RechargeFormCard({
                               {method.name}
                             </span>
                             {disabledLabel && (
-                              <span className='text-muted-foreground max-w-full truncate text-[11px] leading-4 font-normal'>
+                              <span className='text-muted-foreground max-w-full truncate text-xs leading-4 font-normal'>
                                 {disabledLabel}
                               </span>
                             )}
@@ -435,7 +435,7 @@ export function RechargeFormCard({
                                 {method.name}
                               </span>
                               {disabledLabel && (
-                                <span className='text-muted-foreground max-w-full truncate text-[11px] leading-4 font-normal'>
+                                <span className='text-muted-foreground max-w-full truncate text-xs leading-4 font-normal'>
                                   {disabledLabel}
                                 </span>
                               )}

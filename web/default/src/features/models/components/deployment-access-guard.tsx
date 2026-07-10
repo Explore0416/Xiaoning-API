@@ -141,8 +141,8 @@ export function DeploymentAccessGuard({
     return (
       <div className='mx-auto mt-8 max-w-md'>
         <div className='text-center'>
-          <div className='mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100 dark:bg-amber-900/20'>
-            <Server className='h-8 w-8 text-amber-600 dark:text-amber-400' />
+          <div className='bg-warning/10 mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl'>
+            <Server className='text-warning h-8 w-8' />
           </div>
           <h3 className='mb-6 text-xl font-semibold'>
             {t('Model deployment service is disabled')}

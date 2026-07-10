@@ -48,13 +48,13 @@ import { UsageLogsMobileList } from './usage-logs-mobile-card'
 const route = getRouteApi('/_authenticated/usage-logs/$section')
 
 const logTypeRowTint: Record<number, string> = {
-  [LOG_TYPE_ENUM.ERROR]: 'bg-rose-50/40 dark:bg-rose-950/20',
-  [LOG_TYPE_ENUM.REFUND]: 'bg-blue-50/30 dark:bg-blue-950/15',
+  [LOG_TYPE_ENUM.ERROR]: 'bg-destructive/5',
+  [LOG_TYPE_ENUM.REFUND]: 'bg-info/5',
 }
 
 // Warning tint for logs where a quota conversion saturated (admin-only marker).
 // Takes precedence over the per-type tint since it flags a billing anomaly.
-const quotaSaturationRowTint = 'bg-amber-50/60 dark:bg-amber-950/25'
+const quotaSaturationRowTint = 'bg-warning/10'
 
 function getColumnVisibilityStorageKey(
   logCategory: LogCategory,

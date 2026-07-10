@@ -125,6 +125,41 @@
 - 以 Tailwind 工具类为主，动态类名用 `cn()` 合并；非动态场景避免内联样式。
 - 响应式采用移动优先与 Tailwind 断点（`sm:`、`md:`、`lg:` 等）；主题与暗色用 CSS 变量与 `dark:`，自定义样式集中在 `src/styles/`，组件内尽量少写自定义 CSS。
 
+#### 3.10.1 设计系统纪律（强约束）
+
+以下规则为硬约束，代码评审与 AI 改动一律遵循；违反即为缺陷。
+
+**颜色**
+
+- 后台界面（除 `features/home/` 营销页外）**禁止硬编码 Tailwind 调色板类**（如 `text-emerald-600`、`bg-amber-50`、`border-rose-200`），一律使用语义令牌：`success` / `warning` / `destructive` / `info` / `neutral`、`primary` / `muted` / `accent` / `border` / `ring`。暗色适配由令牌完成，禁止 `dark:text-emerald-400` 之类逐处覆写。
+- 状态色仅表达状态（成功/警告/错误/信息），不得用于装饰或分类；分类信息（模型名、分组名、渠道名等）一律中性呈现，身份靠文本与图标传达。`StatusBadge` 的 `autoColor` 已废弃为 neutral，禁止恢复字符串哈希取色。
+- 需要浅底状态胶囊时使用 `status-badge.tsx` 的 `tintedBadgeClassMap`，不要再手写 `bg-xxx-50 text-xxx-700 dark:...` 组合。
+- 图表用 `--chart-1..5`；用户头像身份色走 `getAvatarColorClass`。这两处是仅有的多色场景。
+- 禁止用 `!important`（`!text-*` 等）压制文字颜色/字号；若需要覆盖，说明层级设计有误，先修组件。
+
+**排版**
+
+- 字体族只有两轨：正文 `--font-sans`（含 CJK 回退，勿删栈中中文字体）与 `--font-serif`（serif 主题轴）。`font-mono` 仅用于密钥、ID、代码、原始 JSON；**数字对齐一律 `tabular-nums`，不得再加 `font-mono`**。
+- 字号只用 `text-xs/sm/base/lg/xl/2xl`，**禁止任意值字号**（`text-[10px]`、`text-[11px]` 等；营销页除外）。
+- 字重只用 `font-medium`（强调/表头）与 `font-semibold`（标题/关键数值）；后台正文与标题**禁用 `font-bold`**。
+- 标题三档契约：页题 `text-lg font-semibold tracking-tight`；卡片/区块题 `text-base font-semibold`；面板/小节题 `text-sm font-medium`。禁止响应式跳字号的标题（如 `text-base sm:text-lg`）。
+- 表头不使用 `uppercase + tracking-wider`。
+
+**圆角与阴影**
+
+- 圆角单源 `--radius`（默认 0.625rem），组件用派生档 `rounded-md/lg/xl`；禁止在业务代码里写死圆角像素或混用 `rounded-2xl`/`rounded-4xl` 表达同类容器。
+- 卡片边界「描边或投影二选一」：默认 `border`（或 Card 自带 ring），禁止再叠 `shadow-*`；`shadow` 只保留给浮层（popover/dropdown/dialog）。
+
+**动效**
+
+- 后台界面禁止入场动画：无 stagger、无 translate/scale/blur 入场、无按钮按压缩放。页面切换只允许纯透明度 fade（见 `lib/motion.ts` 的 `pageEnter`）。`page-transition.tsx` 的 Stagger 系列组件已固化为纯容器，禁止恢复动画。
+- 允许的动效上限：颜色/透明度过渡 ≤150ms、骨架屏 shimmer、`Collapsible/Accordion` 展开、加载 spinner。装饰性动效只允许出现在 `features/home/`（landing）。
+
+**徽章与图标**
+
+- 文本徽章统一 `StatusBadge`（五种语义 voice）；模型/分组/渠道等实体徽章统一中性底（`border-border/60 bg-muted/30`）。不要新造第三种徽章样式。
+- 业务代码图标一律 `lucide-react`；`components/ui/` 由 shadcn 生成器维护（Hugeicons），不要手改基础组件图标库；AI 品牌图标用 `@lobehub/icons`（经 `getLobeIcon`）。
+
 ### 3.11 文件组织
 
 - **功能模块**：置于 `src/features/<feature>/`，内含 `components/`、`lib/`、`hooks/`，以及按需的 `api.ts`、`types.ts`、`constants.ts`、入口组件等。
@@ -178,3 +213,4 @@
 - **2026-01-29**：重组文档结构，合并重复内容，明确主次与交叉引用。
 - **2026-01-31**：在 3.2 中补充「类型检查」要求：改动 TS/TSX 后须执行 typecheck 并修复至无错。
 - **2026-06-21**：在 3.2 中补充「Lint 检查」要求：完成代码改动前须修复所涉及文件的所有 lint error。
+- **2026-07-11**：新增 3.10.1「设计系统纪律」：语义色硬约束（去彩虹徽章/硬编码调色板）、排版契约（字号/字重/标题三档/mono 边界）、圆角单源、后台零入场动效、徽章与图标单轨。

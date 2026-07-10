@@ -163,17 +163,13 @@ const TAG_COLORS = [
 ] as const
 
 /**
- * Convert string to a stable semantic color
- * Used for model tags, group badges, user avatars, etc.
- * Same string always returns the same color
+ * Convert string to a stable semantic color.
+ * Only for avatar identity tinting (via `getAvatarColorClass`), where a subtle
+ * per-user hue aids recognition. Do NOT use it to color badges/tags — text
+ * badges speak only the five semantic voices (see `components/status-badge`).
  *
- * @param str - Input string (model name, group name, username, etc.)
+ * @param str - Input string (username, etc.)
  * @returns Semantic color name from TAG_COLORS
- *
- * @example
- * stringToColor('gpt-4') // 'blue'
- * stringToColor('claude-3') // 'purple'
- * stringToColor('default') // 'green'
  */
 export function stringToColor(str: string): SemanticColor {
   let sum = 0

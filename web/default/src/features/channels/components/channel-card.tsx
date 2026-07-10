@@ -78,7 +78,7 @@ function ChannelCardComponent({
   const responseCell = renderCell('response_time')
   const testCell = renderCell('test_time')
 
-  const labelClass = 'text-muted-foreground text-[11px] font-medium select-none'
+  const labelClass = 'text-muted-foreground text-xs font-medium select-none'
 
   // In card view the enable/disable state is already conveyed by the inline
   // power toggle, so the plain "Enabled"/"Disabled" badge is redundant. Keep

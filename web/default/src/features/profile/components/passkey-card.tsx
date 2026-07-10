@@ -335,7 +335,7 @@ export function PasskeyCard({ loading: pageLoading }: PasskeyCardProps) {
 
             {showUnsupportedNotice && (
               <div className='bg-muted/60 text-muted-foreground flex items-start gap-3 rounded-md p-4 text-sm'>
-                <ShieldAlert className='mt-0.5 h-4 w-4 flex-shrink-0 text-amber-500' />
+                <ShieldAlert className='text-warning mt-0.5 h-4 w-4 flex-shrink-0' />
                 <div>
                   <p className='text-foreground font-medium'>
                     {t('Passkey not supported on this device')}

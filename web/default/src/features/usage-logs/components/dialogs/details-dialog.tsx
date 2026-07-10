@@ -77,9 +77,9 @@ const CHANNEL_FIELD_LABELS: Record<string, string> = {
 function timingTextColorClass(
   variant: 'success' | 'warning' | 'danger'
 ): string {
-  if (variant === 'success') return 'text-emerald-600'
-  if (variant === 'warning') return 'text-amber-600'
-  return 'text-rose-600'
+  if (variant === 'success') return 'text-success'
+  if (variant === 'warning') return 'text-warning'
+  return 'text-destructive'
 }
 
 function DetailRow(props: {
@@ -628,7 +628,10 @@ export function DetailsDialog(props: DetailsDialogProps) {
               label={t('IP Address')}
               value={
                 <span className='flex items-center gap-1'>
-                  <Globe className='size-3 text-amber-500' aria-hidden='true' />
+                  <Globe
+                    className='text-muted-foreground size-3'
+                    aria-hidden='true'
+                  />
                   {props.log.ip}
                 </span>
               }
@@ -814,7 +817,7 @@ export function DetailsDialog(props: DetailsDialogProps) {
               />
             ))}
             {showLegacyTopupWarning && (
-              <div className='flex items-start gap-1.5 text-xs text-amber-600 dark:text-amber-400'>
+              <div className='text-warning flex items-start gap-1.5 text-xs'>
                 <Info className='mt-0.5 size-3.5 shrink-0' aria-hidden='true' />
                 <span>
                   {t(
@@ -1030,9 +1033,9 @@ export function DetailsDialog(props: DetailsDialogProps) {
               value={
                 <span className='flex items-center gap-1'>
                   {other.admin_info.local_count_tokens ? (
-                    <Monitor className='size-3 text-blue-500' />
+                    <Monitor className='text-muted-foreground size-3' />
                   ) : (
-                    <Cloud className='size-3 text-emerald-500' />
+                    <Cloud className='text-muted-foreground size-3' />
                   )}
                   <span className='text-xs'>
                     {other.admin_info.local_count_tokens
@@ -1080,7 +1083,7 @@ export function DetailsDialog(props: DetailsDialogProps) {
               )}
               {Array.isArray(other.stream_status.errors) &&
                 other.stream_status.errors.length > 0 && (
-                  <pre className='bg-background/60 mt-1 max-h-32 overflow-y-auto rounded border p-2 font-mono text-[11px] leading-relaxed wrap-break-word whitespace-pre-wrap'>
+                  <pre className='bg-background/60 mt-1 max-h-32 overflow-y-auto rounded border p-2 font-mono text-xs leading-relaxed wrap-break-word whitespace-pre-wrap'>
                     {other.stream_status.errors.join('\n')}
                   </pre>
                 )}
@@ -1155,7 +1158,7 @@ export function DetailsDialog(props: DetailsDialogProps) {
                     className='shrink-0 font-medium'
                     copyable={false}
                   />
-                  <span className='min-w-0 font-mono text-[11px] leading-relaxed break-all sm:wrap-break-word'>
+                  <span className='min-w-0 font-mono text-xs leading-relaxed break-all sm:wrap-break-word'>
                     {parsed.content}
                   </span>
                 </div>

@@ -41,10 +41,8 @@ import { getLogTypeConfig } from '../lib/utils'
 import type { LogCategory } from '../types'
 
 const logTypeRowTint: Record<number, string> = {
-  [LOG_TYPE_ENUM.ERROR]:
-    'bg-rose-50/40 dark:bg-rose-950/20 border-rose-200/50 dark:border-rose-900/30',
-  [LOG_TYPE_ENUM.REFUND]:
-    'bg-blue-50/30 dark:bg-blue-950/15 border-blue-200/50 dark:border-blue-900/30',
+  [LOG_TYPE_ENUM.ERROR]: 'bg-destructive/5 border-destructive/20',
+  [LOG_TYPE_ENUM.REFUND]: 'bg-info/5 border-info/20',
 }
 
 interface UsageLogsMobileListProps<TData> {
@@ -129,7 +127,7 @@ function SummaryField<TData>({
     <div
       className={cn('bg-muted/20 min-w-0 rounded-md px-2 py-1.5', className)}
     >
-      <div className='text-muted-foreground mb-1 text-[11px] leading-none font-medium select-none'>
+      <div className='text-muted-foreground mb-1 text-xs leading-none font-medium select-none'>
         {label}
       </div>
       <CompactCell
@@ -156,7 +154,7 @@ function MobileLogTimeStatus({
 
   return (
     <div className='space-y-1'>
-      <div className='font-mono text-xs leading-tight tabular-nums'>
+      <div className='text-xs leading-tight tabular-nums'>
         {formatTimestampToDate(timestamp)}
       </div>
       <div
@@ -200,7 +198,7 @@ function CommonLogsCard<TData>({
 
       <div className='grid grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] gap-1.5'>
         <div className='bg-muted/20 min-w-0 rounded-md px-2 py-1.5'>
-          <div className='text-muted-foreground mb-1 text-[11px] leading-none font-medium select-none'>
+          <div className='text-muted-foreground mb-1 text-xs leading-none font-medium select-none'>
             {t('Time')}
           </div>
           <MobileLogTimeStatus
@@ -217,7 +215,7 @@ function CommonLogsCard<TData>({
         <SummaryField
           label={t('Token')}
           cell={cells.get('token_name')}
-          valueClassName='[&_.flex-col]:max-w-none [&_.flex-col>*:not(:first-child)]:text-[11px] [&_.flex-col>*:not(:first-child)]:leading-none'
+          valueClassName='[&_.flex-col]:max-w-none [&_.flex-col>*:not(:first-child)]:text-xs [&_.flex-col>*:not(:first-child)]:leading-none'
         />
         <SummaryField
           label={t('Timing')}

@@ -22,7 +22,7 @@ import { Zap } from 'lucide-react'
 import { useState } from 'react'
 
 import { DataTableColumnHeader } from '@/components/data-table'
-import { StatusBadge } from '@/components/status-badge'
+import { StatusBadge, tintedBadgeClassMap } from '@/components/status-badge'
 import {
   Tooltip,
   TooltipContent,
@@ -90,7 +90,7 @@ export function createTimestampColumn<T>(config: {
         return <span className='text-muted-foreground/60 text-xs'>-</span>
       }
       return (
-        <span className='font-mono text-xs tabular-nums'>
+        <span className='text-xs tabular-nums'>
           {formatTimestampToDate(timestamp, unit)}
         </span>
       )
@@ -137,22 +137,16 @@ export function createDurationColumn<T>(config: {
       const variant =
         duration.durationSec > warningThresholdSec ? 'danger' : 'success'
 
-      const durationBgMap: Record<string, string> = {
-        success:
-          'border border-emerald-200/40 bg-emerald-50/35 !text-emerald-600 dark:border-emerald-900/40 dark:bg-emerald-950/15 dark:!text-emerald-400',
-        warning:
-          'border border-amber-200/45 bg-amber-50/35 !text-amber-600 dark:border-amber-900/40 dark:bg-amber-950/15 dark:!text-amber-400',
-        danger:
-          'border border-rose-200/50 bg-rose-50/35 !text-red-600 dark:border-rose-900/40 dark:bg-rose-950/15 dark:!text-red-400',
-      }
-
       return (
         <StatusBadge
           label={`${duration.durationSec.toFixed(1)}s`}
           variant={variant}
           size='sm'
           copyable={false}
-          className={cn('rounded-md font-mono', durationBgMap[variant])}
+          className={cn(
+            'rounded-md tabular-nums',
+            tintedBadgeClassMap[variant]
+          )}
         />
       )
     },
@@ -225,7 +219,7 @@ export function createFailReasonColumn<T>(config: {
             onClick={() => setDialogOpen(true)}
             title={cellTitle}
           >
-            <span className='truncate leading-snug text-red-600 group-hover:underline dark:text-red-400'>
+            <span className='text-destructive truncate leading-snug group-hover:underline'>
               {failReason}
             </span>
           </button>

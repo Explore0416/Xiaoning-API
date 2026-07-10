@@ -19,7 +19,17 @@ For commercial licensing, please contact support@quantumnous.com
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --font-sans: 'Public Sans', sans-serif;
+  /* Primary UI face. `@fontsource-variable/public-sans` registers the family
+   * as 'Public Sans Variable' (NOT 'Public Sans'), so that name must lead the
+   * stack or the webfont silently never applies. Public Sans carries no CJK
+   * glyphs, so explicit CJK UI fonts (PingFang / YaHei UI / Noto Sans CJK)
+   * sit BEFORE the western system fallbacks — otherwise Windows browsers pick
+   * a legacy serif-ish CJK default and Latin/CJK baselines drift apart. */
+  --font-sans:
+    'Public Sans Variable', 'Public Sans', -apple-system, BlinkMacSystemFont,
+    'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei',
+    'Noto Sans SC', 'Noto Sans CJK SC', 'Segoe UI', 'Helvetica Neue', Arial,
+    sans-serif;
   /* Editorial serif token — the body face used by the `serif` font axis
    * and by presets that opt in (currently Anthropic). Lora carries only
    * Latin glyphs, so the stack walks through CJK serifs (Noto / Source Han
@@ -33,12 +43,6 @@ For commercial licensing, please contact support@quantumnous.com
     'Songti SC', 'STSong', 'STSongti-SC-Regular', 'PingFang SC', 'SimSun',
     'NSimSun', '宋体', 'FangSong', '仿宋', 'KaiTi', '楷体', Georgia,
     'Times New Roman', Cambria, 'Liberation Serif', serif;
-  --font-inter:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
-    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
-  --font-manrope:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu',
-    'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -91,7 +95,11 @@ For commercial licensing, please contact support@quantumnous.com
 }
 
 :root {
-  --radius: 1rem;
+  /* Single radius source. 0.625rem (10px) is the shadcn default for admin
+   * density; larger values ripple through the derived scale above and make
+   * data-dense tables/cards read "bubbly". User can still pick rounder axes
+   * via data-theme-radius. */
+  --radius: 0.625rem;
   --app-header-height: 3rem;
   /* Static build-channel fallback consumed when JS hasn't booted yet. */
   --app-rev: '2k6e8r7p';

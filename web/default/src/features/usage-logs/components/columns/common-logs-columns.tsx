@@ -21,7 +21,11 @@ import { CircleAlert, GitBranch, Sparkles, KeyRound } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import { StatusBadge, type StatusBadgeProps } from '@/components/status-badge'
+import {
+  StatusBadge,
+  tintedBadgeClassMap,
+  type StatusBadgeProps,
+} from '@/components/status-badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import {
   Popover,
@@ -304,7 +308,7 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
 
         return (
           <div className='flex min-w-0 flex-col gap-0.5'>
-            <span className='truncate font-mono text-xs tabular-nums'>
+            <span className='truncate text-xs tabular-nums'>
               {formatTimestampToDate(timestamp)}
             </span>
             <StatusBadge
@@ -312,7 +316,7 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
               variant={config.color as StatusBadgeProps['variant']}
               size='sm'
               copyable={false}
-              className='!text-xs [&_span]:!text-xs'
+              className='text-xs [&_span]:text-xs'
             />
           </div>
         )
@@ -402,7 +406,7 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
                           }
                         >
                           <GitBranch
-                            className='size-3.5 text-amber-500'
+                            className='text-warning size-3.5'
                             aria-hidden='true'
                           />
                         </PopoverTrigger>
@@ -423,7 +427,7 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
                     {affinity && (
                       <button
                         type='button'
-                        className='absolute -top-1 -right-1 leading-none text-amber-500'
+                        className='text-warning absolute -top-1 -right-1 leading-none'
                         onClick={(e) => {
                           e.stopPropagation()
                           setAffinityTarget({
@@ -443,7 +447,7 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
                     )}
                   </div>
                   {log.channel_name && (
-                    <span className='text-muted-foreground/70 truncate [font-family:var(--font-body)] !text-xs'>
+                    <span className='text-muted-foreground/70 truncate text-xs'>
                       {channelName}
                     </span>
                   )}
@@ -510,7 +514,7 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
               <Avatar className='ring-border/60 size-6 ring-1 max-sm:hidden'>
                 <AvatarFallback
                   className={cn(
-                    'text-[11px] font-semibold',
+                    'text-xs font-semibold',
                     !sensitiveVisible && 'bg-muted text-muted-foreground'
                   )}
                   style={
@@ -577,7 +581,7 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
                   copyText={sensitiveVisible ? tokenName : undefined}
                   size='sm'
                   showDot={false}
-                  className='border-border/60 bg-muted/30 text-foreground h-6 max-w-full gap-1.5 overflow-hidden rounded-md border px-2 py-0.5 [font-family:var(--font-body)]'
+                  className='border-border/60 bg-muted/30 text-foreground h-6 max-w-full gap-1.5 overflow-hidden rounded-md border px-2 py-0.5'
                 />
               </TooltipTrigger>
               {sensitiveVisible && tokenName.length > 16 && (
@@ -588,7 +592,7 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
             </Tooltip>
           </TooltipProvider>
           {metaParts.length > 0 && (
-            <span className='text-muted-foreground/60 truncate [font-family:var(--font-body)] !text-xs'>
+            <span className='text-muted-foreground/60 truncate text-xs'>
               {metaParts.join(' · ')}
             </span>
           )}
@@ -637,16 +641,12 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
           ? getFirstResponseTimeColor(frt / 1000)
           : 'neutral'
 
-        const timingBgMap: Record<string, string> = {
-          success:
-            'border border-emerald-200/40 bg-emerald-50/35 !text-emerald-600 dark:border-emerald-900/40 dark:bg-emerald-950/15 dark:!text-emerald-400',
-          warning:
-            'border border-amber-200/45 bg-amber-50/35 !text-amber-600 dark:border-amber-900/40 dark:bg-amber-950/15 dark:!text-amber-400',
-          danger:
-            'border border-rose-200/50 bg-rose-50/35 !text-red-600 dark:border-rose-900/40 dark:bg-rose-950/15 dark:!text-red-400',
-          neutral:
-            'border border-border/60 bg-muted/30 dark:border-border/40 dark:bg-muted/20',
-        }
+        const timingClass = (variant: string) =>
+          tintedBadgeClassMap[
+            (variant in tintedBadgeClassMap
+              ? variant
+              : 'neutral') as keyof typeof tintedBadgeClassMap
+          ]
 
         return (
           <div className='flex flex-col gap-1'>
@@ -656,7 +656,10 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
                 variant={timeVariant as StatusBadgeProps['variant']}
                 size='sm'
                 copyable={false}
-                className={cn('rounded-md font-mono', timingBgMap[timeVariant])}
+                className={cn(
+                  'rounded-md tabular-nums',
+                  timingClass(timeVariant)
+                )}
               />
               {log.is_stream &&
                 (frt != null && frt > 0 ? (
@@ -667,8 +670,8 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
                     showDot={false}
                     copyable={false}
                     className={cn(
-                      'rounded-md font-mono',
-                      timingBgMap[frtVariant]
+                      'rounded-md tabular-nums',
+                      timingClass(frtVariant)
                     )}
                   />
                 ) : (
@@ -678,12 +681,15 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
                     size='sm'
                     showDot={false}
                     copyable={false}
-                    className={cn('rounded-md font-mono', timingBgMap.neutral)}
+                    className={cn(
+                      'rounded-md tabular-nums',
+                      tintedBadgeClassMap.neutral
+                    )}
                   />
                 ))}
             </div>
-            <div className='flex items-center gap-1 [font-family:var(--font-body)] !text-xs leading-none'>
-              <span className='text-muted-foreground/60 [font-family:var(--font-body)] !text-xs leading-none'>
+            <div className='flex items-center gap-1 text-xs leading-none'>
+              <span className='text-muted-foreground/60 text-xs leading-none'>
                 {log.is_stream ? t('Stream') : t('Non-stream')}
                 {tokensPerSecond != null && (
                   <>
@@ -701,7 +707,9 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger
-                        render={<CircleAlert className='size-3 text-red-500' />}
+                        render={
+                          <CircleAlert className='text-destructive size-3' />
+                        }
                       ></TooltipTrigger>
                       <TooltipContent>
                         <div className='space-y-0.5 text-xs'>
@@ -751,12 +759,12 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
 
         return (
           <div className='flex flex-col gap-0.5'>
-            <span className='font-mono text-xs font-medium tabular-nums'>
+            <span className='text-xs font-medium tabular-nums'>
               {promptTokens.toLocaleString()} /{' '}
               {completionTokens.toLocaleString()}
             </span>
             {(cacheReadTokens > 0 || cacheWriteTokens > 0) && (
-              <div className='flex items-center gap-1 text-[11px]'>
+              <div className='flex items-center gap-1 text-xs'>
                 {cacheReadTokens > 0 && (
                   <span className='text-muted-foreground/60'>
                     {t('Cache')}↓ {cacheReadTokens.toLocaleString()}
@@ -815,7 +823,7 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
 
         return (
           <div className='flex flex-col gap-0.5'>
-            <span className='border-border/80 bg-muted/60 inline-flex h-6 w-fit items-center rounded-md border px-2 [font-family:var(--font-body)] text-sm leading-none font-semibold tabular-nums'>
+            <span className='border-border/80 bg-muted/60 inline-flex h-6 w-fit items-center rounded-md border px-2 text-sm leading-none font-semibold tabular-nums'>
               {quotaDisplay.prefix && (
                 <span className='mr-1'>{quotaDisplay.prefix}</span>
               )}
@@ -853,7 +861,7 @@ export function useCommonLogsColumns(isAdmin: boolean): ColumnDef<UsageLog>[] {
                     primary.muted
                       ? 'text-muted-foreground/60'
                       : primary.danger
-                        ? 'text-red-600 dark:text-red-400'
+                        ? 'text-destructive'
                         : 'text-foreground'
                   )}
                 >

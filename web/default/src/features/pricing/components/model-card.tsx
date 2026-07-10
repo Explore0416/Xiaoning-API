@@ -96,10 +96,10 @@ export const ModelCard = memo(function ModelCard(props: ModelCardProps) {
     if (dynamicSummary.isSpecialExpression) {
       priceSummary = (
         <span className='min-w-0'>
-          <span className='text-amber-700 dark:text-amber-300'>
+          <span className='text-warning'>
             {t('Special billing expression')}
           </span>
-          <code className='text-muted-foreground/70 mt-0.5 line-clamp-1 block font-mono text-[11px] break-all'>
+          <code className='text-muted-foreground/70 mt-0.5 line-clamp-1 block font-mono text-xs break-all'>
             {dynamicSummary.rawExpression}
           </code>
         </span>

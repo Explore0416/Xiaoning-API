@@ -294,7 +294,7 @@ export function CheckinCalendarCard({
                     {t('Daily Check-in')}
                   </h3>
                   {checkedToday && (
-                    <div className='inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 sm:gap-1.5 sm:px-2.5 sm:text-xs dark:text-emerald-400'>
+                    <div className='bg-success/10 text-success inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-xs font-medium sm:gap-1.5 sm:px-2.5'>
                       <Sparkles className='h-2.5 w-2.5 sm:h-3 sm:w-3' />
                       {t('Checked in')}
                     </div>
@@ -337,7 +337,7 @@ export function CheckinCalendarCard({
                 <div className='text-xl font-semibold tracking-tight tabular-nums sm:text-2xl'>
                   {checkinData?.stats?.total_checkins || 0}
                 </div>
-                <div className='text-muted-foreground mt-0.5 text-[10px] font-medium sm:mt-1 sm:text-xs'>
+                <div className='text-muted-foreground mt-0.5 text-xs font-medium sm:mt-1 sm:text-xs'>
                   {t('Total check-ins')}
                 </div>
               </div>
@@ -345,7 +345,7 @@ export function CheckinCalendarCard({
                 <div className='text-xl font-semibold tracking-tight tabular-nums sm:text-2xl'>
                   {formatQuotaWithCurrency(monthlyQuota, { digitsLarge: 0 })}
                 </div>
-                <div className='text-muted-foreground mt-0.5 text-[10px] font-medium sm:mt-1 sm:text-xs'>
+                <div className='text-muted-foreground mt-0.5 text-xs font-medium sm:mt-1 sm:text-xs'>
                   {t('This month')}
                 </div>
               </div>
@@ -358,7 +358,7 @@ export function CheckinCalendarCard({
                     }
                   )}
                 </div>
-                <div className='text-muted-foreground mt-0.5 text-[10px] font-medium sm:mt-1 sm:text-xs'>
+                <div className='text-muted-foreground mt-0.5 text-xs font-medium sm:mt-1 sm:text-xs'>
                   {t('Total earned')}
                 </div>
               </div>
@@ -398,7 +398,7 @@ export function CheckinCalendarCard({
                   {weekDays.map((day) => (
                     <div
                       key={day}
-                      className='text-muted-foreground flex h-7 items-center justify-center text-[10px] font-medium sm:h-8 sm:text-xs'
+                      className='text-muted-foreground flex h-7 items-center justify-center text-xs font-medium sm:h-8 sm:text-xs'
                     >
                       {day}
                     </div>
@@ -430,7 +430,7 @@ export function CheckinCalendarCard({
                       >
                         <span className='tabular-nums'>{dayNum}</span>
                         {isCheckedIn && !isToday && (
-                          <span className='absolute bottom-0.5 h-1 w-1 rounded-full bg-emerald-500 sm:bottom-1' />
+                          <span className='bg-success absolute bottom-0.5 h-1 w-1 rounded-full sm:bottom-1' />
                         )}
                       </Button>
                     )
@@ -458,7 +458,7 @@ export function CheckinCalendarCard({
                 </div>
 
                 {/* Footer hint */}
-                <div className='text-muted-foreground border-t pt-3 text-center text-[11px] sm:pt-4 sm:text-xs'>
+                <div className='text-muted-foreground border-t pt-3 text-center text-xs sm:pt-4 sm:text-xs'>
                   {t('You can only check in once per day')}
                 </div>
 

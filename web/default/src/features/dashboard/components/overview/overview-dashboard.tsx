@@ -36,7 +36,6 @@ import {
   Timer,
   type LucideIcon,
 } from 'lucide-react'
-import { motion, useReducedMotion } from 'motion/react'
 import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -50,7 +49,6 @@ import { fetchTokenKey, getApiKeys } from '@/features/keys/api'
 import type { ApiKey } from '@/features/keys/types'
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
 import { getUserModels } from '@/lib/api'
-import { MOTION_TRANSITION } from '@/lib/motion'
 import { ROLE } from '@/lib/roles'
 import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
@@ -202,7 +200,7 @@ function SetupGuideBackdrop(props: { compact?: boolean }) {
             'absolute right-3 [mask-image:linear-gradient(90deg,transparent_0%,black_30%,black_82%,transparent_100%)] text-right tracking-[0.38em] whitespace-pre',
             props.compact
               ? '-top-6 text-[9px] leading-4'
-              : 'top-1 text-[11px] leading-5'
+              : 'top-1 text-xs leading-5'
           )}
         >
           {SETUP_GUIDE_CODE_PATTERN}
@@ -254,7 +252,7 @@ function StartStepItem(props: {
           </span>
           <span className='flex min-w-0 flex-col gap-0.5'>
             <span className='flex items-center gap-2 text-sm font-medium'>
-              <span className='text-muted-foreground font-mono text-xs tabular-nums'>
+              <span className='text-muted-foreground text-xs tabular-nums'>
                 {props.index + 1}.
               </span>
               <span className='truncate'>{props.step.title}</span>
@@ -278,7 +276,6 @@ function RequestPreview(props: {
   signals: HeroSignal[]
 }) {
   const { t } = useTranslation()
-  const shouldReduceMotion = useReducedMotion()
   const [isCopying, setIsCopying] = useState(false)
   const { copyToClipboard } = useCopyToClipboard({ notify: false })
   const previewCurl = buildCurlCommand({
@@ -316,21 +313,7 @@ function RequestPreview(props: {
   }
 
   return (
-    <motion.div
-      initial={shouldReduceMotion ? false : { opacity: 0, y: 10, scale: 0.98 }}
-      animate={shouldReduceMotion ? undefined : { opacity: 1, y: 0, scale: 1 }}
-      transition={MOTION_TRANSITION.slow}
-      className='bg-background/75 relative overflow-hidden rounded-2xl border p-3 shadow-sm backdrop-blur'
-    >
-      {!shouldReduceMotion && (
-        <motion.div
-          className='via-foreground/30 pointer-events-none absolute inset-x-0 top-0 h-px bg-linear-to-r from-transparent to-transparent'
-          animate={{ x: ['-100%', '100%'] }}
-          transition={{ duration: 3.2, repeat: Infinity, ease: 'easeInOut' }}
-          aria-hidden='true'
-        />
-      )}
-
+    <div className='bg-background relative overflow-hidden rounded-2xl border p-3'>
       <div className='flex items-center justify-between gap-3 border-b pb-3'>
         <div className='flex min-w-0 items-center gap-2'>
           <span className='bg-muted flex size-8 shrink-0 items-center justify-center rounded-lg'>
@@ -410,7 +393,7 @@ function RequestPreview(props: {
           )
         })}
       </div>
-    </motion.div>
+    </div>
   )
 }
 

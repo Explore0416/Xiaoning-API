@@ -167,7 +167,7 @@ export function NumericSpinnerInput({
             disabled={disabled}
             title={localValue}
             className={cn(
-              'h-7 min-w-8 max-w-16 cursor-text truncate px-1 text-center font-mono text-sm tabular-nums',
+              'h-7 min-w-8 max-w-16 cursor-text truncate px-1 text-center text-sm tabular-nums',
               disabled && 'cursor-default opacity-50'
             )}
           >

@@ -140,7 +140,7 @@ function ApiKeysMobileList({
                 <div className='truncate text-sm font-semibold'>
                   {apiKey.name}
                 </div>
-                <div className='text-muted-foreground text-[11px]'>
+                <div className='text-muted-foreground text-xs'>
                   {t('API Key')}
                 </div>
               </div>
