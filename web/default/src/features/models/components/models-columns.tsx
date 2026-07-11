@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import type { ColumnDef } from '@tanstack/react-table'
+import { type ColumnDef } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
 import { BadgeCell, BadgeListCell } from '@/components/data-table'
@@ -139,7 +139,7 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
             variant='neutral'
             copyText={name}
             size='sm'
-            className='font-mono'
+            className='-ml-1.5 font-mono'
           />
         )
       },
@@ -172,6 +172,7 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
                 | 'info'
             }
             size='sm'
+            className='-ml-1.5'
           />
         )
 
@@ -181,14 +182,16 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
           model.matched_models &&
           model.matched_models.length > 0
         ) {
-          const matchedBadges = model.matched_models.map((m) => (
-            <StatusBadge key={m} label={m} autoColor={m} size='sm' />
+          const matchedBadges = model.matched_models.map((m, idx) => (
+            <StatusBadge key={idx} label={m} autoColor={m} size='sm' />
           ))
 
           return (
             <TooltipProvider>
               <Tooltip>
-                <TooltipTrigger render={<div />}>{badge}</TooltipTrigger>
+                <TooltipTrigger render={<div className='-ml-1.5' />}>
+                  {badge}
+                </TooltipTrigger>
                 <TooltipContent
                   side='top'
                   className='border-border bg-popover max-h-48 max-w-[320px] overflow-y-auto p-2'
@@ -222,6 +225,7 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
             variant={config.variant}
             size='sm'
             copyable={false}
+            className='-ml-1.5'
           />
         )
       },
@@ -289,8 +293,8 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
         const tagArray = parseModelTags(tags)
         return (
           <BadgeListCell
-            items={tagArray.map((tag) => (
-              <StatusBadge key={tag} label={tag} autoColor={tag} size='sm' />
+            items={tagArray.map((tag, idx) => (
+              <StatusBadge key={idx} label={tag} autoColor={tag} size='sm' />
             ))}
           />
         )
@@ -309,8 +313,8 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
         const endpointArray = formatEndpointsDisplay(endpoints)
         return (
           <BadgeListCell
-            items={endpointArray.map((ep) => (
-              <StatusBadge key={ep} label={ep} autoColor={ep} size='sm' />
+            items={endpointArray.map((ep, idx) => (
+              <StatusBadge key={idx} label={ep} autoColor={ep} size='sm' />
             ))}
           />
         )
@@ -333,9 +337,9 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
         }>
         return (
           <BadgeListCell
-            items={(channels ?? []).map((c) => (
+            items={(channels ?? []).map((c, idx) => (
               <StatusBadge
-                key={`${c.id}-${c.name}-${c.type ?? ''}`}
+                key={idx}
                 label={`${c.name} (${c.type})`}
                 autoColor={c.name}
                 size='sm'
@@ -376,11 +380,11 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
         const quotaTypes = row.getValue('quota_types') as number[]
         return (
           <BadgeListCell
-            items={(quotaTypes ?? []).map((qt) => {
+            items={(quotaTypes ?? []).map((qt, idx) => {
               const config = QUOTA_TYPE_CONFIG[qt]
               return (
                 <StatusBadge
-                  key={qt}
+                  key={idx}
                   label={config?.label || String(qt)}
                   variant={
                     (config?.color === 'error' ? 'danger' : config?.color) as
@@ -414,6 +418,7 @@ export function useModelsColumns(vendors: Vendor[] = []): ColumnDef<Model>[] {
             variant={syncOfficial === 1 ? 'success' : 'warning'}
             size='sm'
             copyable={false}
+            className='-ml-1.5'
           />
         )
       },

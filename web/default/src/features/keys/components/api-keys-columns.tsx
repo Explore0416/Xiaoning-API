@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useQuery } from '@tanstack/react-query'
-import type { ColumnDef } from '@tanstack/react-table'
+import { type ColumnDef } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
 import { BadgeCell, TruncatedCell } from '@/components/data-table'
@@ -35,7 +35,7 @@ import { formatQuota, formatTimestampToDate } from '@/lib/format'
 import { cn } from '@/lib/utils'
 
 import { API_KEY_STATUSES } from '../constants'
-import type { ApiKey } from '../types'
+import { type ApiKey } from '../types'
 import {
   ApiKeyCell,
   ModelLimitsCell,
@@ -117,6 +117,7 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
             label={t(statusConfig.label)}
             variant={statusConfig.variant}
             copyable={false}
+            className='-ml-1.5'
           />
         )
       },
@@ -144,6 +145,7 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
               label={t('Unlimited')}
               variant='neutral'
               copyable={false}
+              className='-ml-1.5'
             />
           )
         }
@@ -223,6 +225,7 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
         }
         return (
           <TruncatedCell
+            className='-ml-1.5'
             tooltipContent={group || '-'}
             tooltipClassName='break-all'
           >
@@ -290,6 +293,7 @@ export function useApiKeysColumns(): ColumnDef<ApiKey>[] {
               label={t('Never')}
               variant='neutral'
               copyable={false}
+              className='-ml-1.5'
             />
           )
         }
