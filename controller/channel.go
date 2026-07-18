@@ -15,7 +15,6 @@ import (
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	relaychannel "github.com/QuantumNous/new-api/relay/channel"
-	"github.com/QuantumNous/new-api/relay/channel/gemini"
 	"github.com/QuantumNous/new-api/relay/channel/ollama"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/authz"
@@ -1203,155 +1202,27 @@ func FetchModels(c *gin.Context) {
 		baseURL = constant.ChannelBaseURLs[req.Type]
 	}
 
-	// remove line breaks and extra spaces.
 	key := strings.TrimSpace(req.Key)
-	key = strings.Split(key, "\n")[0]
-
-	if req.Type == constant.ChannelTypeOllama {
-		models, err := ollama.FetchOllamaModels(baseURL, key)
-		if err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": fmt.Sprintf("获取Ollama模型失败: %s", common.MaskSensitiveInfo(err.Error())),
-			})
-			return
-		}
-
-		names := make([]string, 0, len(models))
-		for _, modelInfo := range models {
-			names = append(names, modelInfo.Name)
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
-			"data":    names,
-		})
-		return
+	if req.Type != constant.ChannelTypeCodex {
+		key = strings.Split(key, "\n")[0]
 	}
 
-	if req.Type == constant.ChannelTypeGemini {
-		models, err := gemini.FetchGeminiModels(baseURL, key, "")
-		if err != nil {
-			c.JSON(http.StatusOK, gin.H{
-				"success": false,
-				"message": fmt.Sprintf("获取Gemini模型失败: %s", common.MaskSensitiveInfo(err.Error())),
-			})
-			return
-		}
-
-		c.JSON(http.StatusOK, gin.H{
-			"success": true,
-			"data":    models,
-		})
-		return
+	channel := &model.Channel{
+		Type:    req.Type,
+		Key:     key,
+		BaseURL: &baseURL,
 	}
-
-	// 以下渠道类型有专用 API 格式，不支持通用 /v1/models 端点
-	unsupportedTypes := map[int]bool{
-		constant.ChannelTypeAws:      true,
-		constant.ChannelTypeVertexAi:  true,
-		constant.ChannelTypeCohere:    true,
-		constant.ChannelTypeDify:      true,
-		constant.ChannelTypeReplicate: true,
-	}
-	if unsupportedTypes[req.Type] {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": "此渠道类型不支持通过通用接口获取模型列表，请使用渠道详情页的更新功能",
-		})
-		return
-	}
-
-	// Build URL based on channel type (matching fetchChannelUpstreamModelIDs logic)
-	var url string
-	switch req.Type {
-	case constant.ChannelTypeAli:
-		url = fmt.Sprintf("%s/compatible-mode/v1/models", baseURL)
-	case constant.ChannelTypeZhipu_v4:
-		if plan, ok := constant.ChannelSpecialBases[baseURL]; ok && plan.OpenAIBaseURL != "" {
-			url = fmt.Sprintf("%s/models", plan.OpenAIBaseURL)
-		} else {
-			url = fmt.Sprintf("%s/api/paas/v4/models", baseURL)
-		}
-	case constant.ChannelTypeVolcEngine:
-		if plan, ok := constant.ChannelSpecialBases[baseURL]; ok && plan.OpenAIBaseURL != "" {
-			url = fmt.Sprintf("%s/v1/models", plan.OpenAIBaseURL)
-		} else {
-			url = fmt.Sprintf("%s/v1/models", baseURL)
-		}
-	case constant.ChannelTypeMoonshot:
-		if plan, ok := constant.ChannelSpecialBases[baseURL]; ok && plan.OpenAIBaseURL != "" {
-			url = fmt.Sprintf("%s/models", plan.OpenAIBaseURL)
-		} else {
-			url = fmt.Sprintf("%s/v1/models", baseURL)
-		}
-	default:
-		url = fmt.Sprintf("%s/v1/models", baseURL)
-	}
-
-	// Build auth headers based on channel type (matching buildFetchModelsHeaders logic)
-	var headers http.Header
-	switch req.Type {
-	case constant.ChannelTypeAnthropic:
-		headers = GetClaudeAuthHeader(key)
-	default:
-		headers = GetAuthHeader(key)
-	}
-
-	request, err := http.NewRequest("GET", url, nil)
+	models, err := fetchChannelUpstreamModelIDs(channel)
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
-			"message": err.Error(),
+			"message": fmt.Sprintf("获取模型列表失败: %s", common.MaskSensitiveInfo(err.Error())),
 		})
 		return
 	}
-	for k := range headers {
-		request.Header.Add(k, headers.Get(k))
-	}
-	request = request.WithContext(context.Background())
-
-	// Use a client with timeout (default 30s)
-	client := &http.Client{Timeout: 30 * time.Second}
-	response, err := client.Do(request)
-	if err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": fmt.Sprintf("请求上游地址失败: %s", common.MaskSensitiveInfo(err.Error())),
-		})
-		return
-	}
-	defer response.Body.Close()
-
-	if response.StatusCode != http.StatusOK {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": fmt.Sprintf("请求上游地址失败，状态码: %d", response.StatusCode),
-		})
-		return
-	}
-
-	var result struct {
-		Data []struct {
-			ID string `json:"id"`
-		} `json:"data"`
-	}
-
-	if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
-		c.JSON(http.StatusOK, gin.H{
-			"success": false,
-			"message": fmt.Sprintf("解析模型列表失败: %s", common.MaskSensitiveInfo(err.Error())),
-		})
-		return
-	}
-
-	var models []string
-	for _, model := range result.Data {
-		models = append(models, model.ID)
-	}
-
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
+		"message": "",
 		"data":    models,
 	})
 }
