@@ -112,6 +112,9 @@ const (
 	advancedCustomEndpointPathEmbeddings             = "/v1/embeddings"
 )
 
+// AdvancedCustomModelListPath identifies the optional OpenAI Models discovery route.
+const AdvancedCustomModelListPath = "/v1/models"
+
 // MatchPath returns the first route whose IncomingPath matches requestPath.
 // Matching mirrors the relay adaptor: exact match, {model} placeholder, and
 // :generateContent <-> :streamGenerateContent equivalence.
@@ -137,6 +140,20 @@ func (c *AdvancedCustomConfig) MatchPathForModel(requestPath string, model strin
 	for _, route := range c.Routes {
 		if matchAdvancedCustomIncomingPath(strings.TrimSpace(route.IncomingPath), requestPath) &&
 			matchAdvancedCustomRouteModel(route.Models, model) {
+			return route, true
+		}
+	}
+	return AdvancedCustomRoute{}, false
+}
+
+// ModelListRoute returns the explicitly configured OpenAI Models discovery route.
+// Template routes that merely happen to match /v1/models are not discovery routes.
+func (c *AdvancedCustomConfig) ModelListRoute() (AdvancedCustomRoute, bool) {
+	if c == nil {
+		return AdvancedCustomRoute{}, false
+	}
+	for _, route := range c.Routes {
+		if strings.TrimSpace(route.IncomingPath) == AdvancedCustomModelListPath {
 			return route, true
 		}
 	}
