@@ -107,7 +107,7 @@ export function ApiKeysMutateDrawer({
     queryKey: ['user-models'],
     queryFn: getUserModels,
     enabled: open,
-    staleTime: 0,
+    staleTime: 10 * 1000,
   })
 
   // Fetch groups
@@ -115,7 +115,7 @@ export function ApiKeysMutateDrawer({
     queryKey: ['user-groups'],
     queryFn: getUserGroups,
     enabled: open,
-    staleTime: 0,
+    staleTime: 10 * 1000,
   })
 
   const models = modelsData?.data || []

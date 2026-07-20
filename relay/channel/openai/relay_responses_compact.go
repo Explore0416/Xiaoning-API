@@ -1,7 +1,7 @@
 package openai
 
 import (
-	"io"
+
 	"net/http"
 
 	"github.com/QuantumNous/new-api/common"
@@ -15,7 +15,7 @@ import (
 func OaiResponsesCompactionHandler(c *gin.Context, resp *http.Response) (*dto.Usage, *types.NewAPIError) {
 	defer service.CloseResponseBodyGracefully(resp)
 
-	responseBody, err := io.ReadAll(resp.Body)
+	responseBody, err := common.ReadAllMax(resp.Body)
 	if err != nil {
 		return nil, types.NewOpenAIError(err, types.ErrorCodeReadResponseBodyFailed, http.StatusInternalServerError)
 	}

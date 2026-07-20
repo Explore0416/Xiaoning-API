@@ -152,7 +152,7 @@ func (a *TaskAdaptor) BuildRequestBody(c *gin.Context, info *relaycommon.RelayIn
 				if err != nil {
 					continue
 				}
-				fileBytes, err := io.ReadAll(file)
+				fileBytes, err := common.ReadAllMax(file)
 				file.Close()
 				if err != nil {
 					continue
@@ -183,7 +183,7 @@ func (a *TaskAdaptor) DoRequest(c *gin.Context, info *relaycommon.RelayInfo, req
 
 // DoResponse handles upstream response, returns taskID etc.
 func (a *TaskAdaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycommon.RelayInfo) (taskID string, taskData []byte, taskErr *dto.TaskError) {
-	responseBody, err := io.ReadAll(resp.Body)
+	responseBody, err := common.ReadAllMax(resp.Body)
 	if err != nil {
 		taskErr = service.TaskErrorWrapper(err, "read_response_body_failed", http.StatusInternalServerError)
 		return
@@ -273,7 +273,7 @@ func (a *TaskAdaptor) signRequest(req *http.Request, accessKey, secretKey string
 	var err error
 
 	if req.Body != nil {
-		bodyBytes, err = io.ReadAll(req.Body)
+		bodyBytes, err = common.ReadAllMax(req.Body)
 		if err != nil {
 			return errors.Wrap(err, "read request body failed")
 		}

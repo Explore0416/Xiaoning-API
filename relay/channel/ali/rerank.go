@@ -2,9 +2,9 @@ package ali
 
 import (
 	"encoding/json"
-	"io"
 	"net/http"
 
+	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/dto"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/service"
@@ -33,7 +33,7 @@ func ConvertRerankRequest(request dto.RerankRequest) *AliRerankRequest {
 }
 
 func RerankHandler(c *gin.Context, resp *http.Response, info *relaycommon.RelayInfo) (*types.NewAPIError, *dto.Usage) {
-	responseBody, err := io.ReadAll(resp.Body)
+	responseBody, err := common.ReadAllMax(resp.Body)
 	if err != nil {
 		return types.NewOpenAIError(err, types.ErrorCodeReadResponseBodyFailed, http.StatusInternalServerError), nil
 	}

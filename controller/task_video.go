@@ -275,8 +275,13 @@ func updateVideoSingleTask(ctx context.Context, adaptor channel.TaskAdaptor, cha
 	if taskResult.Progress != "" {
 		task.Progress = taskResult.Progress
 	}
-	if err := task.Update(); err != nil {
+	// P2-14: CAS update to prevent concurrent polling from double-refunding
+	won, err := task.UpdateWithStatus(preStatus)
+	if err != nil {
 		common.SysLog("UpdateVideoTask task error: " + err.Error())
+		shouldRefund = false
+	} else if !won {
+		logger.LogWarn(ctx, fmt.Sprintf("Task %s CAS lost (old=%s), another process already updated", task.TaskID, preStatus))
 		shouldRefund = false
 	}
 

@@ -1238,7 +1238,7 @@ export function ChannelMutateDrawer({
       initialModelMappingRef.current = ''
       initialStatusCodeMappingRef.current = ''
     }
-  }, [isEditing, channelData, form])
+  }, [isEditing, channelData, open, form])
 
   // Handle type change - set default values for specific types
   useEffect(() => {

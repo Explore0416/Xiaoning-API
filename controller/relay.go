@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -23,6 +24,7 @@ import (
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
+	"github.com/QuantumNous/new-api/setting/system_setting"
 	"github.com/QuantumNous/new-api/types"
 
 	"github.com/bytedance/gopkg/util/gopool"
@@ -251,7 +253,24 @@ func Relay(c *gin.Context, relayFormat types.RelayFormat) {
 var upgrader = websocket.Upgrader{
 	Subprotocols: []string{"realtime"}, // WS 握手支持的协议，如果有使用 Sec-WebSocket-Protocol，则必须在此声明对应的 Protocol TODO add other protocol
 	CheckOrigin: func(r *http.Request) bool {
-		return true // 允许跨域
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			return true // 允许无 Origin 的请求（如非浏览器客户端）
+		}
+		// 提取 origin 的 host 部分
+		originURL, err := url.Parse(origin)
+		if err != nil {
+			return false
+		}
+		serverAddr := system_setting.ServerAddress
+		if serverAddr == "" {
+			return true // 未配置服务器地址时放行
+		}
+		serverURL, err := url.Parse(serverAddr)
+		if err != nil {
+			return true
+		}
+		return originURL.Host == serverURL.Host
 	},
 }
 

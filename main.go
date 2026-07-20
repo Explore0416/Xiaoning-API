@@ -156,7 +156,7 @@ func main() {
 
 	if os.Getenv("ENABLE_PPROF") == "true" {
 		gopool.Go(func() {
-			log.Println(http.ListenAndServe("0.0.0.0:8005", nil))
+			log.Println(http.ListenAndServe("127.0.0.1:8005", nil))
 		})
 		go common.Monitor()
 		common.SysLog("pprof enabled")
@@ -173,7 +173,7 @@ func main() {
 		common.SysLog(fmt.Sprintf("panic detected: %v", err))
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"error": gin.H{
-				"message": fmt.Sprintf("Panic detected, error: %v. Please submit a issue here: https://github.com/Calcium-Ion/new-api", err),
+				"message": "Internal server error",
 				"type":    "new_api_panic",
 			},
 		})
@@ -188,7 +188,7 @@ func main() {
 	store := cookie.NewStore([]byte(common.SessionSecret))
 	store.Options(sessions.Options{
 		Path:     "/",
-		MaxAge:   2592000, // 30 days
+		MaxAge:   604800, // 7 days
 		HttpOnly: true,
 		Secure:   common.SessionCookieSecure,
 		SameSite: http.SameSiteStrictMode,

@@ -81,26 +81,33 @@ const PasswordResetConfirm = () => {
   }, [disableButton, countdown]);
 
   async function handleSubmit(e) {
+    e.preventDefault();
     if (!email || !token) {
       showError(t('无效的重置链接，请重新发起密码重置请求'));
       return;
     }
     setDisableButton(true);
     setLoading(true);
-    const res = await API.post(`/api/user/reset`, {
-      email,
-      token,
-    });
-    const { success, message } = res.data;
-    if (success) {
-      let password = res.data.data;
-      setNewPassword(password);
-      await copy(password);
-      showNotice(`${t('密码已重置并已复制到剪贴板：')} ${password}`);
-    } else {
-      showError(message);
+    try {
+      const res = await API.post(`/api/user/reset`, {
+        email,
+        token,
+      });
+      const { success, message } = res.data;
+      if (success) {
+        let password = res.data.data;
+        setNewPassword(password);
+        await copy(password);
+        showNotice(`${t('密码已重置并已复制到剪贴板：')} ${password}`);
+      } else {
+        showError(message);
+      }
+    } catch (error) {
+      showError(t('密码重置失败，请重试'));
+    } finally {
+      setLoading(false);
+      setDisableButton(false);
     }
-    setLoading(false);
   }
 
   return (

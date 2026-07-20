@@ -44,6 +44,23 @@ function getSavedLanguage(user: User): string | undefined {
 }
 
 /**
+ * Validate and sanitize redirect path to prevent Open Redirect (P1-12).
+ * Only allows same-origin relative paths starting with '/'.
+ */
+function sanitizeRedirectPath(path?: string): string | undefined {
+  if (!path) return undefined
+  if (
+    !path.startsWith('/') ||
+    path.startsWith('//') ||
+    path.includes('://') ||
+    path.includes('\\')
+  ) {
+    return undefined
+  }
+  return path
+}
+
+/**
  * Hook for handling authentication redirects and user data management
  */
 export function useAuthRedirect() {
@@ -87,8 +104,8 @@ export function useAuthRedirect() {
       console.error('Failed to fetch user data:', error)
     }
 
-    // Navigate to target page
-    const targetPath = redirectTo || '/dashboard'
+    // Navigate to target page (P1-12: validate redirect is same-origin relative)
+    const targetPath = sanitizeRedirectPath(redirectTo) || '/dashboard'
     navigate({ to: targetPath, replace: true })
   }
 

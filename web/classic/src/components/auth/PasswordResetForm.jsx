@@ -80,6 +80,7 @@ const PasswordResetForm = () => {
   }
 
   async function handleSubmit(e) {
+    e.preventDefault();
     if (!email) {
       showError(t('请输入邮箱地址'));
       return;
@@ -140,6 +141,8 @@ const PasswordResetForm = () => {
                     value={email}
                     onChange={handleChange}
                     prefix={<IconMail />}
+                    type='email'
+                    required
                   />
 
                   <div className='space-y-2 pt-2'>

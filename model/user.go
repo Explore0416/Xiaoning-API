@@ -943,6 +943,10 @@ func ValidateAccessToken(token string) (*User, error) {
 		}
 		return nil, fmt.Errorf("%w: %v", ErrDatabase, err)
 	}
+	// Reject disabled/banned users
+	if user.Status != common.UserStatusEnabled {
+		return nil, nil
+	}
 	return user, nil
 }
 
@@ -1093,11 +1097,15 @@ func DecreaseUserQuota(id int, quota int, db bool) (err error) {
 }
 
 func decreaseUserQuota(id int, quota int) (err error) {
-	err = DB.Model(&User{}).Where("id = ?", id).Update("quota", gorm.Expr("quota - ?", quota)).Error
-	if err != nil {
-		return err
+	result := DB.Model(&User{}).Where("id = ? AND quota >= ?", id, quota).
+		Update("quota", gorm.Expr("quota - ?", quota))
+	if result.Error != nil {
+		return result.Error
 	}
-	return err
+	if result.RowsAffected == 0 {
+		return errors.New("insufficient quota")
+	}
+	return nil
 }
 
 func DeltaUpdateUserQuota(id int, delta int) (err error) {

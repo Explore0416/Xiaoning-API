@@ -778,6 +778,18 @@ func UpdateChannelStatus(channelId int, usingKey string, status int, reason stri
 	return true
 }
 
+// BatchUpdateChannelStatusDB atomically updates the status of multiple channels
+// in a single SQL statement. Returns the number of rows actually changed.
+func BatchUpdateChannelStatusDB(ids []int, status int) (int64, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	result := DB.Model(&Channel{}).
+		Where("id IN (?) AND status != ?", ids, status).
+		Update("status", status)
+	return result.RowsAffected, result.Error
+}
+
 func EnableChannelByTag(tag string) error {
 	err := DB.Model(&Channel{}).Where("tag = ?", tag).Update("status", common.ChannelStatusEnabled).Error
 	if err != nil {

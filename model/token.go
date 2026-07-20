@@ -15,6 +15,7 @@ type Token struct {
 	Id                 int            `json:"id"`
 	UserId             int            `json:"user_id" gorm:"index"`
 	Key                string         `json:"key" gorm:"type:varchar(128);uniqueIndex"`
+	KeyHash            string         `json:"-" gorm:"type:varchar(64);index"` // P0-6: SHA256 hash for secure lookup
 	Status             int            `json:"status" gorm:"default:1"`
 	Name               string         `json:"name" gorm:"index" `
 	CreatedTime        int64          `json:"created_time" gorm:"bigint"`
@@ -29,6 +30,11 @@ type Token struct {
 	Group              string         `json:"group" gorm:"default:''"`
 	CrossGroupRetry    bool           `json:"cross_group_retry"` // 跨分组重试，仅auto分组有效
 	DeletedAt          gorm.DeletedAt `gorm:"index"`
+}
+
+// ComputeKeyHash returns the SHA256 hex digest of a token key.
+func ComputeKeyHash(key string) string {
+	return common.Sha256Hex([]byte(key))
 }
 
 func (token *Token) Clean() {
@@ -260,6 +266,7 @@ func GetTokenById(id int) (*Token, error) {
 }
 
 func GetTokenByKey(key string, fromDB bool) (token *Token, err error) {
+	keyHash := ComputeKeyHash(key)
 	defer func() {
 		// Update Redis cache asynchronously on successful DB read
 		if shouldUpdateRedis(fromDB, err) && token != nil {
@@ -271,19 +278,23 @@ func GetTokenByKey(key string, fromDB bool) (token *Token, err error) {
 		}
 	}()
 	if !fromDB && common.RedisEnabled {
-		// Try Redis first
-		token, err := cacheGetTokenByKey(key)
-		if err == nil {
-			return token, nil
+		// Try Redis first (cache functions accept plaintext key, compute hash internally)
+		cachedToken, cacheErr := cacheGetTokenByKey(key)
+		if cacheErr == nil {
+			return cachedToken, nil
 		}
 		// Don't return error - fall through to DB
 	}
 	fromDB = true
-	err = DB.Where(commonKeyCol+" = ?", key).First(&token).Error
+	// P0-6: Look up by key_hash instead of plaintext key
+	err = DB.Where("key_hash = ?", keyHash).First(&token).Error
 	return token, err
 }
 
 func (token *Token) Insert() error {
+	if token.Key != "" && token.KeyHash == "" {
+		token.KeyHash = ComputeKeyHash(token.Key)
+	}
 	var err error
 	err = DB.Create(token).Error
 	return err
@@ -429,14 +440,20 @@ func DecreaseTokenQuota(id int, key string, quota int) (err error) {
 }
 
 func decreaseTokenQuota(id int, quota int) (err error) {
-	err = DB.Model(&Token{}).Where("id = ?", id).Updates(
+	result := DB.Model(&Token{}).Where("id = ? AND remain_quota >= ?", id, quota).Updates(
 		map[string]interface{}{
 			"remain_quota":  gorm.Expr("remain_quota - ?", quota),
 			"used_quota":    gorm.Expr("used_quota + ?", quota),
 			"accessed_time": common.GetTimestamp(),
 		},
-	).Error
-	return err
+	)
+	if result.Error != nil {
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("insufficient token quota")
+	}
+	return nil
 }
 
 // CountUserTokens returns total number of tokens for the given user, used for pagination
@@ -515,4 +532,47 @@ func InvalidateUserTokensCache(userId int) error {
 		}
 	}
 	return firstErr
+}
+
+// migrateTokenKeyHash backfills the KeyHash column for existing tokens
+// that were created before P0-6 was implemented.
+func migrateTokenKeyHash() {
+	// Find tokens with empty KeyHash
+	var tokens []Token
+	if err := DB.Unscoped().Where("key_hash = '' OR key_hash IS NULL").
+		Select("id", "key").Find(&tokens).Error; err != nil {
+		common.SysLog("migrateTokenKeyHash: failed to query tokens: " + err.Error())
+		return
+	}
+	if len(tokens) == 0 {
+		return
+	}
+	common.SysLog(fmt.Sprintf("migrateTokenKeyHash: backfilling %d tokens", len(tokens)))
+	batch := make(map[int]string, len(tokens))
+	for _, t := range tokens {
+		if t.Key == "" {
+			continue
+		}
+		batch[t.Id] = ComputeKeyHash(t.Key)
+	}
+	// Update in batches of 200
+	ids := make([]int, 0, len(batch))
+	hashes := make([]string, 0, len(batch))
+	for id, hash := range batch {
+		ids = append(ids, id)
+		hashes = append(hashes, hash)
+	}
+	for i := 0; i < len(ids); i += 200 {
+		end := i + 200
+		if end > len(ids) {
+			end = len(ids)
+		}
+		chunkIDs := ids[i:end]
+		chunkHashes := hashes[i:end]
+		for j, id := range chunkIDs {
+			if err := DB.Model(&Token{}).Where("id = ?", id).Update("key_hash", chunkHashes[j]).Error; err != nil {
+				common.SysLog(fmt.Sprintf("migrateTokenKeyHash: failed to update token %d: %v", id, err))
+			}
+		}
+	}
 }

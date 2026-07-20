@@ -9,27 +9,32 @@ import (
 )
 
 func cacheSetToken(token Token) error {
-	key := common.GenerateHMAC(token.Key)
+	// P0-6: Use key hash as Redis cache key (not plaintext key)
+	keyHash := ComputeKeyHash(token.Key)
 	token.Clean()
-	err := common.RedisHSetObj(fmt.Sprintf("token:%s", key), &token, time.Duration(common.RedisKeyCacheSeconds())*time.Second)
+	err := common.RedisHSetObj(fmt.Sprintf("token:%s", keyHash), &token, time.Duration(common.RedisKeyCacheSeconds())*time.Second)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
+// cacheDeleteToken deletes a token from Redis cache.
+// Accepts the plaintext key and computes the hash internally.
 func cacheDeleteToken(key string) error {
-	key = common.GenerateHMAC(key)
-	err := common.RedisDelKey(fmt.Sprintf("token:%s", key))
+	keyHash := ComputeKeyHash(key)
+	err := common.RedisDelKey(fmt.Sprintf("token:%s", keyHash))
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
+// cacheIncrTokenQuota increments a token's quota in Redis cache.
+// Accepts the plaintext key and computes the hash internally.
 func cacheIncrTokenQuota(key string, increment int64) error {
-	key = common.GenerateHMAC(key)
-	err := common.RedisHIncrBy(fmt.Sprintf("token:%s", key), constant.TokenFiledRemainQuota, increment)
+	keyHash := ComputeKeyHash(key)
+	err := common.RedisHIncrBy(fmt.Sprintf("token:%s", keyHash), constant.TokenFiledRemainQuota, increment)
 	if err != nil {
 		return err
 	}
@@ -41,25 +46,24 @@ func cacheDecrTokenQuota(key string, decrement int64) error {
 }
 
 func cacheSetTokenField(key string, field string, value string) error {
-	key = common.GenerateHMAC(key)
-	err := common.RedisHSetField(fmt.Sprintf("token:%s", key), field, value)
+	keyHash := ComputeKeyHash(key)
+	err := common.RedisHSetField(fmt.Sprintf("token:%s", keyHash), field, value)
 	if err != nil {
 		return err
 	}
 	return nil
 }
 
-// CacheGetTokenByKey 从缓存中获取 token，如果缓存中不存在，则从数据库中获取
+// cacheGetTokenByKey retrieves a token from Redis cache by its plaintext key.
 func cacheGetTokenByKey(key string) (*Token, error) {
-	hmacKey := common.GenerateHMAC(key)
+	keyHash := ComputeKeyHash(key)
 	if !common.RedisEnabled {
 		return nil, fmt.Errorf("redis is not enabled")
 	}
 	var token Token
-	err := common.RedisHGetObj(fmt.Sprintf("token:%s", hmacKey), &token)
+	err := common.RedisHGetObj(fmt.Sprintf("token:%s", keyHash), &token)
 	if err != nil {
 		return nil, err
 	}
-	token.Key = key
 	return &token, nil
 }

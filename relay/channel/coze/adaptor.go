@@ -8,9 +8,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/relay/channel"
-	"github.com/QuantumNous/new-api/relay/common"
+	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/types"
 
 	"github.com/gin-gonic/gin"
@@ -19,33 +20,33 @@ import (
 type Adaptor struct {
 }
 
-func (a *Adaptor) ConvertGeminiRequest(*gin.Context, *common.RelayInfo, *dto.GeminiChatRequest) (any, error) {
+func (a *Adaptor) ConvertGeminiRequest(*gin.Context, *relaycommon.RelayInfo, *dto.GeminiChatRequest) (any, error) {
 	//TODO implement me
 	return nil, errors.New("not implemented")
 }
 
 // ConvertAudioRequest implements channel.Adaptor.
-func (a *Adaptor) ConvertAudioRequest(c *gin.Context, info *common.RelayInfo, request dto.AudioRequest) (io.Reader, error) {
+func (a *Adaptor) ConvertAudioRequest(c *gin.Context, info *relaycommon.RelayInfo, request dto.AudioRequest) (io.Reader, error) {
 	return nil, errors.New("not implemented")
 }
 
 // ConvertClaudeRequest implements channel.Adaptor.
-func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, info *common.RelayInfo, request *dto.ClaudeRequest) (any, error) {
+func (a *Adaptor) ConvertClaudeRequest(c *gin.Context, info *relaycommon.RelayInfo, request *dto.ClaudeRequest) (any, error) {
 	return nil, errors.New("not implemented")
 }
 
 // ConvertEmbeddingRequest implements channel.Adaptor.
-func (a *Adaptor) ConvertEmbeddingRequest(c *gin.Context, info *common.RelayInfo, request dto.EmbeddingRequest) (any, error) {
+func (a *Adaptor) ConvertEmbeddingRequest(c *gin.Context, info *relaycommon.RelayInfo, request dto.EmbeddingRequest) (any, error) {
 	return nil, errors.New("not implemented")
 }
 
 // ConvertImageRequest implements channel.Adaptor.
-func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *common.RelayInfo, request dto.ImageRequest) (any, error) {
+func (a *Adaptor) ConvertImageRequest(c *gin.Context, info *relaycommon.RelayInfo, request dto.ImageRequest) (any, error) {
 	return nil, errors.New("not implemented")
 }
 
 // ConvertOpenAIRequest implements channel.Adaptor.
-func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *common.RelayInfo, request *dto.GeneralOpenAIRequest) (any, error) {
+func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayInfo, request *dto.GeneralOpenAIRequest) (any, error) {
 	if request == nil {
 		return nil, errors.New("request is nil")
 	}
@@ -53,7 +54,7 @@ func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *common.RelayInfo, r
 }
 
 // ConvertOpenAIResponsesRequest implements channel.Adaptor.
-func (a *Adaptor) ConvertOpenAIResponsesRequest(c *gin.Context, info *common.RelayInfo, request dto.OpenAIResponsesRequest) (any, error) {
+func (a *Adaptor) ConvertOpenAIResponsesRequest(c *gin.Context, info *relaycommon.RelayInfo, request dto.OpenAIResponsesRequest) (any, error) {
 	return nil, errors.New("not implemented")
 }
 
@@ -63,7 +64,7 @@ func (a *Adaptor) ConvertRerankRequest(c *gin.Context, relayMode int, request dt
 }
 
 // DoRequest implements channel.Adaptor.
-func (a *Adaptor) DoRequest(c *gin.Context, info *common.RelayInfo, requestBody io.Reader) (any, error) {
+func (a *Adaptor) DoRequest(c *gin.Context, info *relaycommon.RelayInfo, requestBody io.Reader) (any, error) {
 	if info.IsStream {
 		return channel.DoApiRequest(a, c, info, requestBody)
 	}
@@ -75,7 +76,7 @@ func (a *Adaptor) DoRequest(c *gin.Context, info *common.RelayInfo, requestBody 
 	}
 	// 解析 resp
 	var cozeResponse CozeChatResponse
-	respBody, err := io.ReadAll(resp.Body)
+	respBody, err := common.ReadAllMax(resp.Body)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +103,7 @@ func (a *Adaptor) DoRequest(c *gin.Context, info *common.RelayInfo, requestBody 
 }
 
 // DoResponse implements channel.Adaptor.
-func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *common.RelayInfo) (usage any, err *types.NewAPIError) {
+func (a *Adaptor) DoResponse(c *gin.Context, resp *http.Response, info *relaycommon.RelayInfo) (usage any, err *types.NewAPIError) {
 	if info.IsStream {
 		usage, err = cozeChatStreamHandler(c, info, resp)
 	} else {
@@ -122,17 +123,17 @@ func (a *Adaptor) GetModelList() []string {
 }
 
 // GetRequestURL implements channel.Adaptor.
-func (a *Adaptor) GetRequestURL(info *common.RelayInfo) (string, error) {
+func (a *Adaptor) GetRequestURL(info *relaycommon.RelayInfo) (string, error) {
 	return fmt.Sprintf("%s/v3/chat", info.ChannelBaseUrl), nil
 }
 
 // Init implements channel.Adaptor.
-func (a *Adaptor) Init(info *common.RelayInfo) {
+func (a *Adaptor) Init(info *relaycommon.RelayInfo) {
 
 }
 
 // SetupRequestHeader implements channel.Adaptor.
-func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *common.RelayInfo) error {
+func (a *Adaptor) SetupRequestHeader(c *gin.Context, req *http.Header, info *relaycommon.RelayInfo) error {
 	channel.SetupApiRequestHeader(info, c, req)
 	req.Set("Authorization", "Bearer "+info.ApiKey)
 	return nil

@@ -358,10 +358,15 @@ func ResetPassword(c *gin.Context) {
 		return
 	}
 	common.DeleteKey(req.Email, common.PasswordResetPurpose)
+	// 将新密码通过邮件发送给用户，不在响应中明文返回（P2-12）
+	subject := "Your password has been reset"
+	body := fmt.Sprintf("Your new temporary password is: %s\n\nPlease log in and change your password immediately.", password)
+	if sendErr := common.SendEmail(subject, req.Email, body); sendErr != nil {
+		logger.LogWarn(c.Request.Context(), fmt.Sprintf("failed to send password reset email to %s: %s", req.Email, sendErr.Error()))
+	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"message": "",
-		"data":    password,
+		"message": "Password has been reset and sent to your email",
 	})
 	return
 }

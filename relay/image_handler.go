@@ -133,11 +133,15 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 		}
 	}
 
-	if usage.(*dto.Usage).TotalTokens == 0 {
-		usage.(*dto.Usage).TotalTokens = 1
+	usageTyped, ok := usage.(*dto.Usage)
+	if !ok {
+		return types.NewError(fmt.Errorf("unexpected usage type: %T", usage), types.ErrorCodeBadResponse)
 	}
-	if usage.(*dto.Usage).PromptTokens == 0 {
-		usage.(*dto.Usage).PromptTokens = 1
+	if usageTyped.TotalTokens == 0 {
+		usageTyped.TotalTokens = 1
+	}
+	if usageTyped.PromptTokens == 0 {
+		usageTyped.PromptTokens = 1
 	}
 
 	quality := request.Quality
@@ -157,6 +161,6 @@ func ImageHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *type
 		logContent = append(logContent, fmt.Sprintf("生成数量 %d", imageN))
 	}
 
-	service.PostTextConsumeQuota(c, info, usage.(*dto.Usage), logContent)
+	service.PostTextConsumeQuota(c, info, usageTyped, logContent)
 	return nil
 }

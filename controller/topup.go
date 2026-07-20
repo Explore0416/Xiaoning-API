@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -386,6 +387,12 @@ func EpayNotify(c *gin.Context) {
 			if topUp.PaymentMethod != verifyInfo.Type {
 				logger.LogInfo(c.Request.Context(), fmt.Sprintf("易支付 实际支付方式与订单不同 trade_no=%s order_payment_method=%s actual_type=%s client_ip=%s", verifyInfo.ServiceTradeNo, topUp.PaymentMethod, verifyInfo.Type, c.ClientIP()))
 				topUp.PaymentMethod = verifyInfo.Type
+			}
+			// Verify callback amount matches order amount
+			callbackMoney, parseErr := strconv.ParseFloat(verifyInfo.Money, 64)
+			if parseErr != nil || math.Abs(callbackMoney-topUp.Money) > 0.01 {
+				logger.LogError(c.Request.Context(), fmt.Sprintf("易支付 金额不匹配 trade_no=%s order_money=%.2f callback_money=%q client_ip=%s", verifyInfo.ServiceTradeNo, topUp.Money, verifyInfo.Money, c.ClientIP()))
+				return
 			}
 			topUp.Status = common.TopUpStatusSuccess
 			err := topUp.Update()

@@ -3,7 +3,7 @@ package gemini
 import (
 	"errors"
 	"fmt"
-	"io"
+
 	"net/http"
 
 	"github.com/QuantumNous/new-api/common"
@@ -21,7 +21,7 @@ import (
 func GeminiResponsesHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Response) (*dto.Usage, *types.NewAPIError) {
 	defer service.CloseResponseBodyGracefully(resp)
 
-	responseBody, err := io.ReadAll(resp.Body)
+	responseBody, err := common.ReadAllMax(resp.Body)
 	if err != nil {
 		return nil, types.NewOpenAIError(err, types.ErrorCodeBadResponseBody, http.StatusInternalServerError)
 	}

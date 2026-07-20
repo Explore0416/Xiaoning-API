@@ -216,6 +216,7 @@ const LoginForm = () => {
   }
 
   async function handleSubmit(e) {
+    e.preventDefault();
     if ((hasUserAgreement || hasPrivacyPolicy) && !agreedToTerms) {
       showInfo(t('请先阅读并同意用户协议和隐私政策'));
       return;
@@ -752,6 +753,8 @@ const LoginForm = () => {
                   name='username'
                   onChange={(value) => handleChange('username', value)}
                   prefix={<IconMail />}
+                  required
+                  maxLength={64}
                 />
 
                 <Form.Input
@@ -762,6 +765,8 @@ const LoginForm = () => {
                   mode='password'
                   onChange={(value) => handleChange('password', value)}
                   prefix={<IconLock />}
+                  required
+                  maxLength={64}
                 />
 
                 {(hasUserAgreement || hasPrivacyPolicy) && (

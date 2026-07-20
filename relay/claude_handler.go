@@ -218,6 +218,10 @@ func ClaudeHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *typ
 		return newAPIError
 	}
 
-	service.PostTextConsumeQuota(c, info, usage.(*dto.Usage), nil)
+	usageTyped, ok := usage.(*dto.Usage)
+	if !ok {
+		return types.NewError(fmt.Errorf("unexpected usage type: %T", usage), types.ErrorCodeBadResponse)
+	}
+	service.PostTextConsumeQuota(c, info, usageTyped, nil)
 	return nil
 }

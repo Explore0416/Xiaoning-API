@@ -53,7 +53,7 @@ function useGroupRatios(): Record<string, number> {
   const { data } = useQuery({
     queryKey: ['user-groups'],
     queryFn: getUserGroups,
-    staleTime: 0,
+    staleTime: 10 * 1000,
     select: (res) => {
       if (!res.success || !res.data) return {}
       const ratios: Record<string, number> = {}

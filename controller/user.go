@@ -9,6 +9,7 @@ import (
 	"strconv"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/dto"
@@ -37,6 +38,47 @@ var (
 	errOriginalPasswordFail = errors.New("original password is incorrect")
 )
 
+// loginFailureRecord 记录单个用户名的登录失败信息
+type loginFailureRecord struct {
+	Count    int
+	LastFail time.Time
+}
+
+// loginFailures 基于内存的登录失败计数器，用于简易暴力破解防护
+var loginFailures sync.Map // map[string]*loginFailureRecord
+
+// loginFailureCleanupOnce ensures the cleanup goroutine starts only once
+var loginFailureCleanupOnce sync.Once
+
+func init() {
+	loginFailureCleanupOnce.Do(func() {
+		go func() {
+			ticker := time.NewTicker(30 * time.Minute)
+			defer ticker.Stop()
+			for range ticker.C {
+				now := time.Now()
+				loginFailures.Range(func(key, value any) bool {
+					if now.Sub(value.(*loginFailureRecord).LastFail) > 1*time.Hour {
+						loginFailures.Delete(key)
+					}
+					return true
+				})
+				redeemRateLimiter.Range(func(key, value any) bool {
+					if now.Sub(value.(*loginFailureRecord).LastFail) > 2*redeemLockDuration {
+						redeemRateLimiter.Delete(key)
+					}
+					return true
+				})
+			}
+		}()
+	})
+}
+
+const (
+	maxLoginAttempts  = 10              // 5分钟内最大失败次数
+	loginLockDuration = 5 * time.Minute // 锁定时长
+)
+
 func Login(c *gin.Context) {
 	if !common.PasswordLoginEnabled {
 		common.ApiErrorI18n(c, i18n.MsgUserPasswordLoginDisabled)
@@ -54,6 +96,17 @@ func Login(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
 	}
+
+	// 暴力破解防护：检查该用户名是否在短时间内失败次数过多
+	if rec, ok := loginFailures.Load(username); ok {
+		record := rec.(*loginFailureRecord)
+		if record.Count >= maxLoginAttempts && time.Since(record.LastFail) < loginLockDuration {
+			common.ApiErrorMsg(c, i18n.T(c, i18n.MsgInvalidParams)) // 复用通用错误，避免泄露锁定状态
+			common.SysLog(fmt.Sprintf("Login blocked for user %s: too many failed attempts (IP: %s)", username, c.ClientIP()))
+			return
+		}
+	}
+
 	user := model.User{
 		Username: username,
 		Password: password,
@@ -68,6 +121,11 @@ func Login(c *gin.Context) {
 			common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		default:
 			common.ApiErrorI18n(c, i18n.MsgUserUsernameOrPasswordError)
+			// 记录登录失败次数（仅对密码错误类失败计数）
+			record, _ := loginFailures.LoadOrStore(username, &loginFailureRecord{})
+			rec := record.(*loginFailureRecord)
+			rec.Count++
+			rec.LastFail = time.Now()
 		}
 		return
 	}
@@ -95,6 +153,8 @@ func Login(c *gin.Context) {
 	}
 
 	setupLogin(&user, c)
+	// 登录成功，清除该用户名的失败计数
+	loginFailures.Delete(username)
 }
 
 // loginMethodFromContext 根据请求路径推导登录方式，用于登录审计日志。
@@ -138,6 +198,8 @@ func recordLoginAudit(user *model.User, c *gin.Context) {
 func setupLogin(user *model.User, c *gin.Context) {
 	model.UpdateUserLastLoginAt(user.Id)
 	session := sessions.Default(c)
+	// Clear existing session to prevent session fixation attacks (P2-13)
+	session.Clear()
 	session.Set("id", user.Id)
 	session.Set("username", user.Username)
 	session.Set("role", user.Role)
@@ -343,8 +405,20 @@ func SearchUsers(c *gin.Context) {
 	return
 }
 
+// canManageTargetRole reports whether myRole can manage a user with targetRole.
+// Root can manage anyone. Other admins can only manage strictly lower roles.
+// Self-edit is handled separately via canManageTargetUser.
 func canManageTargetRole(myRole int, targetRole int) bool {
 	return myRole == common.RoleRootUser || myRole > targetRole
+}
+
+// canManageTargetUser allows self-edit for non-destructive admin operations
+// (view/update own profile) while still blocking peer-admin and self-disable/delete.
+func canManageTargetUser(myRole int, myID int, targetRole int, targetID int) bool {
+	if myID > 0 && myID == targetID {
+		return true
+	}
+	return canManageTargetRole(myRole, targetRole)
 }
 
 func GetUser(c *gin.Context) {
@@ -359,7 +433,8 @@ func GetUser(c *gin.Context) {
 		return
 	}
 	myRole := c.GetInt("role")
-	if !canManageTargetRole(myRole, user.Role) {
+	myID := c.GetInt("id")
+	if !canManageTargetUser(myRole, myID, user.Role, user.Id) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
 		return
 	}
@@ -502,7 +577,6 @@ func GetSelf(c *gin.Context) {
 		"inviter_id":        user.InviterId,
 		"linux_do_id":       user.LinuxDOId,
 		"setting":           user.Setting,
-		"stripe_customer":   user.StripeCustomer,
 		"sidebar_modules":   userSetting.SidebarModules, // 正确提取sidebar_modules字段
 		"permissions":       permissions,                // 新增权限字段
 	}
@@ -681,9 +755,14 @@ func UpdateUser(c *gin.Context) {
 	}
 	updatedUser.Role = originUser.Role
 	myRole := c.GetInt("role")
-	if !canManageTargetRole(myRole, originUser.Role) {
+	myID := c.GetInt("id")
+	if !canManageTargetUser(myRole, myID, originUser.Role, originUser.Id) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionHigherLevel)
 		return
+	}
+	// Non-root self-edit cannot escalate or demote own role.
+	if myID == originUser.Id && myRole != common.RoleRootUser {
+		updatedUser.Role = originUser.Role
 	}
 	if updatedUser.Password == "$I_LOVE_U" {
 		updatedUser.Password = "" // rollback to what it should be
@@ -741,7 +820,8 @@ func AdminClearUserBinding(c *gin.Context) {
 	}
 
 	myRole := c.GetInt("role")
-	if !canManageTargetRole(myRole, user.Role) {
+	myID := c.GetInt("id")
+	if !canManageTargetUser(myRole, myID, user.Role, user.Id) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
 		return
 	}
@@ -1052,7 +1132,9 @@ func ManageUser(c *gin.Context) {
 		return
 	}
 	myRole := c.GetInt("role")
-	if !canManageTargetRole(myRole, user.Role) {
+	myID := c.GetInt("id")
+	// Destructive manage actions never allow self-target or peer-admin.
+	if myID == user.Id || !canManageTargetRole(myRole, user.Role) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionHigherLevel)
 		return
 	}
@@ -1129,10 +1211,23 @@ func ManageUser(c *gin.Context) {
 				"quota": logger.LogQuota(req.Value),
 			})
 		case "override":
-			oldQuota := user.Quota
-			if err := model.DB.Model(&model.User{}).Where("id = ?", user.Id).Update("quota", req.Value).Error; err != nil {
-				common.ApiError(c, err)
+			if req.Value < 0 {
+				common.ApiErrorI18n(c, i18n.MsgUserQuotaChangeZero)
 				return
+			}
+			oldQuota := user.Quota
+			delta := req.Value - oldQuota
+			switch {
+			case delta > 0:
+				if err := model.IncreaseUserQuota(user.Id, delta, true); err != nil {
+					common.ApiError(c, err)
+					return
+				}
+			case delta < 0:
+				if err := model.DecreaseUserQuota(user.Id, -delta, true); err != nil {
+					common.ApiError(c, err)
+					return
+				}
 			}
 			recordManageAuditFor(c, user.Id, "user.quota_override", map[string]interface{}{
 				"from": logger.LogQuota(oldQuota),
@@ -1252,6 +1347,14 @@ type topUpRequest struct {
 var topUpLocks sync.Map
 var topUpCreateLock sync.Mutex
 
+// redeemRateLimiter 限制兑换码尝试频率（P2-11），按用户ID限流
+var redeemRateLimiter sync.Map // map[int]*loginFailureRecord
+
+const (
+	maxRedeemAttempts  = 5              // 10分钟内最大尝试次数
+	redeemLockDuration = 10 * time.Minute
+)
+
 type topUpTryLock struct {
 	ch chan struct{}
 }
@@ -1309,13 +1412,28 @@ func TopUp(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	// 限制兑换码尝试频率（P2-11）
+	if rec, ok := redeemRateLimiter.Load(id); ok {
+		failRec := rec.(*loginFailureRecord)
+		if failRec.Count >= maxRedeemAttempts && time.Since(failRec.LastFail) < redeemLockDuration {
+			common.ApiErrorMsg(c, "Too many redemption attempts, please try again later")
+			return
+		}
+	}
 	quota, err := model.Redeem(req.Key, id)
 	if err != nil {
 		// 不向用户暴露兑换失败的细分原因，避免攻击者根据错误类型判断兑换码状态。
 		common.ApiErrorI18n(c, i18n.MsgRedeemFailed)
 		logger.LogError(c, fmt.Sprintf("failed to redeem key %s for user %d: %s", req.Key, id, err.Error()))
+		// 记录失败次数
+		record, _ := redeemRateLimiter.LoadOrStore(id, &loginFailureRecord{})
+		failRec := record.(*loginFailureRecord)
+		failRec.Count++
+		failRec.LastFail = time.Now()
 		return
 	}
+	// 兑换成功，清除失败计数
+	redeemRateLimiter.Delete(id)
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",

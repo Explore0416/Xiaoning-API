@@ -101,6 +101,8 @@ func logHelper(ctx context.Context, level string, msg string) {
 			id = requestID
 		}
 	}
+	// P0-8: Strip credentials from log messages before output
+	msg = common.SanitizeForLog(msg)
 	now := time.Now()
 	common.LogWriterMu.RLock()
 	writer := gin.DefaultErrorWriter

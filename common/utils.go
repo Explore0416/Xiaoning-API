@@ -349,3 +349,21 @@ func BuildURL(base string, endpoint string) string {
 	}
 	return u.ResolveReference(ref).String()
 }
+
+const MaxResponseBodySize int64 = 100 << 20 // 100 MiB
+
+var ErrBodyTooLarge = errors.New("response body too large")
+
+// ReadAllMax reads from r up to MaxResponseBodySize bytes.
+// Returns ErrBodyTooLarge if the body exceeds the limit.
+func ReadAllMax(r io.Reader) ([]byte, error) {
+	limited := io.LimitReader(r, MaxResponseBodySize+1)
+	data, err := io.ReadAll(limited)
+	if err != nil {
+		return data, err
+	}
+	if int64(len(data)) > MaxResponseBodySize {
+		return data[:MaxResponseBodySize], fmt.Errorf("response body exceeds %d bytes: %w", MaxResponseBodySize, ErrBodyTooLarge)
+	}
+	return data, nil
+}

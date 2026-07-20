@@ -139,7 +139,10 @@ func ResponsesHelper(c *gin.Context, info *relaycommon.RelayInfo) (newAPIError *
 		return newAPIError
 	}
 
-	usageDto := usage.(*dto.Usage)
+	usageDto, ok := usage.(*dto.Usage)
+	if !ok {
+		return types.NewError(fmt.Errorf("unexpected usage type: %T", usage), types.ErrorCodeBadResponse)
+	}
 	if info.RelayMode == relayconstant.RelayModeResponsesCompact {
 		originModelName := info.OriginModelName
 		originPriceData := info.PriceData

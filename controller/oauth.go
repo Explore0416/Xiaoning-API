@@ -65,6 +65,10 @@ func HandleOAuth(c *gin.Context) {
 		return
 	}
 
+	// State 验证通过后立即删除，确保一次性使用（防止 CSRF 重放）
+	session.Delete("oauth_state")
+	session.Save()
+
 	// 2. Check if user is already logged in (bind flow)
 	username := session.Get("username")
 	if username != nil {

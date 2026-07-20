@@ -56,9 +56,8 @@ var LOG_DB *gorm.DB
 
 func createRootAccountIfNeed() error {
 	var user User
-	//if user.Status != common.UserStatusEnabled {
 	if err := DB.First(&user).Error; err != nil {
-		common.SysLog("no user exists, create a root user for you: username is root, password is 123456")
+		common.SysLog("no user exists, creating a default root user (username: root) — please change the default password immediately after first login")
 		hashedPassword, err := common.Password2Hash("123456")
 		if err != nil {
 			return err
@@ -72,7 +71,9 @@ func createRootAccountIfNeed() error {
 			AccessToken: nil,
 			Quota:       100000000,
 		}
-		DB.Create(&rootUser)
+		if err := DB.Create(&rootUser).Error; err != nil {
+			return fmt.Errorf("failed to create root user: %w", err)
+		}
 	}
 	return nil
 }
@@ -312,6 +313,8 @@ func migrateDB() error {
 			return err
 		}
 	}
+	// P0-6: Backfill KeyHash for existing tokens
+	migrateTokenKeyHash()
 	return nil
 }
 

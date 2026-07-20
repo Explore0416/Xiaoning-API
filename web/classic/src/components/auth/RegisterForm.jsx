@@ -216,6 +216,7 @@ const RegisterForm = () => {
   }
 
   async function handleSubmit(e) {
+    e.preventDefault();
     if (password.length < 8) {
       showInfo('密码长度不得小于 8 位！');
       return;
@@ -580,6 +581,8 @@ const RegisterForm = () => {
                   name='username'
                   onChange={(value) => handleChange('username', value)}
                   prefix={<IconUser />}
+                  required
+                  maxLength={64}
                 />
 
                 <Form.Input
@@ -590,6 +593,8 @@ const RegisterForm = () => {
                   mode='password'
                   onChange={(value) => handleChange('password', value)}
                   prefix={<IconLock />}
+                  required
+                  maxLength={64}
                 />
 
                 <Form.Input
@@ -600,6 +605,8 @@ const RegisterForm = () => {
                   mode='password'
                   onChange={(value) => handleChange('password2', value)}
                   prefix={<IconLock />}
+                  required
+                  maxLength={64}
                 />
 
                 {showEmailVerification && (
@@ -612,6 +619,7 @@ const RegisterForm = () => {
                       type='email'
                       onChange={(value) => handleChange('email', value)}
                       prefix={<IconMail />}
+                      required
                       suffix={
                         <Button
                           onClick={sendVerificationCode}

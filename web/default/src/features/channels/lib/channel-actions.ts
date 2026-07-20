@@ -450,17 +450,25 @@ export async function handleBatchEnable(
     const successCount = response.success ? response.data || 0 : 0
     const failCount = ids.length - successCount
 
-    if (successCount > 0) {
+    if (!response.success) {
+      toast.error(response.message || i18next.t('Failed to enable channels'))
+    } else if (failCount > 0 && successCount > 0) {
+      toast(
+        i18next.t('Enabled {{success}} channel(s), {{fail}} failed', {
+          success: successCount,
+          fail: failCount,
+        }),
+        { type: 'warning' }
+      )
+      queryClient?.invalidateQueries({ queryKey: channelsQueryKeys.lists() })
+      onSuccess?.()
+    } else if (successCount > 0) {
       toast.success(
         i18next.t('{{count}} channel(s) enabled', { count: successCount })
       )
       queryClient?.invalidateQueries({ queryKey: channelsQueryKeys.lists() })
       onSuccess?.()
-    }
-
-    if (!response.success) {
-      toast.error(response.message || i18next.t('Failed to enable channels'))
-    } else if (failCount > 0) {
+    } else {
       toast.error(
         i18next.t('{{count}} channel(s) failed to enable', { count: failCount })
       )
@@ -491,17 +499,25 @@ export async function handleBatchDisable(
     const successCount = response.success ? response.data || 0 : 0
     const failCount = ids.length - successCount
 
-    if (successCount > 0) {
+    if (!response.success) {
+      toast.error(response.message || i18next.t('Failed to disable channels'))
+    } else if (failCount > 0 && successCount > 0) {
+      toast(
+        i18next.t('Disabled {{success}} channel(s), {{fail}} failed', {
+          success: successCount,
+          fail: failCount,
+        }),
+        { type: 'warning' }
+      )
+      queryClient?.invalidateQueries({ queryKey: channelsQueryKeys.lists() })
+      onSuccess?.()
+    } else if (successCount > 0) {
       toast.success(
         i18next.t('{{count}} channel(s) disabled', { count: successCount })
       )
       queryClient?.invalidateQueries({ queryKey: channelsQueryKeys.lists() })
       onSuccess?.()
-    }
-
-    if (!response.success) {
-      toast.error(response.message || i18next.t('Failed to disable channels'))
-    } else if (failCount > 0) {
+    } else {
       toast.error(
         i18next.t('{{count}} channel(s) failed to disable', {
           count: failCount,
@@ -611,11 +627,17 @@ export async function handleDeleteAllDisabled(
   try {
     const response = await deleteDisabledChannels()
     if (response.success) {
-      toast.success(
-        i18next.t('{{count}} disabled channel(s) deleted', {
-          count: response.data || 0,
-        })
-      )
+      if ((response.data || 0) === 0) {
+        toast.info(
+          i18next.t('No disabled channels to delete')
+        )
+      } else {
+        toast.success(
+          i18next.t('{{count}} disabled channel(s) deleted', {
+            count: response.data,
+          })
+        )
+      }
       queryClient?.invalidateQueries({ queryKey: channelsQueryKeys.lists() })
       onSuccess?.(response.data || 0)
     } else {
@@ -671,10 +693,13 @@ export async function handleTestAllChannels(
     if (response.success) {
       toast.success(
         i18next.t(
-          'Testing all enabled channels started. Please refresh to see results.'
+          'Testing all enabled channels started. Results will refresh shortly.'
         )
       )
       queryClient?.invalidateQueries({ queryKey: channelsQueryKeys.lists() })
+      setTimeout(() => {
+        queryClient?.invalidateQueries({ queryKey: channelsQueryKeys.lists() })
+      }, 5000)
       onSuccess?.()
     } else {
       toast.error(

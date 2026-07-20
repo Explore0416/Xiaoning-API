@@ -172,7 +172,16 @@ func TryUserAuth() func(c *gin.Context) {
 		session := sessions.Default(c)
 		id := session.Get("id")
 		if id != nil {
-			c.Set("id", id)
+			// P1-7: Verify user status before trusting session
+			if status, ok := session.Get("status").(int); ok && status == common.UserStatusEnabled {
+				c.Set("id", id)
+				if role, ok := session.Get("role").(int); ok {
+					c.Set("role", role)
+				}
+				if group, ok := session.Get("group").(string); ok {
+					c.Set("group", group)
+				}
+			}
 		}
 		c.Next()
 	}
@@ -225,6 +234,13 @@ func TokenOrUserAuth() func(c *gin.Context) {
 		if id := session.Get("id"); id != nil {
 			if status, ok := session.Get("status").(int); ok && status == common.UserStatusEnabled {
 				c.Set("id", id)
+				// Set role and group from session (P1-8: previously missing, bypassing role checks)
+				if role, ok := session.Get("role").(int); ok {
+					c.Set("role", role)
+				}
+				if group, ok := session.Get("group").(string); ok {
+					c.Set("group", group)
+				}
 				c.Next()
 				return
 			}
