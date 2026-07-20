@@ -372,6 +372,15 @@ func canManageTargetRole(myRole int, targetRole int) bool {
 	return myRole == common.RoleRootUser || myRole > targetRole
 }
 
+// canManageTargetUser allows self-edit for non-destructive admin operations
+// while still blocking peer-admin management and self-disable/delete.
+func canManageTargetUser(myRole int, myID int, targetRole int, targetID int) bool {
+	if myID > 0 && myID == targetID {
+		return true
+	}
+	return canManageTargetRole(myRole, targetRole)
+}
+
 func GetUser(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -384,7 +393,8 @@ func GetUser(c *gin.Context) {
 		return
 	}
 	myRole := c.GetInt("role")
-	if !canManageTargetRole(myRole, user.Role) {
+	myID := c.GetInt("id")
+	if !canManageTargetUser(myRole, myID, user.Role, user.Id) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
 		return
 	}
@@ -711,9 +721,14 @@ func UpdateUser(c *gin.Context) {
 	}
 	updatedUser.Role = originUser.Role
 	myRole := c.GetInt("role")
-	if !canManageTargetRole(myRole, originUser.Role) {
+	myID := c.GetInt("id")
+	if !canManageTargetUser(myRole, myID, originUser.Role, originUser.Id) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionHigherLevel)
 		return
+	}
+	// Non-root self-edit cannot escalate or demote own role.
+	if myID == originUser.Id && myRole != common.RoleRootUser {
+		updatedUser.Role = originUser.Role
 	}
 	if updatedUser.Password == "$I_LOVE_U" {
 		updatedUser.Password = "" // rollback to what it should be
@@ -778,7 +793,8 @@ func AdminClearUserBinding(c *gin.Context) {
 	}
 
 	myRole := c.GetInt("role")
-	if !canManageTargetRole(myRole, user.Role) {
+	myID := c.GetInt("id")
+	if !canManageTargetUser(myRole, myID, user.Role, user.Id) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
 		return
 	}
@@ -1119,7 +1135,9 @@ func ManageUser(c *gin.Context) {
 		return
 	}
 	myRole := c.GetInt("role")
-	if !canManageTargetRole(myRole, user.Role) {
+	myID := c.GetInt("id")
+	// Destructive manage actions never allow self-target or peer-admin.
+	if myID == user.Id || !canManageTargetRole(myRole, user.Role) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionHigherLevel)
 		return
 	}
