@@ -34,6 +34,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { formatQuota } from '@/lib/format'
 import { copyToClipboard } from '@/lib/copy-to-clipboard'
 
 import { type ApiKey } from '../types'
@@ -152,6 +153,36 @@ export function ApiKeyCell({ apiKey }: { apiKey: ApiKey }) {
         </TooltipContent>
       </Tooltip>
     </div>
+  )
+}
+
+export function UnlimitedQuotaBadge(props: { used: number }) {
+  const { t } = useTranslation()
+  const formattedUsed = formatQuota(props.used)
+
+  return (
+    <Popover>
+      <PopoverTrigger
+        render={
+          <button
+            type='button'
+            className='focus-visible:ring-ring/50 -ml-1.5 cursor-help rounded-4xl focus-visible:ring-[3px] focus-visible:outline-none'
+            aria-label={`${t('Unlimited')}; ${t('Used:')} ${formattedUsed}`}
+          />
+        }
+      >
+        <StatusBadge
+          label={t('Unlimited')}
+          variant='neutral'
+          copyable={false}
+        />
+      </PopoverTrigger>
+      <PopoverContent className='w-auto p-2' side='top'>
+        <span className='text-xs'>
+          {t('Used:')} {formattedUsed}
+        </span>
+      </PopoverContent>
+    </Popover>
   )
 }
 
