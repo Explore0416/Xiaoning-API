@@ -686,7 +686,7 @@ export const ModelGroupSelector: React.FC<ModelGroupSelectorProps> = ({
   const renderGroupList = () => (
     <div
       className={cn(
-        'min-w-0 space-y-2',
+        'min-w-0',
         !isMobile && modelGroupSelectorLayoutClasses.groupColumn
       )}
     >
@@ -708,7 +708,7 @@ export const ModelGroupSelector: React.FC<ModelGroupSelectorProps> = ({
               className={cn(
                 'flex min-w-0 items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-[12px] leading-4 transition-colors',
                 isSelected
-                  ? 'bg-primary/10 text-foreground'
+                  ? 'bg-primary/15 text-foreground ring-1 ring-primary/25'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground'
               )}
               disabled={disabled}
@@ -716,6 +716,7 @@ export const ModelGroupSelector: React.FC<ModelGroupSelectorProps> = ({
               onClick={() => handleGroupChange(group.value)}
               ref={isSelected ? selectedGroupOptionRef : undefined}
               type='button'
+              title={group.desc || group.description || group.label}
             >
               <span className='min-w-0 truncate font-medium'>
                 {group.label}
@@ -804,7 +805,7 @@ export const ModelGroupSelector: React.FC<ModelGroupSelectorProps> = ({
     <div
       className={
         isMobile
-          ? 'grid gap-3 p-2 md:grid-cols-[9.5rem_minmax(0,1fr)]'
+          ? 'grid gap-3 p-2 md:grid-cols-[11rem_minmax(0,1fr)]'
           : modelGroupSelectorLayoutClasses.desktopContent
       }
     >

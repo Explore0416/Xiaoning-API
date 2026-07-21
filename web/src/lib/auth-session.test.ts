@@ -68,6 +68,19 @@ describe('authentication session coordination', () => {
     })
   })
 
+  test('getFreshAuthHeaders maps refresh failures to AuthSessionError kinds', async () => {
+    const { AuthSessionError, getFreshAuthHeaders } = await import(
+      './auth-session'
+    )
+
+    useAuthStore.getState().auth.reset('complete')
+    await assert.rejects(
+      () => getFreshAuthHeaders(),
+      (error: unknown) =>
+        error instanceof AuthSessionError && error.kind === 'session_expired'
+    )
+  })
+
   test('a session mismatch clears only local state and retries without the stale SID', async () => {
     let expectedSID: string | undefined = bundle.session.sid
     const requestedSIDs: Array<string | undefined> = []

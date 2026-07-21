@@ -17,15 +17,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 export const modelGroupSelectorLayoutClasses = {
-  desktopPanel: 'max-h-[min(50vh,28rem)] overflow-hidden',
+  // Size to content first; only grow/scroll when groups/models get long.
+  desktopPanel: 'max-h-[min(70vh,32rem)] overflow-hidden',
   desktopContent:
-    'grid h-[min(50vh,28rem)] max-h-[min(50vh,28rem)] min-h-0 gap-3 p-2 md:grid-cols-[9.5rem_minmax(0,1fr)]',
-  groupColumn: 'flex h-full min-h-0 min-w-0 flex-col overflow-hidden',
-  groupScroll: 'mt-2 grid min-h-0 flex-1 gap-1 overflow-y-auto pr-1',
-  modelColumn: 'flex h-full min-h-0 min-w-0 overflow-hidden rounded-lg border',
-  modelCommand: 'min-h-0 flex-1 rounded-lg border-0 bg-transparent p-1',
+    'grid max-h-[min(70vh,32rem)] min-h-0 items-start gap-3 p-2 md:grid-cols-[11rem_minmax(0,1fr)]',
+  groupColumn: 'flex min-h-0 min-w-0 flex-col overflow-hidden',
+  groupScroll:
+    'mt-1.5 grid max-h-[min(56vh,24rem)] min-h-0 gap-1 overflow-y-auto pr-1',
+  modelColumn: 'flex min-h-0 min-w-0 overflow-hidden rounded-lg border',
+  modelCommand: 'flex min-h-0 w-full flex-col rounded-lg border-0 bg-transparent p-1',
   modelList:
-    'min-h-0 flex-1 max-h-none [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:block [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent',
+    'max-h-[min(56vh,24rem)] min-h-0 [scrollbar-color:var(--border)_transparent] [scrollbar-width:thin] [&::-webkit-scrollbar]:block [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border [&::-webkit-scrollbar-track]:bg-transparent',
   modelItem:
     'relative mb-0.5 flex items-center justify-between rounded-md border border-transparent px-2 py-1.5 pl-3 text-[12px] leading-4 transition-colors before:absolute before:inset-y-2 before:left-1 before:w-1 before:rounded-full before:bg-transparent',
   selectedModelItem:

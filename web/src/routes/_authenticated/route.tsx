@@ -19,18 +19,32 @@ For commercial licensing, please contact support@quantumnous.com
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
 import { AuthenticatedLayout } from '@/components/layout'
+import { ensureFreshAccessToken } from '@/lib/auth-session'
 import { useAuthStore } from '@/stores/auth-store'
 
 export const Route = createFileRoute('/_authenticated')({
-  beforeLoad: ({ location }) => {
-    const { auth } = useAuthStore.getState()
+  beforeLoad: async ({ location }) => {
+    const outcome = await ensureFreshAccessToken()
+    if (outcome.kind === 'authenticated') return
 
-    if (!auth.user || !auth.accessToken) {
-      throw redirect({
-        to: '/sign-in',
-        search: { redirect: location.href },
-      })
+    // Transient network/backend issues should not wipe the page into a 500
+    // error boundary. Keep the current shell if a still-valid token exists.
+    if (outcome.kind === 'transient_error') {
+      const { auth } = useAuthStore.getState()
+      if (
+        auth.user &&
+        auth.accessToken &&
+        auth.accessExpiresAt &&
+        auth.accessExpiresAt > Math.floor(Date.now() / 1000)
+      ) {
+        return
+      }
     }
+
+    throw redirect({
+      to: '/sign-in',
+      search: { redirect: location.href },
+    })
   },
   component: AuthenticatedLayout,
 })
