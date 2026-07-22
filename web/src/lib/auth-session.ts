@@ -487,6 +487,14 @@ export async function getFreshAuthHeaders(): Promise<Record<string, string>> {
     return getCommonHeaders()
   }
 
+  // Prefer a still-present access token over hard-failing the caller. Stream
+  // and download paths can then surface a normal 401 and retry, instead of
+  // collapsing the whole SPA into the root error boundary.
+  const current = useAuthStore.getState().auth
+  if (current.accessToken) {
+    return getCommonHeaders()
+  }
+
   if (outcome.kind === 'transient_error') {
     throw new AuthSessionError(
       'transient',

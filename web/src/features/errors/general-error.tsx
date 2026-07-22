@@ -89,6 +89,36 @@ export function GeneralError({
     window.location.replace(target)
   }, [sessionError])
 
+  // Transient network blips should not leave users stuck on a dead-end page.
+  // Automatically recover once, then offer a manual retry.
+  useEffect(() => {
+    if (!transientError || typeof window === 'undefined') return
+    const key = 'new-api:auto-recovered-transient-error'
+    try {
+      if (sessionStorage.getItem(key) === '1') return
+      sessionStorage.setItem(key, '1')
+    } catch {
+      /* empty */
+    }
+    const timer = window.setTimeout(() => {
+      window.location.reload()
+    }, 1200)
+    return () => window.clearTimeout(timer)
+  }, [transientError])
+
+  const handleRetry = () => {
+    try {
+      sessionStorage.removeItem('new-api:auto-recovered-transient-error')
+    } catch {
+      /* empty */
+    }
+    if (typeof window !== 'undefined') {
+      window.location.reload()
+      return
+    }
+    void navigate({ to: '/' })
+  }
+
   const title = sessionError
     ? t('Session expired!')
     : isRateLimited
@@ -100,13 +130,13 @@ export function GeneralError({
     ? t('Re-login')
     : isRateLimited
       ? t('Please wait a moment before trying again.')
-      : t('Please try again later.')
+      : transientError
+        ? t('Please wait a moment before trying again.')
+        : t('Please try again later.')
   const statusLabel = sessionError
     ? 401
     : transientError
-      ? status && status >= 500
-        ? status
-        : '!'
+      ? '!'
       : (status ?? 500)
 
   return (
@@ -117,7 +147,7 @@ export function GeneralError({
         )}
         <span className='font-medium'>{title}</span>
         <p className='text-muted-foreground text-center'>
-          {sessionError ? (
+          {sessionError || transientError ? (
             description
           ) : (
             <>
@@ -125,7 +155,7 @@ export function GeneralError({
             </>
           )}
         </p>
-        {!minimal && !sessionError && (
+        {!minimal && !sessionError && !transientError && (
           <p className='text-muted-foreground text-center text-sm'>
             {t('If this keeps happening, please report it on GitHub Issues.')}
           </p>
@@ -136,6 +166,13 @@ export function GeneralError({
               <Button onClick={() => navigate({ to: '/sign-in' })}>
                 {t('Re-login')}
               </Button>
+            ) : transientError ? (
+              <>
+                <Button onClick={handleRetry}>{t('Retry')}</Button>
+                <Button variant='outline' onClick={() => history.go(-1)}>
+                  {t('Go Back')}
+                </Button>
+              </>
             ) : (
               <>
                 <Button variant='outline' onClick={() => history.go(-1)}>

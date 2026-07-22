@@ -82,11 +82,10 @@ const queryClient = new QueryClient({
   },
   queryCache: new QueryCache({
     onError: (error) => {
-      if (error instanceof AxiosError) {
-        if (error.response?.status === 500) {
-          toast.error(i18next.t('Internal Server Error!'))
-          router.navigate({ to: '/500' })
-        }
+      // Never hard-navigate the whole SPA to /500 for a single query failure.
+      // Idle dashboards and background refetches would otherwise wipe the page.
+      if (error instanceof AxiosError && error.response?.status === 500) {
+        toast.error(i18next.t('Internal Server Error!'))
       }
     },
   }),
