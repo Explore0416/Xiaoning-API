@@ -440,13 +440,17 @@ func DecreaseTokenQuota(id int, key string, quota int) (err error) {
 }
 
 func decreaseTokenQuota(id int, quota int) (err error) {
-	result := DB.Model(&Token{}).Where("id = ? AND remain_quota >= ?", id, quota).Updates(
-		map[string]interface{}{
-			"remain_quota":  gorm.Expr("remain_quota - ?", quota),
-			"used_quota":    gorm.Expr("used_quota + ?", quota),
-			"accessed_time": common.GetTimestamp(),
-		},
-	)
+	// Unlimited tokens carry no meaningful remain_quota (it is commonly 0 or
+	// already negative), so the balance guard below would always reject them.
+	result := DB.Model(&Token{}).
+		Where("id = ? AND (unlimited_quota = ? OR remain_quota >= ?)", id, true, quota).
+		Updates(
+			map[string]interface{}{
+				"remain_quota":  gorm.Expr("remain_quota - ?", quota),
+				"used_quota":    gorm.Expr("used_quota + ?", quota),
+				"accessed_time": common.GetTimestamp(),
+			},
+		)
 	if result.Error != nil {
 		return result.Error
 	}

@@ -177,6 +177,21 @@ func classifyDashboardCredential(c *gin.Context) (*model.UserBase, service.AuthI
 	return user, service.AuthIdentity{UserID: user.Id, UserAuthVersion: user.AuthVersion}, dashboardCredentialPAT, nil
 }
 
+// IsAdminCredential peeks at the request credential before authentication has
+// run, so rate limiting can exempt operator traffic. It reuses the normal
+// credential classification path and fails closed: any parse, lookup, or
+// status problem yields false and the caller applies the standard limit.
+func IsAdminCredential(c *gin.Context) bool {
+	user, _, kind, err := classifyDashboardCredential(c)
+	if err != nil || kind == dashboardCredentialUnmatched || user == nil {
+		return false
+	}
+	if user.Status != common.UserStatusEnabled {
+		return false
+	}
+	return user.Role >= common.RoleAdminUser
+}
+
 func authorizationToken(header string) (string, bool) {
 	header = strings.TrimSpace(header)
 	if header == "" {

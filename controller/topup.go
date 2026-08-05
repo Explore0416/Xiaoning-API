@@ -23,6 +23,7 @@ import (
 )
 
 func GetTopUpInfo(c *gin.Context) {
+	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
 	complianceConfirmed := operation_setting.IsPaymentComplianceConfirmed()
 
 	// 获取支付方式
@@ -165,7 +166,7 @@ func getPayMoney(amount int64, group string) float64 {
 	dPrice := decimal.NewFromFloat(operation_setting.Price)
 	// apply optional preset discount by the original request amount (if configured), default 1.0
 	discount := 1.0
-	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[int(amount)]; ok {
+	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[float64(amount)]; ok {
 		if ds > 0 {
 			discount = ds
 		}

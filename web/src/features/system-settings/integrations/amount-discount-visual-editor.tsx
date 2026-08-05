@@ -55,7 +55,7 @@ export function AmountDiscountVisualEditor({
 
     return Object.entries(parsed)
       .map(([amount, rate]) => ({
-        amount: Number.parseInt(amount, 10),
+        amount: Number.parseFloat(amount),
         discountRate:
           typeof rate === 'number' ? rate : Number.parseFloat(String(rate)),
       }))
