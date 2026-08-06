@@ -36,6 +36,7 @@ import { initializeFrontendCache } from '@/lib/frontend-cache'
 import { handleServerError } from '@/lib/handle-server-error'
 
 import { DirectionProvider } from './context/direction-provider'
+import { FontProvider } from './context/font-provider'
 import { ThemeProvider } from './context/theme-provider'
 import './i18n/config'
 // Generated Routes
@@ -82,10 +83,11 @@ const queryClient = new QueryClient({
   },
   queryCache: new QueryCache({
     onError: (error) => {
-      // Never hard-navigate the whole SPA to /500 for a single query failure.
-      // Idle dashboards and background refetches would otherwise wipe the page.
-      if (error instanceof AxiosError && error.response?.status === 500) {
-        toast.error(i18next.t('Internal Server Error!'))
+      if (error instanceof AxiosError) {
+        if (error.response?.status === 500) {
+          toast.error(i18next.t('Internal Server Error!'))
+          router.navigate({ to: '/500' })
+        }
       }
     },
   }),
@@ -159,9 +161,11 @@ if (!rootElement.innerHTML) {
     <StrictMode>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider>
-          <DirectionProvider>
-            <RouterProvider router={router} />
-          </DirectionProvider>
+          <FontProvider>
+            <DirectionProvider>
+              <RouterProvider router={router} />
+            </DirectionProvider>
+          </FontProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </StrictMode>

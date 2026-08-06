@@ -66,25 +66,6 @@ export class AuthRotationError extends Error {
   }
 }
 
-export type AuthSessionErrorKind =
-  | 'session_expired'
-  | 'transient'
-  | 'out_of_sync'
-
-export class AuthSessionError extends Error {
-  readonly kind: AuthSessionErrorKind
-
-  constructor(kind: AuthSessionErrorKind, message: string, cause?: unknown) {
-    super(message, cause === undefined ? undefined : { cause })
-    this.name = 'AuthSessionError'
-    this.kind = kind
-  }
-}
-
-export function isAuthSessionError(error: unknown): error is AuthSessionError {
-  return error instanceof AuthSessionError
-}
-
 const authClient = axios.create({
   baseURL: '',
   withCredentials: true,
@@ -94,12 +75,8 @@ const authClient = axios.create({
 })
 
 const refreshRaceDelays = [80, 200, 500] as const
-/** Refresh this many seconds before access token expiry. */
-const ACCESS_TOKEN_REFRESH_SKEW_SECONDS = 90
 let refreshPromise: Promise<RefreshOutcome> | null = null
 let authEpoch = 0
-let keepaliveTimer: ReturnType<typeof globalThis.setTimeout> | null = null
-let keepaliveStarted = false
 
 class AuthRefreshSupersededError extends Error {
   constructor() {
@@ -175,7 +152,6 @@ export function applyAuthBundle(
   const previousSID = useAuthStore.getState().auth.session?.sid
   authEpoch += 1
   useAuthStore.getState().auth.setBundle(bundle)
-  scheduleAuthSessionKeepalive()
   if (synchronizeTabs && previousSID !== bundle.session.sid) {
     publishAuthSessionEvent('authenticated', bundle.session.sid)
   }
@@ -212,7 +188,6 @@ export function clearAuthentication(
 ): void {
   const sid = useAuthStore.getState().auth.session?.sid
   authEpoch += 1
-  clearAuthSessionKeepaliveTimer()
   useAuthStore.getState().auth.reset(bootstrapState)
   if (synchronizeTabs && sid) {
     publishAuthSessionEvent('signed_out', sid)
@@ -278,7 +253,7 @@ export function createRefreshRunner(
       return { kind: 'anonymous' }
     }
 
-    if (!response.status || response.status >= 500) {
+    if (!response.status || response.status >= 500 || response.status === 429) {
       runtime.markTransient()
       return {
         kind: 'transient_error',
@@ -389,7 +364,6 @@ export async function bootstrapAuthentication(): Promise<RefreshOutcome> {
   const bundle = currentValidAuthBundle()
   if (bundle) {
     useAuthStore.getState().auth.setBootstrapState('complete')
-    scheduleAuthSessionKeepalive()
     return { kind: 'authenticated', bundle }
   }
 
@@ -400,11 +374,7 @@ export async function bootstrapAuthentication(): Promise<RefreshOutcome> {
   }
 
   auth.setBootstrapState('checking')
-  const outcome = await refreshAuthentication()
-  if (outcome.kind === 'authenticated') {
-    scheduleAuthSessionKeepalive()
-  }
-  return outcome
+  return refreshAuthentication()
 }
 
 export function getCommonHeaders(): Record<string, string> {
@@ -418,171 +388,33 @@ export function getCommonHeaders(): Record<string, string> {
   return headers
 }
 
-/**
- * Ensures the in-memory access token is still valid, refreshing when it is
- * within the skew window or already expired. Never throws.
- */
-export async function ensureFreshAccessToken(
-  skewSeconds = ACCESS_TOKEN_REFRESH_SKEW_SECONDS
-): Promise<RefreshOutcome> {
+export async function getFreshAuthHeaders(): Promise<Record<string, string>> {
   const auth = useAuthStore.getState().auth
-  const refreshBefore = Math.floor(Date.now() / 1000) + Math.max(0, skewSeconds)
+  const refreshBefore = Math.floor(Date.now() / 1000) + 60
   if (
     auth.accessToken &&
     auth.accessExpiresAt &&
-    auth.accessExpiresAt > refreshBefore &&
-    auth.user &&
-    auth.session
+    auth.accessExpiresAt > refreshBefore
   ) {
-    useAuthStore.getState().auth.setBootstrapState('complete')
-    return {
-      kind: 'authenticated',
-      bundle: {
-        access_token: auth.accessToken,
-        token_type: 'Bearer',
-        access_expires_at: auth.accessExpiresAt,
-        user: auth.user,
-        session: auth.session,
-      },
-    }
-  }
-
-  // No local identity and no reason to hit refresh.
-  if (!auth.user && !auth.session && auth.bootstrapState === 'complete') {
-    return { kind: 'anonymous' }
+    return getCommonHeaders()
   }
 
   const outcome = await refreshAuthentication()
   if (outcome.kind === 'authenticated') {
-    scheduleAuthSessionKeepalive()
-    return outcome
+    return getCommonHeaders()
   }
 
   const current = useAuthStore.getState().auth
   if (
     current.accessToken &&
     current.accessExpiresAt &&
-    current.accessExpiresAt > Math.floor(Date.now() / 1000) &&
-    current.user &&
-    current.session
+    current.accessExpiresAt > Math.floor(Date.now() / 1000)
   ) {
-    return {
-      kind: 'authenticated',
-      bundle: {
-        access_token: current.accessToken,
-        token_type: 'Bearer',
-        access_expires_at: current.accessExpiresAt,
-        user: current.user,
-        session: current.session,
-      },
-    }
-  }
-
-  return outcome
-}
-
-export async function getFreshAuthHeaders(): Promise<Record<string, string>> {
-  const outcome = await ensureFreshAccessToken()
-  if (outcome.kind === 'authenticated') {
-    return getCommonHeaders()
-  }
-
-  // Prefer a still-present access token over hard-failing the caller. Stream
-  // and download paths can then surface a normal 401 and retry, instead of
-  // collapsing the whole SPA into the root error boundary.
-  const current = useAuthStore.getState().auth
-  if (current.accessToken) {
     return getCommonHeaders()
   }
 
   if (outcome.kind === 'transient_error') {
-    throw new AuthSessionError(
-      'transient',
-      t('Network connection failed or server not responding'),
-      outcome.error
-    )
+    throw new Error(t('Request failed'), { cause: outcome.error })
   }
-
-  if (outcome.kind === 'out_of_sync') {
-    throw new AuthSessionError('out_of_sync', t('Session expired!'))
-  }
-
-  throw new AuthSessionError('session_expired', t('Session expired!'))
-}
-
-function clearAuthSessionKeepaliveTimer(): void {
-  if (keepaliveTimer !== null) {
-    globalThis.clearTimeout(keepaliveTimer)
-    keepaliveTimer = null
-  }
-}
-
-function scheduleAuthSessionKeepalive(): void {
-  if (typeof window === 'undefined') return
-  clearAuthSessionKeepaliveTimer()
-
-  const expiresAt = useAuthStore.getState().auth.accessExpiresAt
-  if (!expiresAt) return
-
-  const now = Math.floor(Date.now() / 1000)
-  const refreshAt = expiresAt - ACCESS_TOKEN_REFRESH_SKEW_SECONDS
-  const delayMs = Math.max(5_000, (refreshAt - now) * 1000)
-
-  keepaliveTimer = globalThis.setTimeout(() => {
-    void ensureFreshAccessToken()
-      .then((outcome) => {
-        if (outcome.kind === 'authenticated') {
-          scheduleAuthSessionKeepalive()
-        }
-      })
-      .catch(() => {
-        // Keepalive must never surface as an uncaught rejection.
-      })
-  }, delayMs)
-}
-
-/**
- * Proactively refreshes the access token before expiry and when the tab
- * becomes visible again, so idle dashboards do not hit a cold 401 path.
- * Returns a disposer that stops timers/listeners.
- */
-export function startAuthSessionKeepalive(): () => void {
-  if (typeof window === 'undefined') return () => {}
-  if (keepaliveStarted) {
-    scheduleAuthSessionKeepalive()
-    return () => {}
-  }
-  keepaliveStarted = true
-
-  const onVisible = () => {
-    if (document.visibilityState !== 'visible') return
-    void ensureFreshAccessToken()
-      .then((outcome) => {
-        if (outcome.kind === 'authenticated') {
-          scheduleAuthSessionKeepalive()
-        }
-      })
-      .catch(() => undefined)
-  }
-
-  const onFocus = () => {
-    void ensureFreshAccessToken()
-      .then((outcome) => {
-        if (outcome.kind === 'authenticated') {
-          scheduleAuthSessionKeepalive()
-        }
-      })
-      .catch(() => undefined)
-  }
-
-  document.addEventListener('visibilitychange', onVisible)
-  window.addEventListener('focus', onFocus)
-  scheduleAuthSessionKeepalive()
-
-  return () => {
-    keepaliveStarted = false
-    clearAuthSessionKeepaliveTimer()
-    document.removeEventListener('visibilitychange', onVisible)
-    window.removeEventListener('focus', onFocus)
-  }
+  throw new Error(t('Session expired!'))
 }

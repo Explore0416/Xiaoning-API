@@ -65,7 +65,7 @@ import { cn } from '@/lib/utils'
 import {
   modelGroupSelectorLayoutClasses,
   scrollSelectedOptionIntoView,
-} from './model-group-selector-layout'
+} from './model-group-selector/layout'
 
 interface ModelOption {
   label: string
@@ -271,7 +271,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = React.memo(
                   <div
                     className={cn(
                       'text-muted-foreground px-2 py-1 font-medium',
-                      isMobile ? 'text-xs' : 'text-xs'
+                      isMobile ? 'text-xs' : 'text-[10px]'
                     )}
                   >
                     {t('{{category}} Models', { category })}
@@ -292,7 +292,7 @@ export const ModelSelector: React.FC<ModelSelectorProps> = React.memo(
                         <div
                           className={cn(
                             'truncate font-medium',
-                            isMobile ? 'text-sm' : 'text-xs'
+                            isMobile ? 'text-sm' : 'text-[11px]'
                           )}
                         >
                           <span className='inline'>{model.label}</span>
@@ -418,7 +418,7 @@ export const GroupSelector: React.FC<GroupSelectorProps> = React.memo(
           className={isMobile ? '!max-h-full flex-1 p-2' : 'max-h-[240px]'}
         >
           <CommandGroup>
-            <div className='text-muted-foreground px-2 py-1 text-xs font-medium'>
+            <div className='text-muted-foreground px-2 py-1 text-[10px] font-medium'>
               {t('Model Group')}
             </div>
             {groups.map((group) => (
@@ -435,7 +435,7 @@ export const GroupSelector: React.FC<GroupSelectorProps> = React.memo(
               >
                 <div className='flex min-w-0 flex-1 items-center gap-2 pr-4'>
                   <div className='flex min-w-0 flex-1 flex-col'>
-                    <span className='text-foreground truncate text-xs font-medium'>
+                    <span className='text-foreground truncate text-[11px] font-medium'>
                       {group.label}
                     </span>
                     {(group.desc || group.description) && (
@@ -676,7 +676,7 @@ export const ModelGroupSelector: React.FC<ModelGroupSelectorProps> = ({
       <span className='min-w-0 truncate text-xs'>
         {currentModel?.label || t('Model')}
       </span>
-      <span className='bg-muted text-muted-foreground hidden max-w-20 shrink-0 rounded px-1.5 py-0.5 text-xs sm:inline-flex'>
+      <span className='bg-muted text-muted-foreground hidden max-w-20 shrink-0 rounded px-1.5 py-0.5 text-[10px] sm:inline-flex'>
         {currentGroup?.label || t('Group')}
       </span>
       <ChevronsUpDown className='text-muted-foreground ml-auto size-3.5 shrink-0 opacity-60' />
@@ -686,11 +686,11 @@ export const ModelGroupSelector: React.FC<ModelGroupSelectorProps> = ({
   const renderGroupList = () => (
     <div
       className={cn(
-        'min-w-0',
+        'min-w-0 space-y-2',
         !isMobile && modelGroupSelectorLayoutClasses.groupColumn
       )}
     >
-      <div className='text-muted-foreground px-1 text-xs leading-4 font-medium'>
+      <div className='text-muted-foreground px-1 text-[11px] leading-4 font-medium'>
         {t('Model Group')}
       </div>
       <div
@@ -708,7 +708,7 @@ export const ModelGroupSelector: React.FC<ModelGroupSelectorProps> = ({
               className={cn(
                 'flex min-w-0 items-center justify-between gap-2 rounded-md px-2.5 py-2 text-left text-[12px] leading-4 transition-colors',
                 isSelected
-                  ? 'bg-primary/15 text-foreground ring-1 ring-primary/25'
+                  ? 'bg-primary/10 text-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-foreground'
               )}
               disabled={disabled}
@@ -716,7 +716,6 @@ export const ModelGroupSelector: React.FC<ModelGroupSelectorProps> = ({
               onClick={() => handleGroupChange(group.value)}
               ref={isSelected ? selectedGroupOptionRef : undefined}
               type='button'
-              title={group.desc || group.description || group.label}
             >
               <span className='min-w-0 truncate font-medium'>
                 {group.label}
@@ -805,7 +804,7 @@ export const ModelGroupSelector: React.FC<ModelGroupSelectorProps> = ({
     <div
       className={
         isMobile
-          ? 'grid gap-3 p-2 md:grid-cols-[11rem_minmax(0,1fr)]'
+          ? 'grid gap-3 p-2 md:grid-cols-[9.5rem_minmax(0,1fr)]'
           : modelGroupSelectorLayoutClasses.desktopContent
       }
     >

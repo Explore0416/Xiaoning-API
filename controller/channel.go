@@ -11,12 +11,12 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
-	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/model"
 	relaychannel "github.com/QuantumNous/new-api/relay/channel"
 	"github.com/QuantumNous/new-api/relay/channel/ollama"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
+	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/authz"
 
@@ -244,7 +244,7 @@ func FetchUpstreamModels(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
-			"message": fmt.Sprintf("获取模型列表失败: %s", common.MaskSensitiveInfo(err.Error())),
+			"message": fmt.Sprintf("获取模型列表失败: %s", err.Error()),
 		})
 		return
 	}
@@ -479,6 +479,10 @@ func validateChannel(channel *model.Channel, isAdd bool) error {
 	// 校验 channel settings
 	if err := channel.ValidateSettings(); err != nil {
 		return fmt.Errorf("渠道额外设置[channel setting] 格式错误：%s", err.Error())
+	}
+
+	if channel.Type == constant.ChannelTypeNewAPI && strings.TrimSpace(channel.GetBaseURL()) == "" {
+		return fmt.Errorf("New API channel base URL cannot be empty")
 	}
 
 	// 如果是添加操作，检查 channel 和 key 是否为空
@@ -1031,7 +1035,7 @@ func UpdateChannel(c *gin.Context) {
 						if err != nil {
 							c.JSON(http.StatusOK, gin.H{
 								"success": false,
-								"message": "追加密钥解析失败",
+								"message": "追加密钥解析失败: " + err.Error(),
 							})
 							return
 						}
@@ -1153,18 +1157,13 @@ func BatchUpdateChannelStatus(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
 	}
-	// P0-4: Atomic batch status update instead of one-by-one iteration
-	changedCount64, err := model.BatchUpdateChannelStatusDB(req.Ids, req.Status)
-	if err != nil {
-		common.ApiError(c, err)
-		return
-	}
-	changedCount := int(changedCount64)
-	if changedCount > 0 {
-		// Invalidate cache and update abilities for changed channels
-		for _, id := range req.Ids {
-			_ = model.UpdateAbilityStatus(id, req.Status == common.ChannelStatusEnabled)
+	changedCount := 0
+	for _, id := range req.Ids {
+		if model.UpdateChannelStatus(id, "", req.Status, "manual batch operation") {
+			changedCount++
 		}
+	}
+	if changedCount > 0 {
 		model.InitChannelCache()
 	}
 	recordManageAudit(c, "channel.status_update_batch", map[string]interface{}{
@@ -1318,7 +1317,7 @@ func FetchModels(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
-			"message": fmt.Sprintf("获取模型列表失败: %s", common.MaskSensitiveInfo(err.Error())),
+			"message": fmt.Sprintf("获取模型列表失败: %s", err.Error()),
 		})
 		return
 	}
@@ -2215,7 +2214,7 @@ func OllamaVersion(c *gin.Context) {
 	if err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
-			"message": fmt.Sprintf("获取Ollama版本失败: %s", common.MaskSensitiveInfo(err.Error())),
+			"message": fmt.Sprintf("获取Ollama版本失败: %s", err.Error()),
 		})
 		return
 	}

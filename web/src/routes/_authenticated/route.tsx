@@ -19,38 +19,18 @@ For commercial licensing, please contact support@quantumnous.com
 import { createFileRoute, redirect } from '@tanstack/react-router'
 
 import { AuthenticatedLayout } from '@/components/layout'
-import { ensureFreshAccessToken } from '@/lib/auth-session'
 import { useAuthStore } from '@/stores/auth-store'
 
 export const Route = createFileRoute('/_authenticated')({
-  beforeLoad: async ({ location }) => {
-    const outcome = await ensureFreshAccessToken()
-    if (outcome.kind === 'authenticated') return
-
+  beforeLoad: ({ location }) => {
     const { auth } = useAuthStore.getState()
-    const hasIdentity = Boolean(auth.user && auth.session)
 
-    // Temporary network blips during token refresh must not kick the user out
-    // or replace the dashboard with a full-page error. Keep the shell; the
-    // next successful request/refresh will recover the access token.
-    if (outcome.kind === 'transient_error' && hasIdentity) {
-      return
+    if (!auth.user || !auth.accessToken) {
+      throw redirect({
+        to: '/sign-in',
+        search: { redirect: location.href },
+      })
     }
-
-    // Access token may still be valid for a few seconds even when refresh failed.
-    if (
-      auth.user &&
-      auth.accessToken &&
-      auth.accessExpiresAt &&
-      auth.accessExpiresAt > Math.floor(Date.now() / 1000)
-    ) {
-      return
-    }
-
-    throw redirect({
-      to: '/sign-in',
-      search: { redirect: location.href },
-    })
   },
   component: AuthenticatedLayout,
 })

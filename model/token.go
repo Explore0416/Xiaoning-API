@@ -15,7 +15,6 @@ type Token struct {
 	Id                 int            `json:"id"`
 	UserId             int            `json:"user_id" gorm:"index"`
 	Key                string         `json:"key" gorm:"type:varchar(128);uniqueIndex"`
-	KeyHash            string         `json:"-" gorm:"type:varchar(64);index"` // P0-6: SHA256 hash for secure lookup
 	Status             int            `json:"status" gorm:"default:1"`
 	Name               string         `json:"name" gorm:"index" `
 	CreatedTime        int64          `json:"created_time" gorm:"bigint"`
@@ -29,7 +28,32 @@ type Token struct {
 	UsedQuota          int            `json:"used_quota" gorm:"default:0"` // used quota
 	Group              string         `json:"group" gorm:"default:''"`
 	CrossGroupRetry    bool           `json:"cross_group_retry"` // 跨分组重试，仅auto分组有效
+	AutoGroups         string         `json:"-" gorm:"type:text"`
 	DeletedAt          gorm.DeletedAt `gorm:"index"`
+}
+
+func (token *Token) GetAutoGroups() ([]string, error) {
+	if token.AutoGroups == "" {
+		return nil, nil
+	}
+	var groups []string
+	if err := common.UnmarshalJsonStr(token.AutoGroups, &groups); err != nil {
+		return nil, err
+	}
+	return groups, nil
+}
+
+func (token *Token) SetAutoGroups(groups []string) error {
+	if len(groups) == 0 {
+		token.AutoGroups = ""
+		return nil
+	}
+	data, err := common.Marshal(groups)
+	if err != nil {
+		return err
+	}
+	token.AutoGroups = string(data)
+	return nil
 }
 
 // ComputeKeyHash returns the SHA256 hex digest of a token key.
@@ -266,7 +290,6 @@ func GetTokenById(id int) (*Token, error) {
 }
 
 func GetTokenByKey(key string, fromDB bool) (token *Token, err error) {
-	keyHash := ComputeKeyHash(key)
 	defer func() {
 		// Update Redis cache asynchronously on successful DB read
 		if shouldUpdateRedis(fromDB, err) && token != nil {
@@ -278,23 +301,19 @@ func GetTokenByKey(key string, fromDB bool) (token *Token, err error) {
 		}
 	}()
 	if !fromDB && common.RedisEnabled {
-		// Try Redis first (cache functions accept plaintext key, compute hash internally)
-		cachedToken, cacheErr := cacheGetTokenByKey(key)
-		if cacheErr == nil {
-			return cachedToken, nil
+		// Try Redis first
+		token, err := cacheGetTokenByKey(key)
+		if err == nil {
+			return token, nil
 		}
 		// Don't return error - fall through to DB
 	}
 	fromDB = true
-	// P0-6: Look up by key_hash instead of plaintext key
-	err = DB.Where("key_hash = ?", keyHash).First(&token).Error
+	err = DB.Where(commonKeyCol+" = ?", key).First(&token).Error
 	return token, err
 }
 
 func (token *Token) Insert() error {
-	if token.Key != "" && token.KeyHash == "" {
-		token.KeyHash = ComputeKeyHash(token.Key)
-	}
 	var err error
 	err = DB.Create(token).Error
 	return err
@@ -302,18 +321,16 @@ func (token *Token) Insert() error {
 
 // Update Make sure your token's fields is completed, because this will update non-zero values
 func (token *Token) Update() (err error) {
-	defer func() {
-		if shouldUpdateRedis(true, err) {
-			gopool.Go(func() {
-				err := cacheSetToken(*token)
-				if err != nil {
-					common.SysLog("failed to update token cache: " + err.Error())
-				}
-			})
-		}
-	}()
 	err = DB.Model(token).Select("name", "status", "expired_time", "remain_quota", "unlimited_quota",
-		"model_limits_enabled", "model_limits", "allow_ips", "group", "cross_group_retry").Updates(token).Error
+		"model_limits_enabled", "model_limits", "allow_ips", "group", "cross_group_retry", "auto_groups").Updates(token).Error
+	if shouldUpdateRedis(true, err) {
+		if cacheErr := cacheSetToken(*token); cacheErr != nil {
+			common.SysLog("failed to update token cache: " + cacheErr.Error())
+			if deleteErr := cacheDeleteToken(token.Key); deleteErr != nil {
+				common.SysLog("failed to invalidate token cache after update: " + deleteErr.Error())
+			}
+		}
+	}
 	return err
 }
 
@@ -548,7 +565,6 @@ func invalidateTokensCache(tokens []Token) error {
 // migrateTokenKeyHash backfills the KeyHash column for existing tokens
 // that were created before P0-6 was implemented.
 func migrateTokenKeyHash() {
-	// Find tokens with empty KeyHash
 	var tokens []Token
 	if err := DB.Unscoped().Where("key_hash = '' OR key_hash IS NULL").
 		Select("id", "key").Find(&tokens).Error; err != nil {
@@ -566,7 +582,6 @@ func migrateTokenKeyHash() {
 		}
 		batch[t.Id] = ComputeKeyHash(t.Key)
 	}
-	// Update in batches of 200
 	ids := make([]int, 0, len(batch))
 	hashes := make([]string, 0, len(batch))
 	for id, hash := range batch {

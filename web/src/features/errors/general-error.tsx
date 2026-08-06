@@ -17,11 +17,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { useNavigate, useRouter } from '@tanstack/react-router'
-import { useEffect } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { Button } from '@/components/ui/button'
-import { isAuthSessionError } from '@/lib/auth-session'
 import { cn } from '@/lib/utils'
 
 const FEEDBACK_URL = 'https://github.com/QuantumNous/new-api/issues'
@@ -39,31 +37,6 @@ function getHttpStatus(error: unknown): number | undefined {
   return typeof status === 'number' ? status : undefined
 }
 
-function isSessionStyleError(error: unknown): boolean {
-  if (isAuthSessionError(error)) {
-    return error.kind === 'session_expired' || error.kind === 'out_of_sync'
-  }
-  if (!(error instanceof Error)) return false
-  const message = error.message.toLowerCase()
-  return (
-    message.includes('session expired') ||
-    message.includes('会话已过期') ||
-    message.includes('auth session')
-  )
-}
-
-function isTransientStyleError(error: unknown): boolean {
-  if (isAuthSessionError(error)) return error.kind === 'transient'
-  if (!(error instanceof Error)) return false
-  const message = error.message.toLowerCase()
-  return (
-    message.includes('network') ||
-    message.includes('failed to fetch') ||
-    message.includes('timeout') ||
-    message.includes('网络')
-  )
-}
-
 export function GeneralError({
   className,
   minimal = false,
@@ -73,128 +46,51 @@ export function GeneralError({
   const navigate = useNavigate()
   const { history } = useRouter()
   const status = getHttpStatus(error)
-  const sessionError = isSessionStyleError(error)
-  const transientError = !sessionError && isTransientStyleError(error)
   const isRateLimited = status === 429
-
-  useEffect(() => {
-    if (!sessionError || typeof window === 'undefined') return
-    const path = window.location.pathname
-    if (path === '/sign-in' || path === '/login' || path === '/otp') return
-    const redirect = `${window.location.pathname}${window.location.search}`
-    const target =
-      redirect && redirect !== '/'
-        ? `/sign-in?redirect=${encodeURIComponent(redirect)}`
-        : '/sign-in'
-    window.location.replace(target)
-  }, [sessionError])
-
-  // Transient network blips should not leave users stuck on a dead-end page.
-  // Automatically recover once, then offer a manual retry.
-  useEffect(() => {
-    if (!transientError || typeof window === 'undefined') return
-    const key = 'new-api:auto-recovered-transient-error'
-    try {
-      if (sessionStorage.getItem(key) === '1') return
-      sessionStorage.setItem(key, '1')
-    } catch {
-      /* empty */
-    }
-    const timer = window.setTimeout(() => {
-      window.location.reload()
-    }, 1200)
-    return () => window.clearTimeout(timer)
-  }, [transientError])
-
-  const handleRetry = () => {
-    try {
-      sessionStorage.removeItem('new-api:auto-recovered-transient-error')
-    } catch {
-      /* empty */
-    }
-    if (typeof window !== 'undefined') {
-      window.location.reload()
-      return
-    }
-    void navigate({ to: '/' })
-  }
-
-  const title = sessionError
-    ? t('Session expired!')
-    : isRateLimited
-      ? t('Too many requests')
-      : transientError
-        ? t('Network connection failed or server not responding')
-        : `${t('Oops! Something went wrong')} ${`:')`}`
-  const description = sessionError
-    ? t('Re-login')
-    : isRateLimited
-      ? t('Please wait a moment before trying again.')
-      : transientError
-        ? t('Please wait a moment before trying again.')
-        : t('Please try again later.')
-  const statusLabel = sessionError
-    ? 401
-    : transientError
-      ? '!'
-      : (status ?? 500)
+  const title = isRateLimited
+    ? t('Too many requests')
+    : `${t('Oops! Something went wrong')} ${`:')`}`
+  const description = isRateLimited
+    ? t('Please wait a moment before trying again.')
+    : t('Please try again later.')
 
   return (
     <div className={cn('h-svh w-full', className)}>
       <div className='m-auto flex h-full w-full flex-col items-center justify-center gap-2'>
         {!minimal && (
-          <h1 className='text-[7rem] leading-tight font-bold'>{statusLabel}</h1>
+          <h1 className='text-[7rem] leading-tight font-bold'>
+            {status ?? 500}
+          </h1>
         )}
         <span className='font-medium'>{title}</span>
         <p className='text-muted-foreground text-center'>
-          {sessionError || transientError ? (
-            description
-          ) : (
-            <>
-              {t('We apologize for the inconvenience.')} <br /> {description}
-            </>
-          )}
+          {t('We apologize for the inconvenience.')} <br /> {description}
         </p>
-        {!minimal && !sessionError && !transientError && (
+        {!minimal && (
           <p className='text-muted-foreground text-center text-sm'>
             {t('If this keeps happening, please report it on GitHub Issues.')}
           </p>
         )}
         {!minimal && (
           <div className='mt-6 flex flex-wrap justify-center gap-4'>
-            {sessionError ? (
-              <Button onClick={() => navigate({ to: '/sign-in' })}>
-                {t('Re-login')}
-              </Button>
-            ) : transientError ? (
-              <>
-                <Button onClick={handleRetry}>{t('Retry')}</Button>
-                <Button variant='outline' onClick={() => history.go(-1)}>
-                  {t('Go Back')}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant='outline' onClick={() => history.go(-1)}>
-                  {t('Go Back')}
-                </Button>
-                <Button
-                  variant='outline'
-                  render={
-                    <a
-                      href={FEEDBACK_URL}
-                      target='_blank'
-                      rel='noopener noreferrer'
-                    />
-                  }
-                >
-                  {t('Report an issue')}
-                </Button>
-                <Button onClick={() => navigate({ to: '/' })}>
-                  {t('Back to Home')}
-                </Button>
-              </>
-            )}
+            <Button variant='outline' onClick={() => history.go(-1)}>
+              {t('Go Back')}
+            </Button>
+            <Button
+              variant='outline'
+              render={
+                <a
+                  href={FEEDBACK_URL}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                />
+              }
+            >
+              {t('Report an issue')}
+            </Button>
+            <Button onClick={() => navigate({ to: '/' })}>
+              {t('Back to Home')}
+            </Button>
           </div>
         )}
       </div>
