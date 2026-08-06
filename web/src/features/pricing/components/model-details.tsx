@@ -58,7 +58,7 @@ import {
 import { getLobeIcon } from '@/lib/lobe-icon'
 import { cn } from '@/lib/utils'
 
-import { DEFAULT_TOKEN_UNIT, QUOTA_TYPE_VALUES } from '../constants'
+import { DEFAULT_TOKEN_UNIT } from '../constants'
 import { usePricingData } from '../hooks/use-pricing-data'
 import {
   getDynamicPriceEntries,
@@ -76,6 +76,7 @@ import type {
   TokenUnit,
 } from '../types'
 import { DynamicPricingBreakdown } from './dynamic-pricing-breakdown'
+import { ModelBillingModeBadge } from './model-billing-mode-badge'
 import { ModelDetailsApi } from './model-details-api'
 import { ModelDetailsPerformance } from './model-details-performance'
 
@@ -117,6 +118,7 @@ const MODALITY_LABEL_KEYS: Record<string, string> = {
 const TOKEN_FORMAT = new Intl.NumberFormat(undefined, {
   maximumFractionDigits: 1,
 })
+const MODEL_DETAILS_SKELETON_KEYS = ['first', 'second', 'third', 'fourth']
 
 function formatCatalogTokenCount(tokens: number): string {
   if (!Number.isFinite(tokens) || tokens <= 0) return ''
@@ -156,12 +158,12 @@ function OverviewMetric(props: {
     <div className='flex min-w-0 items-center gap-2 px-3 py-2'>
       <Icon className='text-muted-foreground/70 size-3.5 shrink-0' />
       <div className='min-w-0 flex-1'>
-        <div className='text-muted-foreground truncate text-xs font-medium tracking-wider uppercase'>
+        <div className='text-muted-foreground truncate text-[10px] font-medium tracking-wider uppercase'>
           {props.label}
         </div>
         <div
           className={cn(
-            'text-foreground truncate text-sm font-semibold tabular-nums',
+            'text-foreground truncate font-mono text-sm font-semibold tabular-nums',
             props.valueClassName
           )}
         >
@@ -254,7 +256,7 @@ function CatalogTextValue(props: { children: React.ReactNode }) {
 function CatalogInfoCell(props: { label: string; children: React.ReactNode }) {
   return (
     <div className='bg-card flex min-w-0 flex-col gap-1 px-3 py-2.5'>
-      <span className='text-muted-foreground text-xs font-medium tracking-wider uppercase'>
+      <span className='text-muted-foreground text-[10px] font-medium tracking-wider uppercase'>
         {props.label}
       </span>
       {props.children}
@@ -361,7 +363,7 @@ function ModelBackendQuickStats(props: { model: PricingModel }) {
             key={stat.key}
             className='bg-background flex min-w-0 flex-col gap-0.5 px-3 py-2.5'
           >
-            <span className='text-muted-foreground inline-flex min-w-0 items-center gap-1 text-xs font-medium tracking-wider uppercase'>
+            <span className='text-muted-foreground inline-flex min-w-0 items-center gap-1 text-[10px] font-medium tracking-wider uppercase'>
               <Icon className='size-3 shrink-0' />
               <span className='truncate'>{stat.label}</span>
             </span>
@@ -369,7 +371,7 @@ function ModelBackendQuickStats(props: { model: PricingModel }) {
               {stat.value}
             </span>
             {stat.hint && (
-              <span className='text-muted-foreground/60 truncate text-xs'>
+              <span className='text-muted-foreground/60 truncate text-[10px]'>
                 {stat.hint}
               </span>
             )}
@@ -459,11 +461,7 @@ function ModelBackendProviderSection(props: { model: PricingModel }) {
 
   cells.push(
     <CatalogInfoCell key='type' label={t('Type')}>
-      <CatalogTextValue>
-        {model.quota_type === QUOTA_TYPE_VALUES.TOKEN
-          ? t('Token-based')
-          : t('Per Request')}
-      </CatalogTextValue>
+      <ModelBillingModeBadge model={model} />
     </CatalogInfoCell>
   )
 
@@ -531,10 +529,6 @@ function ModelHeader(props: { model: PricingModel }) {
   const modelIconKey = model.icon || model.vendor_icon
   const modelIcon = modelIconKey ? getLobeIcon(modelIconKey, 20) : null
   const description = model.description || model.vendor_description || null
-  const isSpecialExpression =
-    model.billing_mode === 'tiered_expr' &&
-    Boolean(model.billing_expr) &&
-    getDynamicPricingTiers(model).length === 0
 
   return (
     <header className='pb-4'>
@@ -557,21 +551,7 @@ function ModelHeader(props: { model: PricingModel }) {
           <span className='text-muted-foreground'>{model.vendor_name}</span>
         )}
         <span className='text-muted-foreground/30'>·</span>
-        <span className='text-muted-foreground/70'>
-          {model.quota_type === QUOTA_TYPE_VALUES.TOKEN
-            ? t('Token-based')
-            : t('Per Request')}
-        </span>
-        {model.billing_mode === 'tiered_expr' && model.billing_expr && (
-          <>
-            <span className='text-muted-foreground/30'>·</span>
-            <span className='bg-warning/15 text-warning rounded px-1.5 py-0.5 text-xs font-medium'>
-              {isSpecialExpression
-                ? t('Special billing expression')
-                : t('Dynamic Pricing')}
-            </span>
-          </>
-        )}
+        <ModelBillingModeBadge model={model} />
       </div>
       {description && (
         <p className='text-muted-foreground mt-2 text-sm leading-relaxed'>
@@ -649,15 +629,15 @@ function PriceSection(props: {
       return (
         <section>
           <SectionTitle>{t('Base Price')}</SectionTitle>
-          <div className='border-warning/30 bg-warning/10 rounded-lg border p-3'>
-            <div className='text-warning text-sm font-medium'>
+          <div className='rounded-lg border border-amber-200/70 bg-amber-50/70 p-3 dark:border-amber-500/20 dark:bg-amber-500/10'>
+            <div className='text-sm font-medium text-amber-800 dark:text-amber-200'>
               {t('Special billing expression')}
             </div>
             <p className='text-muted-foreground mt-1 text-xs'>
               {t('Unable to parse structured pricing')}
             </p>
             <div className='mt-3'>
-              <div className='text-muted-foreground mb-1 text-xs font-medium tracking-wider uppercase'>
+              <div className='text-muted-foreground mb-1 text-[10px] font-medium tracking-wider uppercase'>
                 {t('Raw expression')}
               </div>
               <code className='text-muted-foreground bg-background/80 block max-h-28 overflow-auto rounded-md border px-2 py-1.5 font-mono text-xs break-all'>
@@ -682,7 +662,7 @@ function PriceSection(props: {
                 <div className='text-muted-foreground text-xs'>
                   {t(entry.shortLabel)}
                 </div>
-                <div className='text-foreground mt-1 text-base font-semibold tabular-nums'>
+                <div className='text-foreground mt-1 font-mono text-base font-semibold tabular-nums'>
                   {entry.formatted}
                   <span className='text-muted-foreground/40 ml-1 text-xs font-normal'>
                     / {tokenUnitLabel}
@@ -707,7 +687,7 @@ function PriceSection(props: {
                   <span className='text-muted-foreground/70 text-sm'>
                     {t(entry.shortLabel)}
                   </span>
-                  <span className='text-muted-foreground text-sm tabular-nums'>
+                  <span className='text-muted-foreground font-mono text-sm tabular-nums'>
                     {entry.formatted}
                     <span className='text-muted-foreground/40 ml-1 text-xs font-normal'>
                       / {tokenUnitLabel}
@@ -730,7 +710,7 @@ function PriceSection(props: {
           <span className='text-muted-foreground text-sm'>
             {t('Per request')}
           </span>
-          <span className='text-foreground text-sm font-semibold tabular-nums'>
+          <span className='text-foreground font-mono text-sm font-semibold tabular-nums'>
             {formatFixedPrice(
               props.model,
               baseGroupKey,
@@ -771,7 +751,7 @@ function PriceSection(props: {
         {primaryPriceTypes.map((item) => (
           <div key={item.type} className='bg-muted/20 rounded-lg border p-3'>
             <div className='text-muted-foreground text-xs'>{item.label}</div>
-            <div className='text-foreground mt-1 text-base font-semibold tabular-nums'>
+            <div className='text-foreground mt-1 font-mono text-base font-semibold tabular-nums'>
               {renderPrice(item.type)}
             </div>
           </div>
@@ -788,7 +768,7 @@ function PriceSection(props: {
                 <span className='text-muted-foreground/70 text-sm'>
                   {item.label}
                 </span>
-                <span className='text-muted-foreground text-sm tabular-nums'>
+                <span className='text-muted-foreground font-mono text-sm tabular-nums'>
                   {renderPrice(item.type)}
                 </span>
               </div>
@@ -839,13 +819,13 @@ function getDynamicPriceFields(
   tiers: DynamicPricingTier[],
   options: DynamicPriceOptions
 ) {
-  return Array.from(
-    new Map(
+  return [
+    ...new Map(
       tiers
         .flatMap((tier) => getDynamicPriceEntries(tier, options))
         .map((entry) => [entry.field, entry])
-    ).values()
-  )
+    ).values(),
+  ]
 }
 
 function getDynamicFormattedPricesByTier(
@@ -892,19 +872,24 @@ function GroupPricingSection(props: {
 
   const extraPriceTypes = useMemo(() => {
     const types: { label: string; type: PriceType }[] = []
-    if (props.model.cache_ratio != null)
+    if (props.model.cache_ratio != null) {
       types.push({ label: t('Cache'), type: 'cache' })
-    if (props.model.create_cache_ratio != null)
+    }
+    if (props.model.create_cache_ratio != null) {
       types.push({ label: t('Cache Write'), type: 'create_cache' })
-    if (props.model.image_ratio != null)
+    }
+    if (props.model.image_ratio != null) {
       types.push({ label: t('Image'), type: 'image' })
-    if (props.model.audio_ratio != null)
+    }
+    if (props.model.audio_ratio != null) {
       types.push({ label: t('Audio In'), type: 'audio_input' })
+    }
     if (
       props.model.audio_ratio != null &&
       props.model.audio_completion_ratio != null
-    )
+    ) {
       types.push({ label: t('Audio Out'), type: 'audio_output' })
+    }
     return types
   }, [props.model, t])
 
@@ -923,7 +908,7 @@ function GroupPricingSection(props: {
   }
 
   const thClass =
-    'text-muted-foreground py-2 text-xs font-medium tracking-wider uppercase'
+    'text-muted-foreground py-2 text-[10px] font-medium tracking-wider uppercase'
 
   if (isDynamicPricingModel(props.model)) {
     const dynamicTiers = getDynamicPricingTiers(props.model)
@@ -933,8 +918,8 @@ function GroupPricingSection(props: {
         <section>
           <SectionTitle>{t('Pricing by Group')}</SectionTitle>
           <AutoGroupChain model={props.model} autoGroups={props.autoGroups} />
-          <div className='border-warning/30 bg-warning/10 rounded-lg border p-3'>
-            <div className='text-warning text-sm font-medium'>
+          <div className='rounded-lg border border-amber-200/70 bg-amber-50/70 p-3 dark:border-amber-500/20 dark:bg-amber-500/10'>
+            <div className='text-sm font-medium text-amber-800 dark:text-amber-200'>
               {t('Special billing expression')}
             </div>
             <p className='text-muted-foreground mt-1 text-xs'>
@@ -943,7 +928,7 @@ function GroupPricingSection(props: {
               )}
             </p>
             <div className='mt-3'>
-              <div className='text-muted-foreground mb-1 text-xs font-medium tracking-wider uppercase'>
+              <div className='text-muted-foreground mb-1 text-[10px] font-medium tracking-wider uppercase'>
                 {t('Raw expression')}
               </div>
               <code className='text-muted-foreground bg-background/80 block max-h-28 overflow-auto rounded-md border px-2 py-1.5 font-mono text-xs break-all'>
@@ -1028,7 +1013,7 @@ function GroupPricingSection(props: {
               </div>
             )
           })}
-          <p className='text-muted-foreground/40 mt-1.5 text-xs'>
+          <p className='text-muted-foreground/40 mt-1.5 text-[10px]'>
             {t('Prices shown per')} {tokenUnitLabel} tokens
           </p>
         </div>
@@ -1119,7 +1104,7 @@ function GroupPricingSection(props: {
       />
       <div className='-mx-4 sm:mx-0'>
         {isTokenBased && (
-          <p className='text-muted-foreground/40 mt-1.5 px-4 text-xs sm:px-0'>
+          <p className='text-muted-foreground/40 mt-1.5 px-4 text-[10px] sm:px-0'>
             {t('Prices shown per')} {tokenUnitLabel} tokens
           </p>
         )}
@@ -1299,13 +1284,13 @@ export function ModelDetails() {
             <Skeleton className='h-4 w-full max-w-md' />
           </div>
           <div className='mt-6 grid grid-cols-2 gap-2 sm:grid-cols-4'>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className='h-16 w-full' />
+            {MODEL_DETAILS_SKELETON_KEYS.map((key) => (
+              <Skeleton key={`metric-${key}`} className='h-16 w-full' />
             ))}
           </div>
           <div className='mt-6 space-y-3'>
-            {Array.from({ length: 4 }).map((_, i) => (
-              <Skeleton key={i} className='h-24 w-full' />
+            {MODEL_DETAILS_SKELETON_KEYS.map((key) => (
+              <Skeleton key={`section-${key}`} className='h-24 w-full' />
             ))}
           </div>
         </div>

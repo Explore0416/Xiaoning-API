@@ -23,8 +23,6 @@ import { toast } from 'sonner'
 import {
   applyAuthRotation,
   clearAuthentication,
-  ensureFreshAccessToken,
-  isAuthSessionError,
   refreshAuthentication,
 } from '@/lib/auth-session'
 import { getServerErrorMessageKey } from '@/lib/server-error-message'
@@ -71,36 +69,18 @@ api.get = ((url: string, config: ApiRequestConfig = {}) => {
 }) as typeof api.get
 
 function redirectToSignIn(): void {
-  if (typeof window === 'undefined') return
-  const path = window.location.pathname
-  if (path === '/sign-in' || path === '/login' || path === '/otp') return
-  const redirect = `${window.location.pathname}${window.location.search}`
-  const target =
-    redirect && redirect !== '/'
-      ? `/sign-in?redirect=${encodeURIComponent(redirect)}`
-      : '/sign-in'
-  window.location.replace(target)
-}
-
-function notifySessionExpired(skipErrorHandler?: boolean): void {
-  if (!skipErrorHandler) toast.error(t('Session expired!'))
-  redirectToSignIn()
-}
-
-function notifyTransientAuthFailure(skipErrorHandler?: boolean): void {
-  if (!skipErrorHandler) {
-    toast.error(t('Network connection failed or server not responding'))
+  if (
+    typeof window !== 'undefined' &&
+    window.location.pathname !== '/sign-in'
+  ) {
+    window.location.replace('/sign-in')
   }
 }
 
 api.interceptors.response.use(
   (response) => {
     if (response.config.acceptAuthRotation && response.data?.success === true) {
-      try {
-        applyAuthRotation(response.data.data)
-      } catch {
-        // Rotation payload mismatches must not crash the successful response path.
-      }
+      applyAuthRotation(response.data.data)
     }
 
     if (
@@ -137,37 +117,18 @@ api.interceptors.response.use(
           return api.request(config)
         }
 
-        if (outcome.kind === 'transient_error') {
-          notifyTransientAuthFailure(skipErrorHandler)
-          // Keep the original 401 error for callers; do not convert to 500 UI.
-          throw error
-        }
-
-        if (
-          outcome.kind === 'anonymous' ||
-          outcome.kind === 'out_of_sync'
-        ) {
-          notifySessionExpired(skipErrorHandler)
-          throw error
+        if (outcome.kind === 'anonymous' || outcome.kind === 'out_of_sync') {
+          if (!skipErrorHandler) toast.error(t('Session expired!'))
+          redirectToSignIn()
         }
       } else if (config?.authRetry) {
         clearAuthentication(false)
-        notifySessionExpired(skipErrorHandler)
-        throw error
+        if (!skipErrorHandler) toast.error(t('Session expired!'))
+        redirectToSignIn()
       } else if (!skipErrorHandler) {
         toast.error(t('Session expired!'))
       }
     } else if (!skipErrorHandler) {
-      if (isAuthSessionError(error)) {
-        if (error.kind === 'transient') {
-          notifyTransientAuthFailure(true)
-          toast.error(error.message)
-        } else {
-          notifySessionExpired(true)
-          toast.error(error.message)
-        }
-        throw error
-      }
       const messageKey = getServerErrorMessageKey(error)
       const message = messageKey
         ? t(messageKey)
@@ -180,18 +141,7 @@ api.interceptors.response.use(
   }
 )
 
-api.interceptors.request.use(async (config) => {
-  const requestConfig = config as ApiRequestConfig
-  // Keep access tokens warm for authenticated dashboard calls without racing
-  // refresh/logout endpoints that intentionally skip auth refresh.
-  if (!requestConfig.skipAuthRefresh) {
-    try {
-      await ensureFreshAccessToken()
-    } catch {
-      // Request proceeds with whatever token is currently available.
-    }
-  }
-
+api.interceptors.request.use((config) => {
   const accessToken = useAuthStore.getState().auth.accessToken
   if (accessToken) {
     config.headers.Authorization = `Bearer ${accessToken}`

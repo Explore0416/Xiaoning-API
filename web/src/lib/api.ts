@@ -24,21 +24,13 @@ export {
   bootstrapAuthentication,
   clearAuthenticatedClientState,
   clearAuthentication,
-  ensureFreshAccessToken,
   getCommonHeaders,
   getFreshAuthHeaders,
   isAuthBundle,
-  isAuthSessionError,
   refreshAuthentication,
-  startAuthSessionKeepalive,
   AuthRotationError,
-  AuthSessionError,
 } from '@/lib/auth-session'
-export type {
-  AuthSessionErrorKind,
-  AuthTokenRotation,
-  RefreshOutcome,
-} from '@/lib/auth-session'
+export type { AuthTokenRotation, RefreshOutcome } from '@/lib/auth-session'
 export { api }
 export type { ApiRequestConfig } from '@/lib/http-client'
 

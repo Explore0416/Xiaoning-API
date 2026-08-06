@@ -41,6 +41,7 @@ import { useTranslation } from 'react-i18next'
 
 import { Dialog } from '@/components/dialog'
 import { Button } from '@/components/ui/button'
+import { IconBadge } from '@/components/ui/icon-badge'
 import {
   Select,
   SelectContent,
@@ -208,7 +209,9 @@ export function ViewLogsDialog({
       onOpenChange={onOpenChange}
       title={
         <>
-          <Terminal className='h-5 w-5' />
+          <IconBadge tone='chart-3' size='sm'>
+            <Terminal />
+          </IconBadge>
           {t('Deployment logs')}
         </>
       }

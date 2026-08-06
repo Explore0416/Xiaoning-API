@@ -68,19 +68,6 @@ describe('authentication session coordination', () => {
     })
   })
 
-  test('getFreshAuthHeaders maps refresh failures to AuthSessionError kinds', async () => {
-    const { AuthSessionError, getFreshAuthHeaders } = await import(
-      './auth-session'
-    )
-
-    useAuthStore.getState().auth.reset('complete')
-    await assert.rejects(
-      () => getFreshAuthHeaders(),
-      (error: unknown) =>
-        error instanceof AuthSessionError && error.kind === 'session_expired'
-    )
-  })
-
   test('a session mismatch clears only local state and retries without the stale SID', async () => {
     let expectedSID: string | undefined = bundle.session.sid
     const requestedSIDs: Array<string | undefined> = []
@@ -141,6 +128,30 @@ describe('authentication session coordination', () => {
     let clearCount = 0
     const runtime: AuthRefreshRuntime = {
       request: async () => ({ status: 503, error: new Error('unavailable') }),
+      getExpectedSID: () => bundle.session.sid,
+      parseBundle: () => null,
+      acceptBundle: () => undefined,
+      clear: () => {
+        clearCount += 1
+      },
+      markTransient: () => {
+        transientCount += 1
+      },
+      wait: async () => undefined,
+    }
+
+    const outcome = await createRefreshRunner(runtime)()
+
+    assert.equal(outcome.kind, 'transient_error')
+    assert.equal(clearCount, 0)
+    assert.equal(transientCount, 1)
+  })
+
+  test('a rate limited refresh remains retryable without clearing the session', async () => {
+    let transientCount = 0
+    let clearCount = 0
+    const runtime: AuthRefreshRuntime = {
+      request: async () => ({ status: 429 }),
       getExpectedSID: () => bundle.session.sid,
       parseBundle: () => null,
       acceptBundle: () => undefined,

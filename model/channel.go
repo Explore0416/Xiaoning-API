@@ -11,9 +11,9 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
-	"github.com/QuantumNous/new-api/dto"
 	"github.com/QuantumNous/new-api/logger"
-	"github.com/QuantumNous/new-api/types"
+	"github.com/QuantumNous/new-api/relaykit/dto"
+	"github.com/QuantumNous/new-api/relaykit/types"
 
 	"github.com/samber/lo"
 	"gorm.io/gorm"
@@ -784,18 +784,6 @@ func UpdateChannelStatus(channelId int, usingKey string, status int, reason stri
 	return true
 }
 
-// BatchUpdateChannelStatusDB atomically updates the status of multiple channels
-// in a single SQL statement. Returns the number of rows actually changed.
-func BatchUpdateChannelStatusDB(ids []int, status int) (int64, error) {
-	if len(ids) == 0 {
-		return 0, nil
-	}
-	result := DB.Model(&Channel{}).
-		Where("id IN (?) AND status != ?", ids, status).
-		Update("status", status)
-	return result.RowsAffected, result.Error
-}
-
 func EnableChannelByTag(tag string) error {
 	err := DB.Model(&Channel{}).Where("tag = ?", tag).Update("status", common.ChannelStatusEnabled).Error
 	if err != nil {
@@ -965,6 +953,9 @@ func (channel *Channel) ValidateSettings() error {
 	}
 	if _, err := common.ParseProxyURLStrict(channelParams.Proxy); err != nil {
 		return fmt.Errorf("invalid channel proxy: %w", err)
+	}
+	if err := channelParams.ValidateHTTPTransport(); err != nil {
+		return err
 	}
 	channelOtherSettings := &dto.ChannelOtherSettings{}
 	if channel.OtherSettings != "" {

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
-	"github.com/QuantumNous/new-api/model"
 	"github.com/alicebob/miniredis/v2"
 	"github.com/gin-gonic/gin"
 	"github.com/go-redis/redis/v8"
@@ -62,7 +61,9 @@ func TestRedisIPRateLimiterThresholdTTLAndNamespace(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, http.StatusNoContent, performRateLimitRequest(router, "/limited", remoteAddr).Code)
 	assert.Equal(t, http.StatusNoContent, performRateLimitRequest(router, "/limited", remoteAddr).Code)
-	assert.Equal(t, http.StatusTooManyRequests, performRateLimitRequest(router, "/limited", remoteAddr).Code)
+	limitedResponse := performRateLimitRequest(router, "/limited", remoteAddr)
+	assert.Equal(t, http.StatusTooManyRequests, limitedResponse.Code)
+	assert.Equal(t, "37", limitedResponse.Header().Get("Retry-After"))
 
 	key := redisIPRateLimitKey("TEST", "192.0.2.10")
 	count, err := redisServer.Get(key)
@@ -221,76 +222,4 @@ func TestRedisFailurePolicies(t *testing.T) {
 	assert.Equal(t, http.StatusInternalServerError, userResponse.Code)
 	assert.Empty(t, userResponse.Body.String())
 	assert.Equal(t, http.StatusNoContent, performRateLimitRequest(router, "/email", "192.0.2.62:12345").Code)
-}
-
-// Operators run bulk maintenance scripts against single-record admin endpoints
-// (there is no batch model/vendor API), so admin credentials skip the per-IP
-// budget. The exemption must fail closed: anything short of an enabled admin
-// still consumes the budget, otherwise an unauthenticated caller could disable
-// global rate limiting simply by sending a bogus Authorization header.
-func TestGlobalAPIRateLimitExemptsOnlyEnabledAdminCredentials(t *testing.T) {
-	gin.SetMode(gin.TestMode)
-	setupDashboardAuthMiddlewareTest(t)
-
-	adminToken := "exempt.admin.token"
-	admin := createMiddlewarePATUser(t, "rate-limit-admin", adminToken)
-	admin.Role = common.RoleAdminUser
-	require.NoError(t, model.DB.Save(admin).Error)
-
-	commonToken := "exempt.common.token"
-	createMiddlewarePATUser(t, "rate-limit-common", commonToken)
-
-	disabledToken := "exempt.disabled.token"
-	disabledAdmin := createMiddlewarePATUser(t, "rate-limit-disabled-admin", disabledToken)
-	disabledAdmin.Role = common.RoleAdminUser
-	disabledAdmin.Status = common.UserStatusDisabled
-	require.NoError(t, model.DB.Save(disabledAdmin).Error)
-
-	previousEnable := common.GlobalApiRateLimitEnable
-	previousNum := common.GlobalApiRateLimitNum
-	previousDuration := common.GlobalApiRateLimitDuration
-	common.GlobalApiRateLimitEnable = true
-	common.GlobalApiRateLimitNum = 1
-	common.GlobalApiRateLimitDuration = 60
-	t.Cleanup(func() {
-		common.GlobalApiRateLimitEnable = previousEnable
-		common.GlobalApiRateLimitNum = previousNum
-		common.GlobalApiRateLimitDuration = previousDuration
-	})
-
-	tests := []struct {
-		name           string
-		token          string
-		secondCallCode int
-	}{
-		{name: "enabled admin bypasses the budget", token: adminToken, secondCallCode: http.StatusNoContent},
-		{name: "common user consumes the budget", token: commonToken, secondCallCode: http.StatusTooManyRequests},
-		{name: "disabled admin consumes the budget", token: disabledToken, secondCallCode: http.StatusTooManyRequests},
-		{name: "unknown token consumes the budget", token: "not-a-real-token", secondCallCode: http.StatusTooManyRequests},
-		{name: "absent credential consumes the budget", token: "", secondCallCode: http.StatusTooManyRequests},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			inMemoryRateLimiter = common.InMemoryRateLimiter{}
-			router := gin.New()
-			require.NoError(t, router.SetTrustedProxies(nil))
-			router.GET("/limited", GlobalAPIRateLimit(), func(c *gin.Context) {
-				c.Status(http.StatusNoContent)
-			})
-
-			call := func() int {
-				recorder := httptest.NewRecorder()
-				request := httptest.NewRequest(http.MethodGet, "/limited", nil)
-				request.RemoteAddr = "192.0.2.70:12345"
-				if test.token != "" {
-					request.Header.Set("Authorization", "Bearer "+test.token)
-				}
-				router.ServeHTTP(recorder, request)
-				return recorder.Code
-			}
-
-			assert.Equal(t, http.StatusNoContent, call(), "first call is within the budget for every caller")
-			assert.Equal(t, test.secondCallCode, call())
-		})
-	}
 }
