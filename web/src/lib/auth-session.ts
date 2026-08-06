@@ -418,3 +418,95 @@ export async function getFreshAuthHeaders(): Promise<Record<string, string>> {
   }
   throw new Error(t('Session expired!'))
 }
+
+// ---------------------------------------------------------------------------
+// Session keepalive — re-refresh access tokens on visibility/focus.
+// ---------------------------------------------------------------------------
+
+let keepaliveStarted = false
+let keepaliveTimer: ReturnType<typeof setTimeout> | null = null
+
+/**
+ * Schedule the next keepalive check based on access_expires_at.
+ * Schedules a refresh ~2 minutes before the token expires, but never sooner
+ * than 60s after the previous attempt (to avoid tight loops on transient errors).
+ */
+function scheduleNextKeepalive(delaySeconds: number): void {
+  if (keepaliveTimer) clearTimeout(keepaliveTimer)
+  keepaliveTimer = setTimeout(() => {
+    void runKeepaliveRefresh()
+  }, Math.max(delaySeconds, 60) * 1000)
+}
+
+async function runKeepaliveRefresh(): Promise<void> {
+  try {
+    if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
+      // Don't burn requests while the tab is hidden — wait for visibility.
+      const onVisible = () => {
+        document.removeEventListener('visibilitychange', onVisible)
+        void runKeepaliveRefresh()
+      }
+      document.addEventListener('visibilitychange', onVisible)
+      return
+    }
+    const outcome = await refreshAuthentication()
+    const auth = useAuthStore.getState().auth
+    if (outcome.kind === 'authenticated' && auth.accessExpiresAt) {
+      // Schedule the next check ~2 minutes before the access token expires.
+      const secondsUntilExpiry =
+        auth.accessExpiresAt - Math.floor(Date.now() / 1000)
+      scheduleNextKeepalive(secondsUntilExpiry - 120)
+    } else if (outcome.kind === 'transient_error') {
+      // Retry after 60s on transient errors.
+      scheduleNextKeepalive(60)
+    }
+    // 'anonymous' / 'out_of_sync' means the session is gone — stop keepalive.
+  } catch {
+    scheduleNextKeepalive(60)
+  }
+}
+
+/**
+ * Start the dashboard session keepalive loop. Idempotent: subsequent calls
+ * are no-ops. Safe to call from the authenticated root layout; it wires up
+ * visibilitychange + focus handlers and schedules a token refresh ~2 minutes
+ * before expiry. Returns a no-op teardown for symmetry with other bootstrap
+ * hooks.
+ */
+export function startAuthSessionKeepalive(): () => void {
+  if (typeof window === 'undefined') return () => undefined
+  if (keepaliveStarted) return () => undefined
+  keepaliveStarted = true
+
+  const onVisible = () => {
+    if (document.visibilityState !== 'visible') return
+    const auth = useAuthStore.getState().auth
+    if (!auth.accessToken || !auth.accessExpiresAt) return
+    const secondsUntilExpiry =
+      auth.accessExpiresAt - Math.floor(Date.now() / 1000)
+    // If the token is still valid for more than 2 minutes, defer to the
+    // scheduled timer; otherwise kick off a refresh now.
+    if (secondsUntilExpiry < 120) void runKeepaliveRefresh()
+  }
+  const onFocus = () => {
+    const auth = useAuthStore.getState().auth
+    if (!auth.accessToken) return
+    void runKeepaliveRefresh()
+  }
+
+  document.addEventListener('visibilitychange', onVisible)
+  window.addEventListener('focus', onFocus)
+
+  // Kick off the initial schedule.
+  scheduleNextKeepalive(60)
+
+  return () => {
+    document.removeEventListener('visibilitychange', onVisible)
+    window.removeEventListener('focus', onFocus)
+    if (keepaliveTimer) {
+      clearTimeout(keepaliveTimer)
+      keepaliveTimer = null
+    }
+    keepaliveStarted = false
+  }
+}
