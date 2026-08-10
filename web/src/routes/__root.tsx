@@ -188,7 +188,24 @@ export const Route = createRootRouteWithContext<{
       // definitively gone (anonymous) or out of sync with the server.
       const outcome = await authBootstrap
       if (outcome.kind === 'anonymous' || outcome.kind === 'out_of_sync') {
-        throw redirect({ to: '/sign-in', search: { redirect: location.href } })
+        // Guard against a self-redirect loop when the bootstrap itself is
+        // triggered from an authenticated route: never bounce back to
+        // /sign-in, /sign-up, or /otp, and never echo an already-encoded
+        // sign-in URL as the redirect target.
+        let target = location.pathname || '/'
+        const authOnlyPaths = ['/sign-in', '/sign-up', '/otp']
+        const searchParams = new URLSearchParams(location.search ?? '')
+        const nestedRedirect = searchParams.get('redirect')
+        if (
+          !nestedRedirect ||
+          authOnlyPaths.some((p) => target.startsWith(p)) ||
+          authOnlyPaths.some((p) => nestedRedirect.startsWith(p))
+        ) {
+          target = '/'
+        } else {
+          target = nestedRedirect
+        }
+        throw redirect({ to: target, replace: true })
       }
     }
   },
