@@ -34,3 +34,23 @@ func IsPaymentComplianceConfirmed() bool {
 	return paymentSetting.ComplianceConfirmed &&
 		paymentSetting.ComplianceTermsVersion == CurrentComplianceTermsVersion
 }
+
+func SetPaymentComplianceConfirmed(confirmed bool) {
+	paymentSetting.ComplianceConfirmed = confirmed
+}
+
+func SetPaymentComplianceTermsVersion(version string) {
+	paymentSetting.ComplianceTermsVersion = version
+}
+
+func SetPaymentComplianceConfirmedAt(at int64) {
+	paymentSetting.ComplianceConfirmedAt = at
+}
+
+func SetPaymentComplianceConfirmedBy(by int) {
+	paymentSetting.ComplianceConfirmedBy = by
+}
+
+func SetPaymentComplianceConfirmedIP(ip string) {
+	paymentSetting.ComplianceConfirmedIP = ip
+}
