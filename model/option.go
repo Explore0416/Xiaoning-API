@@ -599,20 +599,6 @@ func updateOptionMap(key string, value string) (err error) {
 		// WaffoPayMethods is read directly from OptionMap via setting.GetWaffoPayMethods().
 		// The value is already stored in OptionMap at the top of this function (line: common.OptionMap[key] = value).
 		// No additional in-memory variable to update.
-	case "payment_setting.compliance_confirmed":
-		operation_setting.SetPaymentComplianceConfirmed(value == "true" || value == "1")
-	case "payment_setting.compliance_terms_version":
-		operation_setting.SetPaymentComplianceTermsVersion(value)
-	case "payment_setting.compliance_confirmed_at":
-		if n, errConv := strconv.ParseInt(value, 10, 64); errConv == nil {
-			operation_setting.SetPaymentComplianceConfirmedAt(n)
-		}
-	case "payment_setting.compliance_confirmed_by":
-		if n, errConv := strconv.Atoi(value); errConv == nil {
-			operation_setting.SetPaymentComplianceConfirmedBy(n)
-		}
-	case "payment_setting.compliance_confirmed_ip":
-		operation_setting.SetPaymentComplianceConfirmedIP(value)
 	}
 	return err
 }
