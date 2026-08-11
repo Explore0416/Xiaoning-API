@@ -1,6 +1,8 @@
 package model
 
 import (
+	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -628,7 +630,20 @@ func handleConfigUpdate(key, value string) bool {
 	configMap := map[string]string{
 		configKey: value,
 	}
-	config.UpdateConfigFromMap(cfg, configMap)
+
+	updateErr := config.UpdateConfigFromMap(cfg, configMap)
+
+	if configName == "payment_setting" && configKey == "compliance_confirmed" {
+		// 直接用指针反射验证字段值
+		rv := reflect.ValueOf(cfg)
+		common.SysLog(fmt.Sprintf("PAYMENT_DEBUG cfg type=%T kind=%v", cfg, rv.Kind()))
+		if rv.Kind() == reflect.Ptr {
+			ev := rv.Elem()
+			field := ev.FieldByName("ComplianceConfirmed")
+			common.SysLog(fmt.Sprintf("PAYMENT_DEBUG field.CanSet=%v field.Bool=%v", field.CanSet(), field.Bool()))
+		}
+		common.SysLog(fmt.Sprintf("PAYMENT_DEBUG: UpdateConfigFromMap returned err=%v, ComplianceConfirmed=%v", updateErr, operation_setting.IsPaymentComplianceConfirmed()))
+	}
 
 	// 特定配置的后处理
 	if configName == "performance_setting" {

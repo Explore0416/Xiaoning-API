@@ -1,6 +1,10 @@
 package operation_setting
 
-import "github.com/QuantumNous/new-api/setting/config"
+import (
+	"fmt"
+
+	"github.com/QuantumNous/new-api/setting/config"
+)
 
 type PaymentSetting struct {
 	AmountOptions  []float64        `json:"amount_options"`
@@ -33,4 +37,13 @@ func GetPaymentSetting() *PaymentSetting {
 func IsPaymentComplianceConfirmed() bool {
 	return paymentSetting.ComplianceConfirmed &&
 		paymentSetting.ComplianceTermsVersion == CurrentComplianceTermsVersion
+}
+
+// DiscountMap returns AmountDiscount as a string-keyed map safe for JSON serialization.
+func (p *PaymentSetting) DiscountMap() map[string]float64 {
+	out := make(map[string]float64, len(p.AmountDiscount))
+	for k, v := range p.AmountDiscount {
+		out[fmt.Sprintf("%g", k)] = v
+	}
+	return out
 }
