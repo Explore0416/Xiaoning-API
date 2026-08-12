@@ -188,24 +188,17 @@ export const Route = createRootRouteWithContext<{
       // definitively gone (anonymous) or out of sync with the server.
       const outcome = await authBootstrap
       if (outcome.kind === 'anonymous' || outcome.kind === 'out_of_sync') {
-        // Guard against a self-redirect loop when the bootstrap itself is
-        // triggered from an authenticated route: never bounce back to
-        // /sign-in, /sign-up, or /otp, and never echo an already-encoded
-        // sign-in URL as the redirect target.
-        let target = location.pathname || '/'
+        // Guard against a self-redirect loop: anonymous users should always
+        // land on /sign-in so the login form renders. Only redirect if we're
+        // NOT already on an auth page (prevents /sign-in → / → /sign-in loop).
         const authOnlyPaths = ['/sign-in', '/sign-up', '/otp']
-        const searchParams = new URLSearchParams(location.search ?? '')
-        const nestedRedirect = searchParams.get('redirect')
-        if (
-          !nestedRedirect ||
-          authOnlyPaths.some((p) => target.startsWith(p)) ||
-          authOnlyPaths.some((p) => nestedRedirect.startsWith(p))
-        ) {
-          target = '/'
-        } else {
-          target = nestedRedirect
+        const alreadyOnAuthPage = authOnlyPaths.some((p) =>
+          location.pathname.startsWith(p)
+        )
+        if (!alreadyOnAuthPage) {
+          throw redirect({ to: '/sign-in' })
         }
-        throw redirect({ to: target, replace: true })
+        // Already on /sign-in — do nothing, let the page render the login form.
       }
     }
   },
