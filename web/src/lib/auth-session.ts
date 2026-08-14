@@ -425,11 +425,33 @@ export async function getFreshAuthHeaders(): Promise<Record<string, string>> {
 
 let keepaliveStarted = false
 let keepaliveTimer: ReturnType<typeof setTimeout> | null = null
+// Exponential backoff for transient refresh failures: 60s, 2m, 4m, ..., 15m cap.
+const KEEPALIVE_BACKOFF_MS = 60 * 1000
+const KEEPALIVE_BACKOFF_FACTOR = 2
+const KEEPALIVE_BACKOFF_CAP_MS = 15 * 60 * 1000
+// Refresh only when the access token is within this window of expiry.
+const KEEPALIVE_REFRESH_THRESHOLD_S = 120
+let keepaliveBackoffMs = KEEPALIVE_BACKOFF_MS
+
+function resetKeepaliveBackoff(): void {
+  keepaliveBackoffMs = KEEPALIVE_BACKOFF_MS
+}
 
 /**
- * Schedule the next keepalive check based on access_expires_at.
- * Schedules a refresh ~2 minutes before the token expires, but never sooner
- * than 60s after the previous attempt (to avoid tight loops on transient errors).
+ * Whether the access token is valid enough that a keepalive refresh is not
+ * needed yet. Mirrors currentValidAuthBundle() so we never fire a refresh
+ * request while the token still has runway.
+ */
+function keepaliveTokenStillFresh(): boolean {
+  const auth = useAuthStore.getState().auth
+  if (!auth.accessToken || !auth.accessExpiresAt) return false
+  const secondsUntilExpiry = auth.accessExpiresAt - Math.floor(Date.now() / 1000)
+  return secondsUntilExpiry > KEEPALIVE_REFRESH_THRESHOLD_S
+}
+
+/**
+ * Schedule the next keepalive check. The normal path schedules right before
+ * the access token expires; transient errors use exponential backoff.
  */
 function scheduleNextKeepalive(delaySeconds: number): void {
   if (keepaliveTimer) clearTimeout(keepaliveTimer)
@@ -440,6 +462,17 @@ function scheduleNextKeepalive(delaySeconds: number): void {
 
 async function runKeepaliveRefresh(): Promise<void> {
   try {
+    // Never issue a refresh while the token still has runway — this is the
+    // guard that stops focus/visibility churn from hammering the API.
+    if (keepaliveTokenStillFresh()) {
+      resetKeepaliveBackoff()
+      scheduleNextKeepalive(
+        useAuthStore.getState().auth.accessExpiresAt -
+          Math.floor(Date.now() / 1000) -
+          KEEPALIVE_REFRESH_THRESHOLD_S
+      )
+      return
+    }
     if (typeof document !== 'undefined' && document.visibilityState !== 'visible') {
       // Don't burn requests while the tab is hidden — wait for visibility.
       const onVisible = () => {
@@ -452,17 +485,26 @@ async function runKeepaliveRefresh(): Promise<void> {
     const outcome = await refreshAuthentication()
     const auth = useAuthStore.getState().auth
     if (outcome.kind === 'authenticated' && auth.accessExpiresAt) {
-      // Schedule the next check ~2 minutes before the access token expires.
+      resetKeepaliveBackoff()
       const secondsUntilExpiry =
         auth.accessExpiresAt - Math.floor(Date.now() / 1000)
-      scheduleNextKeepalive(secondsUntilExpiry - 120)
+      scheduleNextKeepalive(secondsUntilExpiry - KEEPALIVE_REFRESH_THRESHOLD_S)
     } else if (outcome.kind === 'transient_error') {
-      // Retry after 60s on transient errors.
-      scheduleNextKeepalive(60)
+      // Back off exponentially so repeated failures don't exhaust the login
+      // critical-rate-limit budget that /api/user/auth/refresh shares.
+      scheduleNextKeepalive(keepaliveBackoffMs / 1000)
+      keepaliveBackoffMs = Math.min(
+        keepaliveBackoffMs * KEEPALIVE_BACKOFF_FACTOR,
+        KEEPALIVE_BACKOFF_CAP_MS
+      )
     }
     // 'anonymous' / 'out_of_sync' means the session is gone — stop keepalive.
   } catch {
-    scheduleNextKeepalive(60)
+    scheduleNextKeepalive(keepaliveBackoffMs / 1000)
+    keepaliveBackoffMs = Math.min(
+      keepaliveBackoffMs * KEEPALIVE_BACKOFF_FACTOR,
+      KEEPALIVE_BACKOFF_CAP_MS
+    )
   }
 }
 
@@ -480,25 +522,26 @@ export function startAuthSessionKeepalive(): () => void {
 
   const onVisible = () => {
     if (document.visibilityState !== 'visible') return
-    const auth = useAuthStore.getState().auth
-    if (!auth.accessToken || !auth.accessExpiresAt) return
-    const secondsUntilExpiry =
-      auth.accessExpiresAt - Math.floor(Date.now() / 1000)
-    // If the token is still valid for more than 2 minutes, defer to the
-    // scheduled timer; otherwise kick off a refresh now.
-    if (secondsUntilExpiry < 120) void runKeepaliveRefresh()
+    // Refresh only when the token is actually close to expiring.
+    if (!keepaliveTokenStillFresh()) void runKeepaliveRefresh()
   }
   const onFocus = () => {
-    const auth = useAuthStore.getState().auth
-    if (!auth.accessToken) return
-    void runKeepaliveRefresh()
+    // Same guard as onVisible — never refresh just because the window
+    // regained focus while the token still has runway.
+    if (!keepaliveTokenStillFresh()) void runKeepaliveRefresh()
   }
 
   document.addEventListener('visibilitychange', onVisible)
   window.addEventListener('focus', onFocus)
 
-  // Kick off the initial schedule.
-  scheduleNextKeepalive(60)
+  // Kick off the initial schedule only if a refresh is actually needed.
+  scheduleNextKeepalive(
+    keepaliveTokenStillFresh()
+      ? useAuthStore.getState().auth.accessExpiresAt -
+          Math.floor(Date.now() / 1000) -
+          KEEPALIVE_REFRESH_THRESHOLD_S
+      : 60
+  )
 
   return () => {
     document.removeEventListener('visibilitychange', onVisible)

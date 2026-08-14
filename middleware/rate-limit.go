@@ -187,6 +187,15 @@ func CriticalRateLimit() func(c *gin.Context) {
 	return defNext
 }
 
+// AuthRefreshRateLimit is a generous per-IP limiter for the session refresh
+// endpoint. Token refresh is a high-frequency, legitimate operation that the
+// dashboard keepalive performs in the background; it must not share the login
+// critical-rate-limit budget, which a few failed attempts or many users behind
+// one NAT can easily exhaust.
+func AuthRefreshRateLimit() func(c *gin.Context) {
+	return rateLimitFactory(120, 60, "RF")
+}
+
 func DownloadRateLimit() func(c *gin.Context) {
 	return rateLimitFactory(common.DownloadRateLimitNum, common.DownloadRateLimitDuration, "DW")
 }
