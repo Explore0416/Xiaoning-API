@@ -25,6 +25,7 @@ import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
+import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { resetModelRatios } from '../api'
@@ -35,6 +36,8 @@ import { positiveIntegerSchema } from '../utils/numeric-field'
 import { GroupRatioForm } from './group-ratio-form'
 import { ModelRatioForm } from './model-ratio-form'
 import { ToolPriceSettings } from './tool-price-settings'
+import { PricingModelBatchManager } from './pricing-model-batch-manager'
+import { RatioBatchAdjustDialog } from './dialogs/ratio-batch-adjust-dialog'
 import { UpstreamRatioSync } from './upstream-ratio-sync'
 import {
   formatJsonForTextarea,
@@ -144,6 +147,7 @@ type RatioTabId =
   | 'groups'
   | 'tool-prices'
   | 'upstream-sync'
+  | 'batch-management'
 
 type RatioSettingsCardProps = {
   modelDefaults: ModelFormValues
@@ -164,6 +168,7 @@ export function RatioSettingsCard({
   const updateOption = useUpdateOption()
   const queryClient = useQueryClient()
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const [batchAdjustOpen, setBatchAdjustOpen] = useState(false)
 
   const resetMutation = useMutation({
     mutationFn: resetModelRatios,
@@ -408,6 +413,7 @@ export function RatioSettingsCard({
     groups: 'Group ratios',
     'tool-prices': 'Tool prices',
     'upstream-sync': 'Upstream price sync',
+    'batch-management': 'Batch management',
   }
   const tabsGridClass =
     {
@@ -445,6 +451,9 @@ export function RatioSettingsCard({
     if (tab === 'tool-prices') {
       return <ToolPriceSettings defaultValue={toolPricesDefault} />
     }
+    if (tab === 'batch-management') {
+      return <PricingModelBatchManager />
+    }
     return (
       <UpstreamRatioSync
         modelRatios={{
@@ -477,6 +486,11 @@ export function RatioSettingsCard({
     <>
       {visibleTabs.length === 1 ? (
         <SettingsSection title={t(titleKey)}>
+          <div className='mb-4 flex justify-end'>
+            <Button size='sm' variant='outline' onClick={() => setBatchAdjustOpen(true)}>
+              {t('Batch Adjust Prices')}
+            </Button>
+          </div>
           {renderTabContent(defaultTab)}
         </SettingsSection>
       ) : (
@@ -494,6 +508,11 @@ export function RatioSettingsCard({
           </SettingsSection>
         </Tabs>
       )}
+
+      <RatioBatchAdjustDialog
+        open={batchAdjustOpen}
+        onOpenChange={setBatchAdjustOpen}
+      />
 
       <ConfirmDialog
         open={confirmOpen}

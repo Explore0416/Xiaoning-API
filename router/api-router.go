@@ -52,6 +52,7 @@ func SetApiRouter(router *gin.Engine) {
 		// Standard OAuth providers (GitHub, Discord, OIDC, LinuxDO) - unified route
 		apiRouter.GET("/oauth/:provider", middleware.CriticalRateLimit(), middleware.DisableCache(), middleware.TryUserAuth(), controller.HandleOAuth)
 		apiRouter.GET("/ratio_config", middleware.CriticalRateLimit(), controller.GetRatioConfig)
+		apiRouter.GET("/channels/models-matrix", middleware.TryUserAuth(), controller.GetChannelsModelsMatrix)
 
 		apiRouter.POST("/stripe/webhook", anonymousRequestBodyLimit, controller.StripeWebhook)
 		apiRouter.POST("/creem/webhook", anonymousRequestBodyLimit, controller.CreemWebhook)
@@ -229,6 +230,14 @@ func SetApiRouter(router *gin.Engine) {
 			ratioSyncRoute.GET("/channels", controller.GetSyncableChannels)
 			ratioSyncRoute.POST("/fetch", controller.FetchUpstreamRatios)
 		}
+
+		ratioBatchRoute := apiRouter.Group("/ratio_batch")
+		ratioBatchRoute.Use(middleware.AdminAuth())
+		{
+			ratioBatchRoute.GET("/models", controller.RatioBatchModels)
+			ratioBatchRoute.POST("/preview", controller.RatioBatchPreview)
+			ratioBatchRoute.POST("/apply", middleware.RootAuth(), controller.RatioBatchApply)
+		}
 		registerChannelRoutes(apiRouter)
 		registerAuthzRoutes(apiRouter)
 		tokenRoute := apiRouter.Group("/token")
@@ -345,6 +354,9 @@ func SetApiRouter(router *gin.Engine) {
 			modelsRoute.GET("/sync_upstream/preview", controller.SyncUpstreamPreview)
 			modelsRoute.POST("/sync_upstream", controller.SyncUpstreamModels)
 			modelsRoute.GET("/missing", controller.GetMissingModels)
+			modelsRoute.POST("/batch", controller.BatchCreateModels)
+			modelsRoute.PUT("/batch", controller.BatchUpdateModels)
+			modelsRoute.DELETE("/batch", controller.BatchDeleteModels)
 			modelsRoute.GET("/", controller.GetAllModelsMeta)
 			modelsRoute.GET("/search", controller.SearchModelsMeta)
 			modelsRoute.GET("/:id", controller.GetModelMeta)

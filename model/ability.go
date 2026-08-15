@@ -60,6 +60,29 @@ func GetAllEnableAbilities() []Ability {
 	return abilities
 }
 
+type ChannelModelMatrix struct {
+	ChannelID     int
+	ChannelName   string
+	ChannelType   int
+	ChannelStatus int
+	Model         string
+	Group         string
+	Enabled       bool
+	Priority      *int64
+	Weight        uint
+	Tag           *string
+}
+
+func GetChannelsModelsMatrix() ([]ChannelModelMatrix, error) {
+	var rows []ChannelModelMatrix
+	err := DB.Table("abilities").
+		Select("channels.id as channel_id, channels.name as channel_name, channels.type as channel_type, channels.status as channel_status, abilities.model, abilities." + commonGroupCol + " as " + commonGroupCol + ", abilities.enabled, abilities.priority, abilities.weight, abilities.tag").
+		Joins("JOIN channels ON abilities.channel_id = channels.id").
+		Order("channels.id, abilities.model").
+		Scan(&rows).Error
+	return rows, err
+}
+
 func getPriority(group string, model string, retry int) (int, error) {
 
 	var priorities []int

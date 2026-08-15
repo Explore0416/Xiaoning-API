@@ -19,10 +19,12 @@ For commercial licensing, please contact support@quantumnous.com
 import { useQuery } from '@tanstack/react-query'
 import { Link } from '@tanstack/react-router'
 import { Settings2 } from 'lucide-react'
+import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { SectionPageLayout } from '@/components/layout'
 import { Badge } from '@/components/ui/badge'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import {
   Tooltip,
   TooltipContent,
@@ -33,6 +35,7 @@ import { useAuthStore } from '@/stores/auth-store'
 
 import { getChannelOps } from './api'
 import { ChannelsDialogs } from './components/channels-dialogs'
+import { ChannelsMatrix } from './components/channels-matrix'
 import { ChannelsPrimaryButtons } from './components/channels-primary-buttons'
 import { ChannelsProvider } from './components/channels-provider'
 import { ChannelsTable } from './components/channels-table'
@@ -42,6 +45,7 @@ export function Channels() {
   const isRoot = useAuthStore(
     (state) => state.auth.user?.role === ROLE.SUPER_ADMIN
   )
+  const [tabView, setTabView] = useState<'list' | 'matrix'>('list')
   const channelOpsQuery = useQuery({
     queryKey: ['channel-ops'],
     queryFn: getChannelOps,
@@ -97,7 +101,22 @@ export function Channels() {
           <ChannelsPrimaryButtons />
         </SectionPageLayout.Actions>
         <SectionPageLayout.Content>
-          <ChannelsTable />
+          <Tabs
+            value={tabView}
+            onValueChange={(value) => setTabView(value as 'list' | 'matrix')}
+            className='flex h-full min-h-0 flex-col gap-4'
+          >
+            <TabsList className='w-fit'>
+              <TabsTrigger value='list'>{t('List')}</TabsTrigger>
+              <TabsTrigger value='matrix'>{t('Matrix')}</TabsTrigger>
+            </TabsList>
+            <TabsContent value='list' className='min-h-0 flex-1'>
+              <ChannelsTable />
+            </TabsContent>
+            <TabsContent value='matrix' className='min-h-0 flex-1'>
+              <ChannelsMatrix />
+            </TabsContent>
+          </Tabs>
         </SectionPageLayout.Content>
       </SectionPageLayout>
 

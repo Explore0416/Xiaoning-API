@@ -97,6 +97,58 @@ func GetChannelOps(c *gin.Context) {
 	})
 }
 
+func GetChannelsModelsMatrix(c *gin.Context) {
+	rows, err := model.GetChannelsModelsMatrix()
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	type modelEntry struct {
+		Model    string  `json:"model"`
+		Group    string  `json:"group"`
+		Enabled  bool    `json:"enabled"`
+		Priority *int64  `json:"priority"`
+		Weight   uint    `json:"weight"`
+		Tag      *string `json:"tag"`
+	}
+	type channelEntry struct {
+		ID     int          `json:"id"`
+		Name   string       `json:"name"`
+		Type   int          `json:"type"`
+		Status int          `json:"status"`
+		Models []modelEntry `json:"models"`
+	}
+	channelMap := make(map[int]*channelEntry)
+	channelOrder := make([]int, 0)
+	for _, row := range rows {
+		entry, exists := channelMap[row.ChannelID]
+		if !exists {
+			entry = &channelEntry{
+				ID:     row.ChannelID,
+				Name:   row.ChannelName,
+				Type:   row.ChannelType,
+				Status: row.ChannelStatus,
+				Models: make([]modelEntry, 0),
+			}
+			channelMap[row.ChannelID] = entry
+			channelOrder = append(channelOrder, row.ChannelID)
+		}
+		entry.Models = append(entry.Models, modelEntry{
+			Model:    row.Model,
+			Group:    row.Group,
+			Enabled:  row.Enabled,
+			Priority: row.Priority,
+			Weight:   row.Weight,
+			Tag:      row.Tag,
+		})
+	}
+	channels := make([]channelEntry, 0, len(channelOrder))
+	for _, id := range channelOrder {
+		channels = append(channels, *channelMap[id])
+	}
+	common.ApiSuccess(c, channels)
+}
+
 func GetAllChannels(c *gin.Context) {
 	pageInfo := common.GetPageQuery(c)
 	channelData := make([]*model.Channel, 0)
