@@ -50,6 +50,10 @@ const DEFAULT_SIDEBAR_MODULES: SidebarModulesAdminConfig = {
     midjourney: true,
     task: true,
   },
+  general: {
+    enabled: true,
+    monitoring: true,
+  },
   personal: {
     enabled: true,
     topup: true,
@@ -100,6 +104,7 @@ const URL_TO_CONFIG_MAP: Record<string, { section: string; module: string }> = {
   '/dashboard/overview': { section: 'console', module: 'detail' },
   '/dashboard/models': { section: 'console', module: 'detail' },
   '/dashboard/users': { section: 'console', module: 'detail' },
+  '/model-monitoring': { section: 'general', module: 'monitoring' },
   '/keys': { section: 'console', module: 'token' },
   '/usage-logs': { section: 'console', module: 'log' },
   '/usage-logs/common': { section: 'console', module: 'log' },

@@ -21,6 +21,7 @@ import { useTranslation } from 'react-i18next'
 
 import { useStatus } from '@/hooks/use-status'
 import { parseHeaderNavModulesFromStatus } from '@/lib/nav-modules'
+import { ROLE } from '@/lib/roles'
 import { useAuthStore } from '@/stores/auth-store'
 
 export type TopNavLink = {
@@ -84,6 +85,23 @@ export function useTopNavLinks(): TopNavLink[] {
   if (rankings && typeof rankings === 'object' && rankings.enabled) {
     const requiresAuth = rankings.requireAuth && !isAuthed
     links.push({ title: t('Rankings'), href: '/rankings', requiresAuth })
+  }
+
+  // Monitoring is an administrator-only destination even when enabled in the
+  // public header configuration.
+  const monitoring = modules?.monitoring
+  if (
+    monitoring &&
+    typeof monitoring === 'object' &&
+    monitoring.enabled &&
+    auth?.user?.role !== undefined &&
+    auth.user.role >= ROLE.ADMIN
+  ) {
+    links.push({
+      title: t('Model Monitoring'),
+      href: '/model-monitoring',
+      requiresAuth: monitoring.requireAuth,
+    })
   }
 
   // Docs (supports external links)

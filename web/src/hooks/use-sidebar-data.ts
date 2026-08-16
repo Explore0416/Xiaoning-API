@@ -76,6 +76,12 @@ export function useSidebarData(): SidebarData {
             icon: Activity,
           },
           {
+            title: t('Model Monitoring'),
+            url: '/model-monitoring',
+            icon: Activity,
+            requiredRole: ROLE.ADMIN,
+          },
+          {
             title: t('Dashboard'),
             url: '/dashboard/models',
             icon: LayoutDashboard,
@@ -123,11 +129,6 @@ export function useSidebarData(): SidebarData {
             title: t('Channels'),
             url: '/channels',
             icon: Radio,
-          },
-          {
-            title: t('Model Monitoring'),
-            url: '/model-monitoring',
-            icon: Activity,
           },
           {
             title: t('Models'),
