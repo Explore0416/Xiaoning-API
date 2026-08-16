@@ -32,7 +32,12 @@ const fieldOptions: Array<{ value: RatioBatchRule['field']; label: string }> = [
   { value: 'model_price', label: 'Fixed price' },
 ]
 
-const defaultRule = (): RatioBatchRule => ({
+type EditableRatioBatchRule = RatioBatchRule & { id: number }
+
+let nextRuleId = 1
+
+const defaultRule = (): EditableRatioBatchRule => ({
+  id: nextRuleId++,
   field: 'model_ratio',
   match: { type: 'prefix', pattern: '' },
   op: { type: 'multiply', value: 1 },
@@ -53,17 +58,22 @@ export function RatioBatchAdjustDialog({
 }: RatioBatchAdjustDialogProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
-  const [rules, setRules] = useState<RatioBatchRule[]>([defaultRule()])
+  const [rules, setRules] = useState<EditableRatioBatchRule[]>([defaultRule()])
   const [preview, setPreview] = useState<{
     changes: Array<{ field: string; model: string; old: number; new: number }>
     errors: Array<{ field?: string; model?: string; message: string }>
+    skipped: Array<{ field: string; model: string; message: string }>
   } | null>(null)
 
   const previewMutation = useMutation({
-    mutationFn: () => previewRatioBatch(rules, targetModels),
+    mutationFn: () => previewRatioBatch(requestRules, targetModels),
     onSuccess: (response) => {
       const data = response.data
-      setPreview({ changes: data?.changes ?? [], errors: data?.errors ?? [] })
+      setPreview({
+        changes: data?.changes ?? [],
+        errors: data?.errors ?? [],
+        skipped: data?.skipped ?? [],
+      })
       if (!response.success) {
         toast.error(response.message || t('Failed to preview batch adjustment'))
       }
@@ -74,10 +84,14 @@ export function RatioBatchAdjustDialog({
   })
 
   const applyMutation = useMutation({
-    mutationFn: () => applyRatioBatch(rules, targetModels),
+    mutationFn: () => applyRatioBatch(requestRules, targetModels),
     onSuccess: (response) => {
       const data = response.data
-      setPreview({ changes: data?.changes ?? [], errors: data?.errors ?? [] })
+      setPreview({
+        changes: data?.changes ?? [],
+        errors: data?.errors ?? [],
+        skipped: data?.skipped ?? [],
+      })
       if (!response.success) {
         toast.error(response.message || t('Failed to apply batch adjustment'))
         return
@@ -97,7 +111,7 @@ export function RatioBatchAdjustDialog({
     },
   })
 
-  const updateRule = (index: number, next: Partial<RatioBatchRule>) => {
+  const updateRule = (index: number, next: Partial<EditableRatioBatchRule>) => {
     setPreview(null)
     setRules((current) =>
       current.map((rule, currentIndex) =>
@@ -105,6 +119,12 @@ export function RatioBatchAdjustDialog({
       )
     )
   }
+
+  const requestRules: RatioBatchRule[] = rules.map((rule) => ({
+    field: rule.field,
+    match: rule.match,
+    op: rule.op,
+  }))
 
   return (
     <Dialog
@@ -133,7 +153,8 @@ export function RatioBatchAdjustDialog({
               applyMutation.isPending ||
               previewMutation.isPending ||
               !preview ||
-              preview.errors.length > 0
+              preview.errors.length > 0 ||
+              preview.changes.length === 0
             }
           >
             {applyMutation.isPending ? t('Applying...') : t('Apply')}
@@ -144,11 +165,11 @@ export function RatioBatchAdjustDialog({
       <div className='space-y-4'>
         {rules.map((rule, index) => (
           <div
-            key={index}
+            key={rule.id}
             className='grid gap-2 rounded-md border p-3 md:grid-cols-[1fr_0.8fr_1fr_0.8fr_7rem_auto]'
           >
             <select
-              className='h-9 rounded-md border bg-background px-2 text-sm'
+              className='bg-background h-9 rounded-md border px-2 text-sm'
               value={rule.field}
               onChange={(event) =>
                 updateRule(index, {
@@ -163,7 +184,7 @@ export function RatioBatchAdjustDialog({
               ))}
             </select>
             <select
-              className='h-9 rounded-md border bg-background px-2 text-sm'
+              className='bg-background h-9 rounded-md border px-2 text-sm'
               value={rule.match.type}
               onChange={(event) =>
                 updateRule(index, {
@@ -174,14 +195,16 @@ export function RatioBatchAdjustDialog({
                 })
               }
             >
-              {['prefix', 'suffix', 'contains', 'exact', 'regex'].map((type) => (
-                <option key={type} value={type}>
-                  {t(type)}
-                </option>
-              ))}
+              {['prefix', 'suffix', 'contains', 'exact', 'regex'].map(
+                (type) => (
+                  <option key={type} value={type}>
+                    {t(type)}
+                  </option>
+                )
+              )}
             </select>
             <input
-              className='h-9 rounded-md border bg-background px-2 text-sm'
+              className='bg-background h-9 rounded-md border px-2 text-sm'
               value={rule.match.pattern}
               onChange={(event) =>
                 updateRule(index, {
@@ -191,7 +214,7 @@ export function RatioBatchAdjustDialog({
               placeholder={t('Model match pattern')}
             />
             <select
-              className='h-9 rounded-md border bg-background px-2 text-sm'
+              className='bg-background h-9 rounded-md border px-2 text-sm'
               value={rule.op.type}
               onChange={(event) =>
                 updateRule(index, {
@@ -209,7 +232,7 @@ export function RatioBatchAdjustDialog({
               ))}
             </select>
             <input
-              className='h-9 rounded-md border bg-background px-2 text-sm'
+              className='bg-background h-9 rounded-md border px-2 text-sm'
               type='number'
               min='0'
               step='any'
@@ -253,15 +276,33 @@ export function RatioBatchAdjustDialog({
                 count: preview.changes.length,
               })}
             </p>
-            {preview.errors.map((error, index) => (
-              <p key={`${error.field}-${error.model}-${index}`} className='text-destructive'>
+            {preview.errors.map((error) => (
+              <p
+                key={`${error.field}-${error.model}-${error.message}`}
+                className='text-destructive'
+              >
                 {error.field} {error.model}: {error.message}
               </p>
             ))}
+            {preview.skipped.length > 0 && (
+              <div className='text-muted-foreground space-y-1 text-xs'>
+                <p className='font-medium'>
+                  {t('{{count}} model price value(s) were skipped', {
+                    count: preview.skipped.length,
+                  })}
+                </p>
+                {preview.skipped.map((item) => (
+                  <p key={`${item.field}-${item.model}-${item.message}`}>
+                    {item.model} / {item.field}: {item.message}
+                  </p>
+                ))}
+              </div>
+            )}
             <div className='max-h-48 space-y-1 overflow-y-auto font-mono text-xs'>
               {preview.changes.map((change) => (
                 <p key={`${change.field}-${change.model}`}>
-                  {change.model} / {change.field}: {change.old} -&gt; {change.new}
+                  {change.model} / {change.field}: {change.old} -&gt;{' '}
+                  {change.new}
                 </p>
               ))}
             </div>

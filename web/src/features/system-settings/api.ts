@@ -116,7 +116,10 @@ export type RatioBatchRule = {
     | 'audio_ratio'
     | 'audio_completion_ratio'
     | 'model_price'
-  match: { type: 'prefix' | 'suffix' | 'contains' | 'exact' | 'regex'; pattern: string }
+  match: {
+    type: 'prefix' | 'suffix' | 'contains' | 'exact' | 'regex'
+    pattern: string
+  }
   op: { type: 'multiply' | 'set' | 'add'; value: number }
 }
 
@@ -164,6 +167,7 @@ type RatioBatchResponse = {
   data?: {
     changes: Array<{ field: string; model: string; old: number; new: number }>
     errors: Array<{ field?: string; model?: string; message: string }>
+    skipped: Array<{ field: string; model: string; message: string }>
     affected_count: number
   }
 }
@@ -191,14 +195,18 @@ export async function applyRatioBatch(
 }
 
 export async function getPricingModelInventory() {
-  const res = await api.get<PricingModelInventoryResponse>('/api/ratio_batch/models')
+  const res = await api.get<PricingModelInventoryResponse>(
+    '/api/ratio_batch/models'
+  )
   return res.data
 }
 
 export async function batchCreatePricingModels(
   models: Array<Record<string, unknown>>
 ) {
-  const res = await api.post<BatchModelResponse>('/api/models/batch', { models })
+  const res = await api.post<BatchModelResponse>('/api/models/batch', {
+    models,
+  })
   return res.data
 }
 
@@ -206,7 +214,10 @@ export async function batchUpdatePricingModels(
   ids: number[],
   patch: Record<string, unknown>
 ) {
-  const res = await api.put<BatchModelResponse>('/api/models/batch', { ids, patch })
+  const res = await api.put<BatchModelResponse>('/api/models/batch', {
+    ids,
+    patch,
+  })
   return res.data
 }
 

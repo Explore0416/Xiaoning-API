@@ -1,6 +1,10 @@
 import { api } from '@/lib/api'
 
-export async function getPublicChannelsModelsMatrix() {
-  const res = await api.get('/api/channels/models-matrix')
+import type { ChannelsMatrixResponse } from './types'
+
+export async function getPublicChannelsModelsMatrix(): Promise<ChannelsMatrixResponse> {
+  const res = await api.get<ChannelsMatrixResponse>(
+    '/api/channels/models-matrix'
+  )
   return res.data
 }

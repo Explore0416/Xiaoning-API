@@ -97,6 +97,23 @@ func GetChannelOps(c *gin.Context) {
 	})
 }
 
+func GetModelChannelMonitoring(c *gin.Context) {
+	days, err := strconv.Atoi(c.DefaultQuery("days", "7"))
+	if err != nil || (days != 7 && days != 15 && days != 30) {
+		c.JSON(http.StatusBadRequest, gin.H{
+			"success": false,
+			"message": "days must be 7, 15, or 30",
+		})
+		return
+	}
+	items, err := model.GetModelChannelMonitoring(days)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, items)
+}
+
 func GetChannelsModelsMatrix(c *gin.Context) {
 	rows, err := model.GetChannelsModelsMatrix()
 	if err != nil {
