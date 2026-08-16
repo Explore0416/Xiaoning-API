@@ -56,7 +56,6 @@ const headerNavSchema = z.object({
   rankingsEnabled: z.boolean(),
   rankingsRequireAuth: z.boolean(),
   monitoringEnabled: z.boolean(),
-  monitoringRequireAuth: z.boolean(),
   docs: z.boolean(),
   about: z.boolean(),
 })
@@ -95,10 +94,6 @@ const toFormValues = (config: HeaderNavModulesConfig): HeaderNavFormValues => ({
     config.monitoring?.enabled === undefined
       ? HEADER_NAV_DEFAULT.monitoring.enabled
       : Boolean(config.monitoring.enabled),
-  monitoringRequireAuth:
-    config.monitoring?.requireAuth === undefined
-      ? HEADER_NAV_DEFAULT.monitoring.requireAuth
-      : Boolean(config.monitoring.requireAuth),
   docs:
     config.docs === undefined ? HEADER_NAV_DEFAULT.docs : Boolean(config.docs),
   about:
@@ -144,7 +139,7 @@ export function HeaderNavigationSection({
       monitoring: {
         ...(config.monitoring ?? HEADER_NAV_DEFAULT.monitoring),
         enabled: values.monitoringEnabled,
-        requireAuth: values.monitoringRequireAuth,
+        requireAuth: true,
       },
     }
 
@@ -188,15 +183,19 @@ export function HeaderNavigationSection({
       title: t('About'),
       description: t('Static page describing the platform.'),
     },
+    {
+      key: 'monitoringEnabled',
+      title: t('Model Monitoring'),
+      description: t(
+        'Authenticated model availability and request health overview.'
+      ),
+    },
   ]
 
   const accessModules: Array<{
     enabledKey: keyof HeaderNavFormValues
     requireAuthKey: keyof HeaderNavFormValues
-    requireAuthDependsOn:
-      | 'pricingEnabled'
-      | 'rankingsEnabled'
-      | 'monitoringEnabled'
+    requireAuthDependsOn: 'pricingEnabled' | 'rankingsEnabled'
     title: string
     description: string
     requireAuthTitle: string
@@ -222,17 +221,6 @@ export function HeaderNavigationSection({
       requireAuthTitle: t('Require login to view rankings'),
       requireAuthDescription: t(
         'Visitors must authenticate before accessing the rankings page.'
-      ),
-    },
-    {
-      enabledKey: 'monitoringEnabled',
-      requireAuthKey: 'monitoringRequireAuth',
-      requireAuthDependsOn: 'monitoringEnabled',
-      title: t('Model Monitoring'),
-      description: t('Administrator-only model and channel health overview.'),
-      requireAuthTitle: t('Require login to view monitoring'),
-      requireAuthDescription: t(
-        'Monitoring is available only to authenticated administrators.'
       ),
     },
   ]

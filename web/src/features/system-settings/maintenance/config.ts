@@ -169,7 +169,10 @@ export function parseHeaderNavModules(
         return
       }
       if (key === 'monitoring') {
-        result.monitoring = parseAccessModule(raw, base.monitoring)
+        result.monitoring = {
+          ...parseAccessModule(raw, base.monitoring),
+          requireAuth: true,
+        }
         return
       }
 

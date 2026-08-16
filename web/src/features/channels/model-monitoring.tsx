@@ -1,23 +1,23 @@
 import { useQuery } from '@tanstack/react-query'
 import {
   Activity,
-  CheckCircle2,
+  ChevronDown,
   HeartPulse,
   RefreshCw,
   Server,
   Timer,
-  TriangleAlert,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 
-import {
-  StaticDataTable,
-  staticDataTableClassNames as tableStyles,
-} from '@/components/data-table'
 import { SectionPageLayout } from '@/components/layout'
-import { StatusBadge } from '@/components/status-badge'
+import { StatusBadge, type StatusVariant } from '@/components/status-badge'
 import { Button } from '@/components/ui/button'
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from '@/components/ui/collapsible'
 import { IconBadge, type IconBadgeTone } from '@/components/ui/icon-badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import {
@@ -33,14 +33,54 @@ import {
   getChannelTypeIcon,
   getChannelTypeLabel,
 } from './lib'
-import { calculateMonitoringSummary } from './lib/model-monitoring'
 import {
-  getModelChannelMonitoring,
-  type ModelChannelMonitoring,
+  calculateMonitoringSummary,
+  getModelHealth,
+  sortMonitoringItems,
+  type ModelHealth,
+} from './lib/model-monitoring'
+import {
+  getModelMonitoring,
+  type ModelMonitoringChannel,
+  type ModelMonitoringItem,
 } from './monitoring-api'
 
 const ranges = [7, 15, 30] as const
 type MonitoringRange = (typeof ranges)[number]
+
+type HealthConfig = {
+  label: string
+  description: string
+  variant: StatusVariant
+  dotClassName: string
+}
+
+const healthConfig: Record<ModelHealth, HealthConfig> = {
+  operational: {
+    label: 'Operational',
+    description: 'Requests and channels are operating normally.',
+    variant: 'success',
+    dotClassName: 'bg-success',
+  },
+  degraded: {
+    label: 'Degraded',
+    description: 'Some requests failed or some channels are unavailable.',
+    variant: 'warning',
+    dotClassName: 'bg-warning',
+  },
+  unavailable: {
+    label: 'Unavailable',
+    description: 'The model or all of its channels are unavailable.',
+    variant: 'danger',
+    dotClassName: 'bg-destructive',
+  },
+  unknown: {
+    label: 'No data',
+    description: 'No requests were observed in the selected range.',
+    variant: 'neutral',
+    dotClassName: 'bg-muted-foreground',
+  },
+}
 
 function MetricCell(props: {
   icon: React.ComponentType<{ className?: string }>
@@ -64,9 +104,9 @@ function MetricCell(props: {
   )
 }
 
-function RecentRequests({ item }: { item: ModelChannelMonitoring }) {
+function RequestHistory(props: { item: ModelMonitoringItem }) {
   const { t } = useTranslation()
-  if (item.recent.length === 0) {
+  if (props.item.recent.length === 0) {
     return (
       <span className='text-muted-foreground text-xs'>
         {t('No request history')}
@@ -74,175 +114,217 @@ function RecentRequests({ item }: { item: ModelChannelMonitoring }) {
     )
   }
 
-  const recent = item.recent.reduce<Array<{ key: string; success: boolean }>>(
-    (entries, success) => [
-      ...entries,
-      {
-        success,
-        key: `${item.channel_id}-${item.model}-${success ? 'success' : 'failure'}-${entries.length + 1}`,
-      },
-    ],
-    []
-  )
-
-  return (
-    <div
-      className='flex items-center gap-0.5'
-      aria-label={t('Recent requests')}
-    >
-      {recent.map((entry) => (
-        <span
-          key={entry.key}
-          className={cn(
-            'h-3 w-1 rounded-sm',
-            entry.success ? 'bg-success' : 'bg-destructive'
-          )}
-          title={entry.success ? t('Success') : t('Failed')}
-        />
-      ))}
-    </div>
-  )
-}
-
-function ChannelHealthStatus({ item }: { item: ModelChannelMonitoring }) {
-  const { t } = useTranslation()
-  const config = getChannelStatusBadge(item.channel_status)
-  const hasRequests = item.request_count > 0
-  let tone: IconBadgeTone = 'neutral'
-  let Icon = Activity
-  if (hasRequests) {
-    if (item.availability >= 99) {
-      tone = 'success'
-      Icon = CheckCircle2
-    } else if (item.availability >= 90) {
-      tone = 'warning'
-      Icon = TriangleAlert
-    } else {
-      tone = 'destructive'
-      Icon = TriangleAlert
+  const successes = props.item.recent.filter(Boolean).length
+  const failures = props.item.recent.length - successes
+  let successesSeen = 0
+  let failuresSeen = 0
+  const history = [...props.item.recent].reverse().map((success) => {
+    if (success) {
+      successesSeen++
+      return { success, key: `success-${successesSeen}` }
     }
-  }
+    failuresSeen++
+    return { success, key: `failure-${failuresSeen}` }
+  })
 
   return (
-    <div className='flex min-w-[122px] items-center gap-2'>
-      <IconBadge tone={tone} size='xs'>
-        <Icon />
-      </IconBadge>
-      <div className='min-w-0'>
-        <StatusBadge
-          label={t(config.label)}
-          variant={config.variant}
-          copyable={false}
-          size='sm'
-        />
-        <div className='text-muted-foreground mt-0.5 text-xs'>
-          {hasRequests
-            ? t('Observed in selected range')
-            : t('No request history')}
-        </div>
+    <div className='min-w-0 flex-1'>
+      <div
+        className='flex h-7 min-w-0 items-stretch gap-0.5'
+        aria-label={t(
+          '{{successes}} successful and {{failures}} failed recent requests',
+          {
+            successes,
+            failures,
+          }
+        )}
+      >
+        {history.map((entry) => (
+          <span
+            key={`${props.item.model}-${entry.key}`}
+            className={cn(
+              'min-w-0 flex-1 rounded-sm',
+              entry.success ? 'bg-success' : 'bg-destructive'
+            )}
+            title={entry.success ? t('Success') : t('Failed')}
+          />
+        ))}
+      </div>
+      <div className='text-muted-foreground mt-1 flex justify-between text-xs'>
+        <span>{t('Older')}</span>
+        <span>{t('Latest')}</span>
       </div>
     </div>
   )
 }
 
-function MonitoringTable({ items }: { items: ModelChannelMonitoring[] }) {
+function ChannelDetail(props: { channel: ModelMonitoringChannel }) {
   const { t } = useTranslation()
+  const status = getChannelStatusBadge(props.channel.channel_status)
+
   return (
-    <StaticDataTable
-      className='rounded-xl'
-      tableClassName='min-w-[980px] text-sm'
-      headerRowClassName={tableStyles.compactHeaderRow}
-      data={items}
-      getRowKey={(item) => `${item.channel_id}-${item.model}`}
-      columns={[
-        {
-          id: 'model',
-          header: t('Model'),
-          className: cn(tableStyles.compactHeaderCell, 'min-w-[220px]'),
-          cellClassName: tableStyles.compactTopCell,
-          cell: (item) => (
-            <div className='flex min-w-0 items-center gap-2.5'>
-              <div className='bg-muted/40 flex size-8 shrink-0 items-center justify-center rounded-lg'>
-                {getLobeIcon(getChannelTypeIcon(item.channel_type), 18) || (
-                  <Server className='text-muted-foreground size-4' />
+    <div className='grid gap-3 border-t px-4 py-3 sm:grid-cols-[minmax(0,1fr)_repeat(4,minmax(80px,auto))] sm:items-center sm:px-5'>
+      <div className='flex min-w-0 items-center gap-2.5'>
+        <div className='bg-muted/40 flex size-8 shrink-0 items-center justify-center rounded-lg'>
+          {getLobeIcon(getChannelTypeIcon(props.channel.channel_type), 18) || (
+            <Server className='text-muted-foreground size-4' />
+          )}
+        </div>
+        <div className='min-w-0'>
+          <div className='truncate text-sm font-medium'>
+            {props.channel.channel_name}
+          </div>
+          <div className='text-muted-foreground truncate text-xs'>
+            {t(getChannelTypeLabel(props.channel.channel_type))}
+          </div>
+        </div>
+      </div>
+      <div>
+        <div className='text-muted-foreground mb-1 text-xs'>{t('Status')}</div>
+        <StatusBadge
+          label={t(status.label)}
+          variant={status.variant}
+          copyable={false}
+          size='sm'
+        />
+      </div>
+      <DetailMetric
+        label={t('PING')}
+        value={formatLatency(props.channel.response_time)}
+      />
+      <DetailMetric
+        label={t('Availability')}
+        value={
+          props.channel.request_count > 0
+            ? formatUptimePct(props.channel.availability)
+            : '—'
+        }
+      />
+      <DetailMetric
+        label={t('Requests')}
+        value={
+          props.channel.request_count
+            ? String(props.channel.request_count)
+            : '—'
+        }
+      />
+    </div>
+  )
+}
+
+function DetailMetric(props: { label: string; value: string }) {
+  return (
+    <div>
+      <div className='text-muted-foreground text-xs'>{props.label}</div>
+      <div className='mt-1 text-sm font-medium tabular-nums'>{props.value}</div>
+    </div>
+  )
+}
+
+function ModelStatusItem(props: { item: ModelMonitoringItem }) {
+  const { t } = useTranslation()
+  const [open, setOpen] = useState(false)
+  const health = getModelHealth(props.item)
+  const config = healthConfig[health]
+  const primaryChannel = props.item.channels[0]
+
+  return (
+    <Collapsible open={open} onOpenChange={setOpen}>
+      <div className='bg-card overflow-hidden rounded-xl border'>
+        <CollapsibleTrigger className='hover:bg-muted/30 w-full text-left transition-colors'>
+          <div className='grid gap-4 p-4 sm:p-5 lg:grid-cols-[minmax(220px,1fr)_minmax(240px,1.5fr)_auto] lg:items-center'>
+            <div className='flex min-w-0 items-start gap-3'>
+              <span
+                className={cn(
+                  'mt-2 size-2.5 shrink-0 rounded-full',
+                  config.dotClassName
+                )}
+                aria-hidden='true'
+              />
+              <div className='min-w-0'>
+                <div className='flex min-w-0 flex-wrap items-center gap-2'>
+                  <span className='truncate text-base font-semibold'>
+                    {props.item.model}
+                  </span>
+                  <StatusBadge
+                    label={t(config.label)}
+                    variant={config.variant}
+                    copyable={false}
+                    size='sm'
+                  />
+                </div>
+                <p className='text-muted-foreground mt-1 text-xs'>
+                  {t(config.description)}
+                </p>
+                {primaryChannel && (
+                  <div className='text-muted-foreground mt-2 flex items-center gap-1.5 text-xs'>
+                    {getLobeIcon(
+                      getChannelTypeIcon(primaryChannel.channel_type),
+                      14
+                    )}
+                    <span>
+                      {t('{{available}} of {{total}} channels available', {
+                        available: props.item.available_channel_count,
+                        total: props.item.channel_count,
+                      })}
+                    </span>
+                  </div>
                 )}
               </div>
-              <div className='min-w-0'>
-                <div className='truncate font-mono text-sm font-semibold'>
-                  {item.model}
+            </div>
+
+            <RequestHistory item={props.item} />
+
+            <div className='flex flex-wrap items-center gap-x-6 gap-y-3 lg:justify-end'>
+              <div>
+                <div className='text-muted-foreground text-xs'>
+                  {t('Availability')}
                 </div>
-                <div className='text-muted-foreground mt-0.5 truncate text-xs'>
-                  {t(getChannelTypeLabel(item.channel_type))}
+                <div
+                  className={cn(
+                    'mt-1 text-lg font-semibold tabular-nums',
+                    props.item.request_count > 0
+                      ? getSuccessRateTextClass(props.item.availability)
+                      : 'text-muted-foreground'
+                  )}
+                >
+                  {props.item.request_count > 0
+                    ? formatUptimePct(props.item.availability)
+                    : '—'}
                 </div>
               </div>
-            </div>
-          ),
-        },
-        {
-          id: 'channel',
-          header: t('Channel'),
-          className: tableStyles.compactHeaderCell,
-          cellClassName: tableStyles.compactTopCell,
-          cell: (item) => (
-            <div className='min-w-[150px]'>
-              <div className='truncate font-medium'>{item.channel_name}</div>
-              <div className='text-muted-foreground mt-0.5 font-mono text-xs'>
-                #{item.channel_id}
-              </div>
-            </div>
-          ),
-        },
-        {
-          id: 'status',
-          header: t('Status'),
-          className: tableStyles.compactHeaderCell,
-          cellClassName: tableStyles.compactTopCell,
-          cell: (item) => <ChannelHealthStatus item={item} />,
-        },
-        {
-          id: 'ping',
-          header: t('PING'),
-          className: tableStyles.compactHeaderCellRight,
-          cellClassName: tableStyles.compactMutedNumericCell,
-          cell: (item) => formatLatency(item.response_time),
-        },
-        {
-          id: 'latency',
-          header: t('Average latency'),
-          className: tableStyles.compactHeaderCellRight,
-          cellClassName: tableStyles.compactNumericCell,
-          cell: (item) => formatLatency(item.average_latency),
-        },
-        {
-          id: 'availability',
-          header: t('Availability'),
-          className: tableStyles.compactHeaderCellRight,
-          cellClassName: tableStyles.compactNumericCell,
-          cell: (item) =>
-            item.request_count > 0 ? (
-              <span className={getSuccessRateTextClass(item.availability)}>
-                {formatUptimePct(item.availability)}
+              <DetailMetric
+                label={t('Average latency')}
+                value={formatLatency(props.item.average_latency)}
+              />
+              <DetailMetric
+                label={t('Requests')}
+                value={
+                  props.item.request_count
+                    ? String(props.item.request_count)
+                    : '—'
+                }
+              />
+              <span className='text-muted-foreground flex items-center gap-1 text-xs'>
+                {t('Channel details')}
+                <ChevronDown
+                  className={cn(
+                    'size-4 transition-transform',
+                    open && 'rotate-180'
+                  )}
+                  aria-hidden='true'
+                />
               </span>
-            ) : (
-              '—'
-            ),
-        },
-        {
-          id: 'requests',
-          header: t('Requests'),
-          className: tableStyles.compactHeaderCellRight,
-          cellClassName: tableStyles.compactMutedNumericCell,
-          cell: (item) => item.request_count || '—',
-        },
-        {
-          id: 'recent',
-          header: t('Recent requests'),
-          className: cn(tableStyles.compactHeaderCell, 'min-w-[180px]'),
-          cellClassName: tableStyles.compactCell,
-          cell: (item) => <RecentRequests item={item} />,
-        },
-      ]}
-    />
+            </div>
+          </div>
+        </CollapsibleTrigger>
+        <CollapsibleContent className='bg-muted/10'>
+          {props.item.channels.map((channel) => (
+            <ChannelDetail key={channel.channel_id} channel={channel} />
+          ))}
+        </CollapsibleContent>
+      </div>
+    </Collapsible>
   )
 }
 
@@ -250,16 +332,25 @@ export function ModelMonitoring() {
   const { t } = useTranslation()
   const [days, setDays] = useState<MonitoringRange>(7)
   const monitoringQuery = useQuery({
-    queryKey: ['model-channel-monitoring', days],
-    queryFn: () => getModelChannelMonitoring(days),
+    queryKey: ['model-monitoring', days],
+    queryFn: () => getModelMonitoring(days),
     retry: false,
   })
-  const items = monitoringQuery.data?.data ?? []
-  const summary = calculateMonitoringSummary(items)
+  const items = useMemo(
+    () => sortMonitoringItems(monitoringQuery.data?.data ?? []),
+    [monitoringQuery.data]
+  )
+  const summary = useMemo(() => calculateMonitoringSummary(items), [items])
 
   let content
   if (monitoringQuery.isLoading) {
-    content = <Skeleton className='h-[420px] rounded-xl' />
+    content = (
+      <div className='space-y-3'>
+        {[1, 2, 3].map((item) => (
+          <Skeleton key={item} className='h-36 rounded-xl' />
+        ))}
+      </div>
+    )
   } else if (
     monitoringQuery.isError ||
     monitoringQuery.data?.success === false
@@ -276,7 +367,13 @@ export function ModelMonitoring() {
       </div>
     )
   } else {
-    content = <MonitoringTable items={items} />
+    content = (
+      <div className='space-y-3'>
+        {items.map((item) => (
+          <ModelStatusItem key={item.model} item={item} />
+        ))}
+      </div>
+    )
   }
 
   return (
@@ -311,7 +408,12 @@ export function ModelMonitoring() {
             onClick={() => monitoringQuery.refetch()}
             disabled={monitoringQuery.isFetching}
           >
-            <RefreshCw className='size-3.5' />
+            <RefreshCw
+              className={cn(
+                'size-3.5',
+                monitoringQuery.isFetching && 'animate-spin'
+              )}
+            />
             {t('Refresh')}
           </Button>
         </div>
@@ -324,12 +426,12 @@ export function ModelMonitoring() {
                 <Activity />
               </IconBadge>
               <div>
-                <h3 className='text-sm font-semibold'>
-                  {t('Monitoring overview')}
+                <h3 className='text-sm font-medium'>
+                  {t('Model availability')}
                 </h3>
                 <p className='text-muted-foreground text-xs'>
                   {t(
-                    'Real request and channel test data for the selected range.'
+                    'Live channel state and real request results for the selected range.'
                   )}
                 </p>
               </div>
@@ -337,7 +439,7 @@ export function ModelMonitoring() {
             <div className='grid grid-cols-2 gap-2 p-4 sm:grid-cols-4 sm:p-5'>
               <MetricCell
                 icon={Server}
-                label={t('Model channels')}
+                label={t('Models')}
                 value={summary.total ? String(summary.total) : '—'}
                 tone='info'
               />

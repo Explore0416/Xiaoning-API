@@ -79,7 +79,6 @@ export function useSidebarData(): SidebarData {
             title: t('Model Monitoring'),
             url: '/model-monitoring',
             icon: Activity,
-            requiredRole: ROLE.ADMIN,
           },
           {
             title: t('Dashboard'),

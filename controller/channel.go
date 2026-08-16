@@ -106,7 +106,7 @@ func GetModelChannelMonitoring(c *gin.Context) {
 		})
 		return
 	}
-	items, err := model.GetModelChannelMonitoring(days)
+	items, err := model.GetModelMonitoring(days)
 	if err != nil {
 		common.ApiError(c, err)
 		return

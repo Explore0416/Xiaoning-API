@@ -136,7 +136,7 @@ export function SidebarModulesSection({
     general: {
       monitoring: {
         title: t('Model Monitoring'),
-        description: t('Model and channel health overview.'),
+        description: t('Model availability and request health overview.'),
       },
     },
     admin: {

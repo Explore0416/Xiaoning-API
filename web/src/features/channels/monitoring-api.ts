@@ -1,7 +1,6 @@
 import { api } from '@/lib/api'
 
-export type ModelChannelMonitoring = {
-  model: string
+export type ModelMonitoringChannel = {
   channel_id: number
   channel_name: string
   channel_type: number
@@ -12,17 +11,28 @@ export type ModelChannelMonitoring = {
   success_count: number
   availability: number
   average_latency: number
-  recent: boolean[]
 }
 
-export type ModelChannelMonitoringResponse = {
+export type ModelMonitoringItem = {
+  model: string
+  channel_count: number
+  available_channel_count: number
+  request_count: number
+  success_count: number
+  availability: number
+  average_latency: number
+  recent: boolean[]
+  channels: ModelMonitoringChannel[]
+}
+
+export type ModelMonitoringResponse = {
   success: boolean
   message?: string
-  data?: ModelChannelMonitoring[]
+  data?: ModelMonitoringItem[]
 }
 
-export async function getModelChannelMonitoring(days: 7 | 15 | 30) {
-  const res = await api.get<ModelChannelMonitoringResponse>(
+export async function getModelMonitoring(days: 7 | 15 | 30) {
+  const res = await api.get<ModelMonitoringResponse>(
     '/api/channel/model-monitoring',
     { params: { days } }
   )

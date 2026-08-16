@@ -53,6 +53,7 @@ func SetApiRouter(router *gin.Engine) {
 		apiRouter.GET("/oauth/:provider", middleware.CriticalRateLimit(), middleware.DisableCache(), middleware.TryUserAuth(), controller.HandleOAuth)
 		apiRouter.GET("/ratio_config", middleware.CriticalRateLimit(), controller.GetRatioConfig)
 		apiRouter.GET("/channels/models-matrix", middleware.TryUserAuth(), controller.GetChannelsModelsMatrix)
+		apiRouter.GET("/channel/model-monitoring", middleware.UserAuth(), controller.GetModelChannelMonitoring)
 
 		apiRouter.POST("/stripe/webhook", anonymousRequestBodyLimit, controller.StripeWebhook)
 		apiRouter.POST("/creem/webhook", anonymousRequestBodyLimit, controller.CreemWebhook)

@@ -124,7 +124,10 @@ export function parseHeaderNavModules(raw: unknown): HeaderNavModules {
     }
 
     if (key === 'monitoring') {
-      result.monitoring = parseAccess(value, result.monitoring)
+      result.monitoring = {
+        ...parseAccess(value, result.monitoring),
+        requireAuth: true,
+      }
       return
     }
 
@@ -169,6 +172,13 @@ function cacheStatus(status: Record<string, unknown> | null): void {
   } catch {
     /* empty */
   }
+}
+
+export function isAuthenticatedModuleVisible(
+  module: ModuleAccess,
+  isAuthed: boolean
+): boolean {
+  return module.enabled && isAuthed
 }
 
 export function getModuleAccessFromStatus(

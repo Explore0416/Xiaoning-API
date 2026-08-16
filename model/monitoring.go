@@ -3,10 +3,11 @@ package model
 import (
 	"sort"
 	"time"
+
+	"github.com/QuantumNous/new-api/common"
 )
 
-type ModelChannelMonitoring struct {
-	Model          string  `json:"model"`
+type ModelMonitoringChannel struct {
 	ChannelID      int     `json:"channel_id"`
 	ChannelName    string  `json:"channel_name"`
 	ChannelType    int     `json:"channel_type"`
@@ -17,7 +18,18 @@ type ModelChannelMonitoring struct {
 	SuccessCount   int64   `json:"success_count"`
 	Availability   float64 `json:"availability"`
 	AverageLatency float64 `json:"average_latency"`
-	Recent         []bool  `json:"recent"`
+}
+
+type ModelMonitoring struct {
+	Model                 string                   `json:"model"`
+	ChannelCount          int                      `json:"channel_count"`
+	AvailableChannelCount int                      `json:"available_channel_count"`
+	RequestCount          int64                    `json:"request_count"`
+	SuccessCount          int64                    `json:"success_count"`
+	Availability          float64                  `json:"availability"`
+	AverageLatency        float64                  `json:"average_latency"`
+	Recent                []bool                   `json:"recent"`
+	Channels              []ModelMonitoringChannel `json:"channels"`
 }
 
 type monitoringAggregate struct {
@@ -34,7 +46,12 @@ type monitoringLog struct {
 	Type      int
 }
 
-func GetModelChannelMonitoring(days int) ([]ModelChannelMonitoring, error) {
+type monitoringKey struct {
+	channelID int
+	model     string
+}
+
+func GetModelMonitoring(days int) ([]ModelMonitoring, error) {
 	if days != 7 && days != 15 && days != 30 {
 		days = 7
 	}
@@ -62,77 +79,93 @@ func GetModelChannelMonitoring(days int) ([]ModelChannelMonitoring, error) {
 	var logs []monitoringLog
 	if err := LOG_DB.Table("logs").Select("channel_id, model_name, type").
 		Where("created_at >= ? AND type IN (?, ?)", start, LogTypeConsume, LogTypeError).
-		Order("created_at DESC").Limit(10000).Find(&logs).Error; err != nil {
+		Order("created_at DESC, id DESC").Limit(10000).Find(&logs).Error; err != nil {
 		return nil, err
 	}
 
-	type key struct {
-		channelID int
-		model     string
-	}
-	type stats struct {
-		requestCount int64
-		successCount int64
-		latencyTotal int64
-		recent       []bool
-	}
-	statsByKey := make(map[key]*stats, len(aggregates))
+	return buildModelMonitoring(abilities, channelMap, aggregates, logs), nil
+}
+
+func buildModelMonitoring(abilities []AbilityWithChannel, channelMap map[int]*Channel, aggregates []monitoringAggregate, logs []monitoringLog) []ModelMonitoring {
+	statsByKey := make(map[monitoringKey]monitoringAggregate, len(aggregates))
 	for _, aggregate := range aggregates {
-		statsByKey[key{channelID: aggregate.ChannelID, model: aggregate.ModelName}] = &stats{
-			requestCount: aggregate.RequestCount,
-			successCount: aggregate.SuccessCount,
-			latencyTotal: aggregate.LatencyTotal,
-			recent:       make([]bool, 0, 60),
-		}
-	}
-	for _, log := range logs {
-		if log.ChannelID == 0 || log.ModelName == "" {
-			continue
-		}
-		entry := statsByKey[key{channelID: log.ChannelID, model: log.ModelName}]
-		if entry != nil && len(entry.recent) < 60 {
-			entry.recent = append(entry.recent, log.Type == LogTypeConsume)
-		}
+		statsByKey[monitoringKey{channelID: aggregate.ChannelID, model: aggregate.ModelName}] = aggregate
 	}
 
-	result := make([]ModelChannelMonitoring, 0, len(abilities))
-	seen := make(map[key]struct{}, len(abilities))
+	modelsByName := make(map[string]*ModelMonitoring)
+	validKeys := make(map[monitoringKey]struct{}, len(abilities))
 	for _, ability := range abilities {
 		channel := channelMap[ability.ChannelId]
 		if channel == nil {
 			continue
 		}
-		k := key{channelID: ability.ChannelId, model: ability.Model}
-		if _, exists := seen[k]; exists {
+		key := monitoringKey{channelID: ability.ChannelId, model: ability.Model}
+		if _, exists := validKeys[key]; exists {
 			continue
 		}
-		seen[k] = struct{}{}
-		item := ModelChannelMonitoring{
-			Model:         ability.Model,
+		validKeys[key] = struct{}{}
+
+		item := modelsByName[ability.Model]
+		if item == nil {
+			item = &ModelMonitoring{
+				Model:    ability.Model,
+				Recent:   []bool{},
+				Channels: []ModelMonitoringChannel{},
+			}
+			modelsByName[ability.Model] = item
+		}
+
+		channelItem := ModelMonitoringChannel{
 			ChannelID:     channel.Id,
 			ChannelName:   channel.Name,
 			ChannelType:   channel.Type,
 			ChannelStatus: channel.Status,
 			ResponseTime:  channel.ResponseTime,
 			TestTime:      channel.TestTime,
-			Recent:        []bool{},
 		}
-		if entry := statsByKey[k]; entry != nil {
-			item.RequestCount = entry.requestCount
-			item.SuccessCount = entry.successCount
-			item.Recent = entry.recent
-			if entry.requestCount > 0 {
-				item.AverageLatency = float64(entry.latencyTotal*1000) / float64(entry.requestCount)
-				item.Availability = float64(entry.successCount) * 100 / float64(entry.requestCount)
+		if aggregate, exists := statsByKey[key]; exists {
+			channelItem.RequestCount = aggregate.RequestCount
+			channelItem.SuccessCount = aggregate.SuccessCount
+			if aggregate.RequestCount > 0 {
+				channelItem.Availability = float64(aggregate.SuccessCount) * 100 / float64(aggregate.RequestCount)
+				channelItem.AverageLatency = float64(aggregate.LatencyTotal) * 1000 / float64(aggregate.RequestCount)
 			}
 		}
-		result = append(result, item)
+
+		item.ChannelCount++
+		if channel.Status == common.ChannelStatusEnabled {
+			item.AvailableChannelCount++
+		}
+		item.RequestCount += channelItem.RequestCount
+		item.SuccessCount += channelItem.SuccessCount
+		item.AverageLatency += channelItem.AverageLatency * float64(channelItem.RequestCount)
+		item.Channels = append(item.Channels, channelItem)
+	}
+
+	for _, log := range logs {
+		key := monitoringKey{channelID: log.ChannelID, model: log.ModelName}
+		if _, exists := validKeys[key]; !exists {
+			continue
+		}
+		item := modelsByName[log.ModelName]
+		if item != nil && len(item.Recent) < 60 {
+			item.Recent = append(item.Recent, log.Type == LogTypeConsume)
+		}
+	}
+
+	result := make([]ModelMonitoring, 0, len(modelsByName))
+	for _, item := range modelsByName {
+		if item.RequestCount > 0 {
+			item.Availability = float64(item.SuccessCount) * 100 / float64(item.RequestCount)
+			item.AverageLatency /= float64(item.RequestCount)
+		}
+		sort.Slice(item.Channels, func(i, j int) bool {
+			return item.Channels[i].ChannelName < item.Channels[j].ChannelName
+		})
+		result = append(result, *item)
 	}
 	sort.Slice(result, func(i, j int) bool {
-		if result[i].Model == result[j].Model {
-			return result[i].ChannelName < result[j].ChannelName
-		}
 		return result[i].Model < result[j].Model
 	})
-	return result, nil
+	return result
 }
