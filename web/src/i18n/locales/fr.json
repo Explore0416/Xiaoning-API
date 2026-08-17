@@ -1,5 +1,6 @@
 {
   "translation": {
+    "{{type}} · {{count}} models · PING {{ping}}": "{{type}} · {{count}} modèles · PING {{ping}}",
     "360": "360",
     "1000": "1000",
     "10000": "10000",
@@ -524,6 +525,7 @@
     "Automatically replaces upstream callback URLs with the server address.": "Remplace automatiquement les URL des callbacks en amont par l'adresse du serveur.",
     "Automatically selects the best available group with circuit breaker mechanism": "Sélectionne automatiquement le meilleur groupe disponible avec un mécanisme de disjoncteur de circuit",
     "Automatically sync model list when upstream changes are detected": "Synchroniser automatiquement la liste des modèles lorsque des changements en amont sont détectés",
+    "Availability": "Disponibilité",
     "Availability (last 24h)": "Disponibilité (dernières 24 h)",
     "Available": "Disponible",
     "Available credits are ordered by soonest expiration.": "Les crédits disponibles sont triés par expiration la plus proche.",
@@ -744,6 +746,7 @@
     "Channel Affinity": "Affinité de canal",
     "Channel affinity reuses the last successful channel based on keys extracted from the request context or JSON body.": "L'affinité de canal réutilise le dernier canal ayant réussi, en se basant sur les clés extraites du contexte de la requête ou du corps JSON.",
     "Channel Affinity: Upstream Cache Hit": "Affinité de canal : hit de cache en amont",
+    "Channel availability": "Disponibilité des canaux",
     "Channel consistency repaired: {{success}} succeeded, {{fails}} failed": "Cohérence des canaux réparée : {{success}} réussie(s), {{fails}} échouée(s)",
     "Channel copied successfully": "Canal copié avec succès",
     "Channel created successfully": "Canal créé avec succès",
@@ -2758,6 +2761,9 @@
     "Requests and channels are operating normally.": "Les requêtes et les canaux fonctionnent normalement.",
     "Degraded": "Dégradé",
     "Some requests failed or some channels are unavailable.": "Certaines requêtes ont échoué ou certains canaux sont indisponibles.",
+    "This channel is operating normally.": "Ce canal fonctionne normalement.",
+    "This channel is disabled or most of its requests failed.": "Ce canal est désactivé ou la plupart de ses requêtes ont échoué.",
+    "Some requests on this channel failed.": "Certaines requêtes de ce canal ont échoué.",
     "Unavailable": "Indisponible",
     "The model or all of its channels are unavailable.": "Le modèle ou tous ses canaux sont indisponibles.",
     "No requests were observed in the selected range.": "Aucune requête n’a été observée sur la période sélectionnée.",

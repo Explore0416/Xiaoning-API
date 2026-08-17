@@ -1,6 +1,11 @@
-import type { ModelMonitoringItem } from '../monitoring-api'
+import { CHANNEL_STATUS } from '../constants'
+import type { ChannelMonitoringItem } from '../monitoring-api'
 
-export type ModelHealth = 'operational' | 'degraded' | 'unavailable' | 'unknown'
+export type ChannelHealth =
+  | 'operational'
+  | 'degraded'
+  | 'unavailable'
+  | 'unknown'
 
 export type MonitoringSummary = {
   total: number
@@ -9,40 +14,35 @@ export type MonitoringSummary = {
   latency: number
 }
 
-const healthPriority: Record<ModelHealth, number> = {
+const healthPriority: Record<ChannelHealth, number> = {
   unavailable: 0,
   degraded: 1,
   unknown: 2,
   operational: 3,
 }
 
-export function getModelHealth(item: ModelMonitoringItem): ModelHealth {
-  if (item.available_channel_count === 0) return 'unavailable'
+export function getChannelHealth(item: ChannelMonitoringItem): ChannelHealth {
+  if (item.channel_status !== CHANNEL_STATUS.ENABLED) return 'unavailable'
   if (item.request_count === 0) return 'unknown'
   if (item.availability < 90) return 'unavailable'
-  if (
-    item.availability < 99 ||
-    item.available_channel_count < item.channel_count
-  ) {
-    return 'degraded'
-  }
+  if (item.availability < 99) return 'degraded'
   return 'operational'
 }
 
-export function sortMonitoringItems(
-  items: ModelMonitoringItem[]
-): ModelMonitoringItem[] {
+export function sortChannels(
+  items: ChannelMonitoringItem[]
+): ChannelMonitoringItem[] {
   return [...items].sort((left, right) => {
     const healthDifference =
-      healthPriority[getModelHealth(left)] -
-      healthPriority[getModelHealth(right)]
+      healthPriority[getChannelHealth(left)] -
+      healthPriority[getChannelHealth(right)]
     if (healthDifference !== 0) return healthDifference
-    return left.model.localeCompare(right.model)
+    return left.channel_name.localeCompare(right.channel_name)
   })
 }
 
-export function calculateMonitoringSummary(
-  items: ModelMonitoringItem[]
+export function calculateChannelSummary(
+  items: ChannelMonitoringItem[]
 ): MonitoringSummary {
   const requestCount = items.reduce(
     (total, item) => total + item.request_count,

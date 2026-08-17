@@ -1,5 +1,6 @@
 {
   "translation": {
+    "{{type}} · {{count}} models · PING {{ping}}": "{{type}} · {{count}} mô hình · PING {{ping}}",
     "360": "360",
     "1000": "1000",
     "10000": "10000",
@@ -524,6 +525,7 @@
     "Automatically replaces upstream callback URLs with the server address.": "Tự động thay thế URL callback upstream bằng địa chỉ máy chủ.",
     "Automatically selects the best available group with circuit breaker mechanism": "Tự động chọn nhóm tốt nhất hiện có với cơ chế ngắt mạch",
     "Automatically sync model list when upstream changes are detected": "Tự động đồng bộ danh sách mô hình khi phát hiện thay đổi từ nguồn",
+    "Availability": "Khả dụng",
     "Availability (last 24h)": "Khả dụng (24 giờ qua)",
     "Available": "Khả dụng",
     "Available credits are ordered by soonest expiration.": "Các lượt khả dụng được sắp xếp theo thời điểm hết hạn gần nhất.",
@@ -744,6 +746,7 @@
     "Channel Affinity": "Ưu tiên kênh",
     "Channel affinity reuses the last successful channel based on keys extracted from the request context or JSON body.": "Ưu tiên kênh sẽ sử dụng lại kênh thành công gần nhất dựa trên các khóa được trích xuất từ ngữ cảnh yêu cầu hoặc JSON body.",
     "Channel Affinity: Upstream Cache Hit": "Ưu tiên kênh: Cache hit từ upstream",
+    "Channel availability": "Khả dụng của kênh",
     "Channel consistency repaired: {{success}} succeeded, {{fails}} failed": "Đã sửa tính nhất quán kênh: {{success}} thành công, {{fails}} thất bại",
     "Channel copied successfully": "Sao chép kênh thành công",
     "Channel created successfully": "Tạo kênh thành công",
@@ -2758,6 +2761,9 @@
     "Requests and channels are operating normally.": "Các yêu cầu và kênh đang hoạt động bình thường.",
     "Degraded": "Suy giảm",
     "Some requests failed or some channels are unavailable.": "Một số yêu cầu thất bại hoặc một số kênh không khả dụng.",
+    "This channel is operating normally.": "Kênh này đang hoạt động bình thường.",
+    "This channel is disabled or most of its requests failed.": "Kênh này đã bị vô hiệu hóa hoặc phần lớn yêu cầu đã thất bại.",
+    "Some requests on this channel failed.": "Một số yêu cầu trên kênh này đã thất bại.",
     "Unavailable": "Không khả dụng",
     "The model or all of its channels are unavailable.": "Mô hình hoặc tất cả các kênh của mô hình không khả dụng.",
     "No requests were observed in the selected range.": "Không ghi nhận yêu cầu nào trong khoảng thời gian đã chọn.",

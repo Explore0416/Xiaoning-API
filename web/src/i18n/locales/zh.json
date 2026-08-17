@@ -1,5 +1,6 @@
 {
   "translation": {
+    "{{type}} · {{count}} models · PING {{ping}}": "{{type}} · {{count}} 个模型 · PING {{ping}}",
     "360": "360",
     "1000": "1000",
     "10000": "10000",
@@ -524,6 +525,7 @@
     "Automatically replaces upstream callback URLs with the server address.": "自动将上游回调 URL 替换为服务器地址。",
     "Automatically selects the best available group with circuit breaker mechanism": "自动选择可用分组，失败时触发熔断切换",
     "Automatically sync model list when upstream changes are detected": "检测到上游模型变更时自动同步模型列表",
+    "Availability": "可用率",
     "Availability (last 24h)": "可用率（最近 24 小时）",
     "Available": "可用",
     "Available credits are ordered by soonest expiration.": "可用次数按最早到期排序。",
@@ -744,6 +746,7 @@
     "Channel Affinity": "渠道亲和性",
     "Channel affinity reuses the last successful channel based on keys extracted from the request context or JSON body.": "渠道亲和性会基于从请求上下文或 JSON Body 提取的 Key，优先复用上一次成功的渠道。",
     "Channel Affinity: Upstream Cache Hit": "渠道亲和性：上游缓存命中",
+    "Channel availability": "渠道可用性",
     "Channel consistency repaired: {{success}} succeeded, {{fails}} failed": "渠道一致性修复完成：{{success}} 个成功，{{fails}} 个失败",
     "Channel copied successfully": "渠道复制成功",
     "Channel created successfully": "渠道创建成功",
@@ -2758,6 +2761,9 @@
     "Requests and channels are operating normally.": "请求和渠道运行正常。",
     "Degraded": "性能下降",
     "Some requests failed or some channels are unavailable.": "部分请求失败或部分渠道不可用。",
+    "This channel is operating normally.": "该渠道运行正常。",
+    "This channel is disabled or most of its requests failed.": "该渠道已禁用或大部分请求失败。",
+    "Some requests on this channel failed.": "该渠道有部分请求失败。",
     "Unavailable": "不可用",
     "The model or all of its channels are unavailable.": "模型或其所有渠道均不可用。",
     "No requests were observed in the selected range.": "所选时间范围内未观察到请求。",

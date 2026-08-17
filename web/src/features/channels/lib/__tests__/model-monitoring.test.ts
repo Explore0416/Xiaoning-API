@@ -1,37 +1,42 @@
 import assert from 'node:assert/strict'
 import { describe, test } from 'node:test'
 
-import type { ModelMonitoringItem } from '../../monitoring-api'
+import type { ChannelMonitoringItem } from '../../monitoring-api'
 import {
-  calculateMonitoringSummary,
-  getModelHealth,
-  sortMonitoringItems,
+  calculateChannelSummary,
+  getChannelHealth,
+  sortChannels,
 } from '../model-monitoring'
 
 function item(
-  model: string,
-  overrides: Partial<ModelMonitoringItem> = {}
-): ModelMonitoringItem {
+  channelName: string,
+  overrides: Partial<ChannelMonitoringItem> = {}
+): ChannelMonitoringItem {
   return {
-    model,
-    channel_count: 1,
-    available_channel_count: 1,
+    channel_id: 1,
+    channel_name: channelName,
+    channel_type: 1,
+    channel_status: 1,
+    response_time: 20,
+    test_time: 0,
+    model_count: 1,
     request_count: 1,
     success_count: 1,
     availability: 100,
     average_latency: 20,
     recent: [true],
-    channels: [],
+    models: [],
     ...overrides,
   }
 }
 
-describe('model monitoring aggregation', () => {
+describe('channel monitoring aggregation', () => {
   test('weights availability and latency by request count', () => {
     assert.deepEqual(
-      calculateMonitoringSummary([
-        item('fast-model'),
-        item('busy-model', {
+      calculateChannelSummary([
+        item('Fast channel'),
+        item('Busy channel', {
+          channel_id: 2,
           request_count: 3,
           success_count: 2,
           availability: 66.67,
@@ -43,10 +48,10 @@ describe('model monitoring aggregation', () => {
     )
   })
 
-  test('derives unknown health when inventory has no request history', () => {
+  test('derives unknown health when an enabled channel has no request history', () => {
     assert.equal(
-      getModelHealth(
-        item('unobserved-model', {
+      getChannelHealth(
+        item('Unobserved channel', {
           request_count: 0,
           success_count: 0,
           availability: 0,
@@ -58,25 +63,33 @@ describe('model monitoring aggregation', () => {
     )
   })
 
-  test('marks all unavailable channels as unavailable', () => {
+  test('marks a disabled channel unavailable before considering history', () => {
     assert.equal(
-      getModelHealth(
-        item('offline-model', { available_channel_count: 0, request_count: 0 })
+      getChannelHealth(
+        item('Disabled channel', {
+          channel_status: 2,
+          request_count: 100,
+          success_count: 100,
+        })
       ),
       'unavailable'
     )
   })
 
-  test('marks partial channel availability or low success as degraded', () => {
+  test('derives unavailable and degraded health from request availability', () => {
     assert.equal(
-      getModelHealth(
-        item('partial-model', { available_channel_count: 1, channel_count: 2 })
+      getChannelHealth(
+        item('Unavailable channel', {
+          availability: 89,
+          success_count: 89,
+          request_count: 100,
+        })
       ),
-      'degraded'
+      'unavailable'
     )
     assert.equal(
-      getModelHealth(
-        item('failing-model', {
+      getChannelHealth(
+        item('Degraded channel', {
           availability: 95,
           success_count: 95,
           request_count: 100,
@@ -84,24 +97,39 @@ describe('model monitoring aggregation', () => {
       ),
       'degraded'
     )
+    assert.equal(getChannelHealth(item('Operational channel')), 'operational')
   })
 
-  test('sorts unavailable and degraded models before unknown and operational models', () => {
-    const sorted = sortMonitoringItems([
-      item('operational'),
-      item('unknown', {
+  test('sorts channels by health and then channel name', () => {
+    const sorted = sortChannels([
+      item('Operational'),
+      item('Unknown', {
+        channel_id: 2,
         request_count: 0,
         success_count: 0,
         availability: 0,
         recent: [],
       }),
-      item('unavailable', { available_channel_count: 0 }),
-      item('degraded', { availability: 95 }),
+      item('Unavailable', { channel_id: 3, channel_status: 2 }),
+      item('Zulu degraded', {
+        channel_id: 4,
+        availability: 95,
+      }),
+      item('Alpha degraded', {
+        channel_id: 5,
+        availability: 95,
+      }),
     ])
 
     assert.deepEqual(
-      sorted.map((model) => model.model),
-      ['unavailable', 'degraded', 'unknown', 'operational']
+      sorted.map((channel) => channel.channel_name),
+      [
+        'Unavailable',
+        'Alpha degraded',
+        'Zulu degraded',
+        'Unknown',
+        'Operational',
+      ]
     )
   })
 })

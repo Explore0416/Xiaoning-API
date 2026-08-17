@@ -1,5 +1,6 @@
 {
   "translation": {
+    "{{type}} · {{count}} models · PING {{ping}}": "{{type}} · {{count}} models · PING {{ping}}",
     "360": "360",
     "1000": "1000",
     "10000": "10000",
@@ -524,6 +525,7 @@
     "Automatically replaces upstream callback URLs with the server address.": "Automatically replaces upstream callback URLs with the server address.",
     "Automatically selects the best available group with circuit breaker mechanism": "Automatically selects the best available group with circuit breaker mechanism",
     "Automatically sync model list when upstream changes are detected": "Automatically sync model list when upstream changes are detected",
+    "Availability": "Availability",
     "Availability (last 24h)": "Availability (last 24h)",
     "Available": "Available",
     "Available credits are ordered by soonest expiration.": "Available credits are ordered by soonest expiration.",
@@ -744,6 +746,7 @@
     "Channel Affinity": "Channel Affinity",
     "Channel affinity reuses the last successful channel based on keys extracted from the request context or JSON body.": "Channel affinity reuses the last successful channel based on keys extracted from the request context or JSON body.",
     "Channel Affinity: Upstream Cache Hit": "Channel Affinity: Upstream Cache Hit",
+    "Channel availability": "Channel availability",
     "Channel consistency repaired: {{success}} succeeded, {{fails}} failed": "Channel consistency repaired: {{success}} succeeded, {{fails}} failed",
     "Channel copied successfully": "Channel copied successfully",
     "Channel created successfully": "Channel created successfully",
@@ -2758,6 +2761,9 @@
     "Requests and channels are operating normally.": "Requests and channels are operating normally.",
     "Degraded": "Degraded",
     "Some requests failed or some channels are unavailable.": "Some requests failed or some channels are unavailable.",
+    "This channel is operating normally.": "This channel is operating normally.",
+    "This channel is disabled or most of its requests failed.": "This channel is disabled or most of its requests failed.",
+    "Some requests on this channel failed.": "Some requests on this channel failed.",
     "Unavailable": "Unavailable",
     "The model or all of its channels are unavailable.": "The model or all of its channels are unavailable.",
     "No requests were observed in the selected range.": "No requests were observed in the selected range.",

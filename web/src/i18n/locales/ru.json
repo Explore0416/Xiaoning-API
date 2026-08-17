@@ -1,5 +1,6 @@
 {
   "translation": {
+    "{{type}} · {{count}} models · PING {{ping}}": "{{type}} · моделей: {{count}} · PING {{ping}}",
     "360": "360",
     "1000": "1000",
     "10000": "10000",
@@ -524,6 +525,7 @@
     "Automatically replaces upstream callback URLs with the server address.": "Автоматически заменяет URL обратных вызовов upstream на адрес сервера.",
     "Automatically selects the best available group with circuit breaker mechanism": "Автоматически выбирает лучшую доступную группу с механизмом circuit breaker",
     "Automatically sync model list when upstream changes are detected": "Автоматически синхронизировать список моделей при обнаружении изменений у провайдера",
+    "Availability": "Доступность",
     "Availability (last 24h)": "Доступность (последние 24 ч)",
     "Available": "Доступно",
     "Available credits are ordered by soonest expiration.": "Доступные сбросы отсортированы по ближайшему истечению.",
@@ -744,6 +746,7 @@
     "Channel Affinity": "Привязка к каналу",
     "Channel affinity reuses the last successful channel based on keys extracted from the request context or JSON body.": "Привязка к каналу повторно использует последний успешный канал на основе ключей, извлечённых из контекста запроса или тела JSON.",
     "Channel Affinity: Upstream Cache Hit": "Привязка к каналу: попадание в кэш upstream",
+    "Channel availability": "Доступность каналов",
     "Channel consistency repaired: {{success}} succeeded, {{fails}} failed": "Согласованность каналов восстановлена: успешно {{success}}, ошибок {{fails}}",
     "Channel copied successfully": "Канал успешно скопирован",
     "Channel created successfully": "Канал успешно создан",
@@ -2758,6 +2761,9 @@
     "Requests and channels are operating normally.": "Запросы и каналы работают нормально.",
     "Degraded": "Сниженная производительность",
     "Some requests failed or some channels are unavailable.": "Некоторые запросы завершились ошибкой или отдельные каналы недоступны.",
+    "This channel is operating normally.": "Этот канал работает нормально.",
+    "This channel is disabled or most of its requests failed.": "Этот канал отключён или большинство его запросов завершились с ошибкой.",
+    "Some requests on this channel failed.": "Часть запросов этого канала завершилась с ошибкой.",
     "Unavailable": "Недоступно",
     "The model or all of its channels are unavailable.": "Модель или все её каналы недоступны.",
     "No requests were observed in the selected range.": "В выбранном диапазоне запросы не наблюдались.",

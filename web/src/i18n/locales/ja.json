@@ -1,5 +1,6 @@
 {
   "translation": {
+    "{{type}} · {{count}} models · PING {{ping}}": "{{type}} · {{count}} モデル · PING {{ping}}",
     "360": "360",
     "1000": "1000",
     "10000": "10000",
@@ -524,6 +525,7 @@
     "Automatically replaces upstream callback URLs with the server address.": "アップストリームコールバック URL をサーバーアドレスに自動的に置き換えます。",
     "Automatically selects the best available group with circuit breaker mechanism": "回路ブレーカーメカニズム付きで最適な利用可能なグループを自動的に選択",
     "Automatically sync model list when upstream changes are detected": "アップストリームの変更が検出されたときにモデルリストを自動的に同期",
+    "Availability": "可用率",
     "Availability (last 24h)": "可用性（過去 24 時間）",
     "Available": "空き",
     "Available credits are ordered by soonest expiration.": "利用可能なクレジットは有効期限の近い順に表示されます。",
@@ -744,6 +746,7 @@
     "Channel Affinity": "チャネルアフィニティ",
     "Channel affinity reuses the last successful channel based on keys extracted from the request context or JSON body.": "チャネルアフィニティは、リクエストコンテキストまたは JSON Body から抽出したキーに基づいて、前回成功したチャネルを優先的に再利用します。",
     "Channel Affinity: Upstream Cache Hit": "チャネルアフィニティ：上流キャッシュヒット",
+    "Channel availability": "チャネルの可用性",
     "Channel consistency repaired: {{success}} succeeded, {{fails}} failed": "チャネル整合性を修復しました：成功 {{success}} 件、失敗 {{fails}} 件",
     "Channel copied successfully": "チャネルが正常にコピーされました",
     "Channel created successfully": "チャネルが正常に作成されました",
@@ -2758,6 +2761,9 @@
     "Requests and channels are operating normally.": "リクエストとチャンネルは正常に稼働しています。",
     "Degraded": "性能低下",
     "Some requests failed or some channels are unavailable.": "一部のリクエストが失敗したか、一部のチャンネルが利用できません。",
+    "This channel is operating normally.": "このチャネルは正常に稼働しています。",
+    "This channel is disabled or most of its requests failed.": "このチャネルは無効化されているか、ほとんどのリクエストが失敗しました。",
+    "Some requests on this channel failed.": "このチャネルの一部のリクエストが失敗しました。",
     "Unavailable": "利用不可",
     "The model or all of its channels are unavailable.": "モデルまたはすべてのチャンネルが利用できません。",
     "No requests were observed in the selected range.": "選択した期間にリクエストは確認されませんでした。",
