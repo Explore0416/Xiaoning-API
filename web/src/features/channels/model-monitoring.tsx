@@ -106,7 +106,8 @@ function MetricCell(props: {
 
 function RequestHistory(props: { item: ChannelMonitoringItem }) {
   const { t } = useTranslation()
-  if (props.item.recent.length === 0) {
+  const recent = props.item.recent ?? []
+  if (recent.length === 0) {
     return (
       <span className='text-muted-foreground text-xs'>
         {t('No probe history')}
@@ -114,11 +115,11 @@ function RequestHistory(props: { item: ChannelMonitoringItem }) {
     )
   }
 
-  const successes = props.item.recent.filter(Boolean).length
-  const failures = props.item.recent.length - successes
+  const successes = recent.filter(Boolean).length
+  const failures = recent.length - successes
   let successesSeen = 0
   let failuresSeen = 0
-  const history = [...props.item.recent].reverse().map((success) => {
+  const history = [...recent].reverse().map((success) => {
     if (success) {
       successesSeen++
       return { success, key: `success-${successesSeen}` }
@@ -319,7 +320,7 @@ function ChannelStatusItem(props: { item: ChannelMonitoringItem }) {
           </div>
         </CollapsibleTrigger>
         <CollapsibleContent className='bg-muted/10'>
-          {props.item.models.map((model) => (
+          {(props.item.models ?? []).map((model) => (
             <ModelDetail key={model.model_name} model={model} />
           ))}
         </CollapsibleContent>
