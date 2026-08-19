@@ -123,7 +123,7 @@ func SaveChannelProbeOutcome(outcome ChannelProbeOutcome) error {
 	now := common.GetTimestamp()
 	return DB.Transaction(func(tx *gorm.DB) error {
 		result := ChannelProbeResult{}
-		query := tx.Where("group = ? AND channel_id = ? AND model_name = ?", outcome.Group, outcome.ChannelID, outcome.ModelName).First(&result)
+		query := tx.Where(commonGroupCol+" = ? AND channel_id = ? AND model_name = ?", outcome.Group, outcome.ChannelID, outcome.ModelName).First(&result)
 		if query.Error != nil && query.Error != gorm.ErrRecordNotFound {
 			return query.Error
 		}
@@ -203,7 +203,7 @@ func GetChannelProbeHistory(group string, channelID int, modelName string, start
 	var rows []ChannelProbeHistoryRow
 	err := DB.Table("channel_probe_histories").
 		Select("channel_id, model_name, endpoint, upstream_model_name, success, latency_ms, probed_at, status_code, error_code, error_message").
-		Where("group = ? AND channel_id = ? AND model_name = ? AND probed_at >= ?", group, channelID, modelName, start).
+		Where(commonGroupCol+" = ? AND channel_id = ? AND model_name = ? AND probed_at >= ?", group, channelID, modelName, start).
 		Order("probed_at DESC, id DESC").Limit(limit).Scan(&rows).Error
 	return rows, err
 }

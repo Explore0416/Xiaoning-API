@@ -50,7 +50,7 @@ func GetModelMonitoring(days int, group string) ([]ChannelMonitoring, error) {
 		channelMap[channel.Id] = channel
 	}
 	var history []ChannelProbeHistory
-	if err := DB.Where("group = ? AND probed_at >= ?", group, ProbeHistoryStart(days)).
+	if err := DB.Where(commonGroupCol+" = ? AND probed_at >= ?", group, ProbeHistoryStart(days)).
 		Order("probed_at DESC, id DESC").Find(&history).Error; err != nil {
 		return nil, err
 	}
