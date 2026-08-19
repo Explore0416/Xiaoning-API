@@ -693,6 +693,9 @@ func UpdateUser(c *gin.Context) {
 	}
 	if updatedUser.Password == "" {
 		updatedUser.Password = "$I_LOVE_U" // make Validator happy :)
+	} else if len(updatedUser.Password) < 8 {
+		common.ApiErrorI18n(c, i18n.MsgUserInputInvalid, map[string]any{"Error": "password must be at least 8 characters"})
+		return
 	}
 	if err := common.Validate.Struct(&updatedUser); err != nil {
 		common.ApiErrorI18n(c, i18n.MsgUserInputInvalid, map[string]any{"Error": err.Error()})
@@ -1124,8 +1127,11 @@ func ManageUser(c *gin.Context) {
 	}
 	myRole := c.GetInt("role")
 	myID := c.GetInt("id")
-	// Destructive manage actions never allow self-target or peer-admin.
-	if myID == user.Id || !canManageTargetRole(myRole, user.Role) {
+	isQuotaAction := req.Action == "add_quota"
+	// Destructive manage actions never allow self-target or peer-admin. Root may
+	// adjust its own or another root user's quota because quota changes are not
+	// destructive account-management operations.
+	if (!isQuotaAction && myID == user.Id) || (!isQuotaAction && !canManageTargetRole(myRole, user.Role)) || (isQuotaAction && myRole != common.RoleRootUser && !canManageTargetRole(myRole, user.Role)) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionHigherLevel)
 		return
 	}
