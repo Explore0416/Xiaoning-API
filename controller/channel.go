@@ -106,10 +106,18 @@ func GetModelChannelMonitoring(c *gin.Context) {
 		})
 		return
 	}
-	items, err := model.GetModelMonitoring(days)
+	group, err := model.GetUserGroup(c.GetInt("id"), false)
 	if err != nil {
 		common.ApiError(c, err)
 		return
+	}
+	items, err := model.GetModelMonitoring(days, group)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	if _, _, err := service.EnqueueSystemTask(model.SystemTaskTypeModelMonitoringProbe, nil); err != nil {
+		common.SysError("failed to enqueue model monitoring probe: " + err.Error())
 	}
 	common.ApiSuccess(c, items)
 }

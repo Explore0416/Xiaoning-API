@@ -109,7 +109,7 @@ function RequestHistory(props: { item: ChannelMonitoringItem }) {
   if (props.item.recent.length === 0) {
     return (
       <span className='text-muted-foreground text-xs'>
-        {t('No request history')}
+        {t('No probe history')}
       </span>
     )
   }
@@ -132,7 +132,7 @@ function RequestHistory(props: { item: ChannelMonitoringItem }) {
       <div
         className='flex h-7 min-w-0 items-stretch gap-0.5'
         aria-label={t(
-          '{{successes}} successful and {{failures}} failed recent requests',
+          '{{successes}} successful and {{failures}} failed recent probes',
           {
             successes,
             failures,
@@ -172,11 +172,22 @@ function ModelDetail(props: { model: ChannelMonitoringModel }) {
 
   return (
     <div className='grid gap-3 border-t px-4 py-3 sm:grid-cols-[minmax(0,1fr)_repeat(3,minmax(80px,auto))] sm:items-center sm:px-5'>
-      <div className='min-w-0 truncate text-sm font-medium'>
-        {props.model.model_name}
+      <div className='min-w-0'>
+        <div className='truncate text-sm font-medium'>
+          {props.model.model_name}
+        </div>
+        <div className='text-muted-foreground mt-1 text-xs'>
+          {(props.model.last_probe_at ?? 0) > 0
+            ? t('Last probe: {{time}}', {
+                time: new Date(
+                  (props.model.last_probe_at ?? 0) * 1000
+                ).toLocaleString(),
+              })
+            : t('Not probed yet')}
+        </div>
       </div>
       <DetailMetric
-        label={t('Requests')}
+        label={t('Probes')}
         value={
           props.model.request_count ? String(props.model.request_count) : '—'
         }
@@ -287,7 +298,7 @@ function ChannelStatusItem(props: { item: ChannelMonitoringItem }) {
                 }
               />
               <DetailMetric
-                label={t('Requests')}
+                label={t('Probes')}
                 value={
                   props.item.request_count
                     ? String(props.item.request_count)
@@ -420,7 +431,7 @@ export function ModelMonitoring() {
                 </h3>
                 <p className='text-muted-foreground text-xs'>
                   {t(
-                    'Live channel state and real request results for the selected range.'
+                    'Active channel and model probe results for the selected range.'
                   )}
                 </p>
               </div>
@@ -434,7 +445,7 @@ export function ModelMonitoring() {
               />
               <MetricCell
                 icon={Activity}
-                label={t('Requests')}
+                label={t('Probes')}
                 value={summary.requests ? String(summary.requests) : '—'}
                 tone='primary'
               />
