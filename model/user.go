@@ -1300,16 +1300,14 @@ func DecreaseUserQuota(id int, quota int, db bool) (err error) {
 	return decreaseUserQuota(id, quota)
 }
 
+// decreaseUserQuota deducts unconditionally: settlement and reservation top-ups
+// charge the full delta and let the balance go into arrears (negative), matching
+// upstream semantics. Sufficiency for normal requests is validated at pre-consume;
+// a balance guard here would silently skip settlement deductions on concurrent
+// requests and undercharge.
 func decreaseUserQuota(id int, quota int) (err error) {
-	result := DB.Model(&User{}).Where("id = ? AND quota >= ?", id, quota).
-		Update("quota", gorm.Expr("quota - ?", quota))
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return errors.New("insufficient quota")
-	}
-	return nil
+	return DB.Model(&User{}).Where("id = ?", id).
+		Update("quota", gorm.Expr("quota - ?", quota)).Error
 }
 
 func DeltaUpdateUserQuota(id int, delta int) (err error) {
