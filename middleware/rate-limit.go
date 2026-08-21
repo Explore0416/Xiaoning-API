@@ -206,7 +206,6 @@ func UserCriticalRateLimit(scope string) func(c *gin.Context) {
 		"UC:"+scope,
 	)
 }
-}
 
 func DownloadRateLimit() func(c *gin.Context) {
 	return rateLimitFactory(common.DownloadRateLimitNum, common.DownloadRateLimitDuration, "DW")
