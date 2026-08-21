@@ -96,7 +96,7 @@ func getWaffoPayMoney(amount float64, group string) float64 {
 		topupGroupRatio = 1
 	}
 	discount := 1.0
-	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[float64(originalAmount)]; ok {
+	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[fmt.Sprintf("%g", float64(originalAmount))]; ok {
 		if ds > 0 {
 			discount = ds
 		}

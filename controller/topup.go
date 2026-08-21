@@ -166,7 +166,7 @@ func getPayMoney(amount int64, group string) float64 {
 	dPrice := decimal.NewFromFloat(operation_setting.Price)
 	// apply optional preset discount by the original request amount (if configured), default 1.0
 	discount := 1.0
-	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[float64(amount)]; ok {
+	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[fmt.Sprintf("%g", float64(amount))]; ok {
 		if ds > 0 {
 			discount = ds
 		}

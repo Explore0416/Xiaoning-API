@@ -65,7 +65,7 @@ func getWaffoPancakePayMoney(amount int64, group string) float64 {
 	}
 
 	discount := 1.0
-	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[float64(amount)]; ok && ds > 0 {
+	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[fmt.Sprintf("%g", float64(amount))]; ok && ds > 0 {
 		discount = ds
 	}
 
