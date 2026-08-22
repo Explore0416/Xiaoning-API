@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict'
-import { describe, test } from 'node:test'
+import { describe, expect, test } from 'vitest'
 
 import {
   isAuthenticatedModuleVisible,
@@ -10,7 +9,7 @@ describe('header navigation modules', () => {
   test('keeps monitoring disabled by default', () => {
     const modules = parseHeaderNavModules(null)
 
-    assert.deepEqual(modules.monitoring, {
+    expect(modules.monitoring).toEqual({
       enabled: false,
       requireAuth: true,
     })
@@ -21,11 +20,11 @@ describe('header navigation modules', () => {
       JSON.stringify({ monitoring: { enabled: true, requireAuth: false } })
     )
 
-    assert.deepEqual(modules.monitoring, {
+    expect(modules.monitoring).toEqual({
       enabled: true,
       requireAuth: true,
     })
-    assert.equal(isAuthenticatedModuleVisible(modules.monitoring, false), false)
-    assert.equal(isAuthenticatedModuleVisible(modules.monitoring, true), true)
+    expect(isAuthenticatedModuleVisible(modules.monitoring, false)).toBe(false)
+    expect(isAuthenticatedModuleVisible(modules.monitoring, true)).toBe(true)
   })
 })

@@ -16,57 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import assert from 'node:assert/strict'
-import { after, describe, test } from 'node:test'
+import { describe, expect, test } from 'vitest'
 
 import { AxiosHeaders, type AxiosAdapter, type AxiosResponse } from 'axios'
-import { Window } from 'happy-dom'
 
-const domWindow = new Window()
-const domGlobals = [
-  'window',
-  'document',
-  'navigator',
-  'HTMLElement',
-  'HTMLInputElement',
-  'HTMLButtonElement',
-  'SVGElement',
-  'Node',
-  'Element',
-  'Event',
-  'MouseEvent',
-  'CustomEvent',
-  'MutationObserver',
-  'requestAnimationFrame',
-  'cancelAnimationFrame',
-  'getComputedStyle',
-] as const
-
-for (const key of domGlobals) {
-  Object.defineProperty(globalThis, key, {
-    configurable: true,
-    value: domWindow[key],
-  })
-}
-
-Object.defineProperty(globalThis, 'ResizeObserver', {
-  configurable: true,
-  value: class {
-    observe() {}
-    unobserve() {}
-    disconnect() {}
-  },
-})
-
-Object.defineProperty(domWindow, 'matchMedia', {
-  configurable: true,
-  value: () => ({
-    matches: false,
-    media: '',
-    addEventListener() {},
-    removeEventListener() {},
-  }),
-})
+import { api } from '@/lib/api'
+import { PricingModelBatchManager } from '../pricing-model-batch-manager'
+import { RatioBatchAdjustDialog } from '../dialogs/ratio-batch-adjust-dialog'
 
 const { act } = await import('react')
 const { createRoot } = await import('react-dom/client')
@@ -74,11 +30,6 @@ const { QueryClient, QueryClientProvider } =
   await import('@tanstack/react-query')
 const { createInstance } = await import('i18next')
 const { I18nextProvider, initReactI18next } = await import('react-i18next')
-const { api } = await import('@/lib/api')
-const { PricingModelBatchManager } =
-  await import('../pricing-model-batch-manager')
-const { RatioBatchAdjustDialog } =
-  await import('../dialogs/ratio-batch-adjust-dialog')
 
 const i18n = createInstance()
 await i18n.use(initReactI18next).init({
@@ -132,40 +83,32 @@ async function waitFor(check: () => boolean) {
     })
     if (check()) return
   }
-  assert.fail('Condition was not met')
+  throw new Error('Condition was not met')
 }
 
 function findButton(text: string) {
   const button = [...document.querySelectorAll('button')].find(
     (candidate) => candidate.textContent === text
   )
-  assert.ok(button instanceof HTMLButtonElement)
-  return button
+  expect(button).toBeInstanceOf(HTMLButtonElement)
+  return button as HTMLButtonElement
 }
 
 function click(element: Element) {
-  element.dispatchEvent(
-    new domWindow.MouseEvent('click', { bubbles: true }) as unknown as Event
-  )
+  element.dispatchEvent(new MouseEvent('click', { bubbles: true }))
 }
 
 function changeInputValue(input: HTMLInputElement, value: string) {
   const valueSetter = Object.getOwnPropertyDescriptor(
-    domWindow.HTMLInputElement.prototype,
+    HTMLInputElement.prototype,
     'value'
   )?.set
-  assert.ok(valueSetter)
-  valueSetter.call(input, value)
-  input.dispatchEvent(
-    new domWindow.Event('input', { bubbles: true }) as unknown as Event
-  )
+  expect(valueSetter).toBeTruthy()
+  valueSetter?.call(input, value)
+  input.dispatchEvent(new Event('input', { bubbles: true }))
 }
 
 describe('pricing model batch management', () => {
-  after(() => {
-    domWindow.close()
-  })
-
   test('shows loading and empty inventory states', async () => {
     let resolveRequest: ((value: AxiosResponse) => void) | undefined
     api.defaults.adapter = (() =>
@@ -174,7 +117,7 @@ describe('pricing model batch management', () => {
       })) as AxiosAdapter
 
     const view = await render(<PricingModelBatchManager />)
-    assert.match(view.container.textContent ?? '', /Loading model inventory/)
+    expect(view.container.textContent ?? '').toMatch(/Loading model inventory/)
 
     await act(async () => {
       resolveRequest?.({
@@ -231,9 +174,9 @@ describe('pricing model batch management', () => {
     await waitFor(() =>
       (view.container.textContent ?? '').includes('gpt-test')
     )
-    assert.doesNotMatch(view.container.textContent ?? '', /General Error/)
-    assert.match(view.container.textContent ?? '', /valid/)
-    assert.doesNotMatch(view.container.textContent ?? '', /undefined/)
+    expect(view.container.textContent ?? '').not.toMatch(/General Error/)
+    expect(view.container.textContent ?? '').toMatch(/valid/)
+    expect(view.container.textContent ?? '').not.toMatch(/undefined/)
 
     await view.cleanup()
   })
@@ -241,7 +184,7 @@ describe('pricing model batch management', () => {
   test('requires a fresh preview with changes before applying', async () => {
     let previewCount = 0
     api.defaults.adapter = (async (config) => {
-      assert.equal(config.url, '/api/ratio_batch/preview')
+      expect(config.url).toBe('/api/ratio_batch/preview')
       previewCount += 1
       return {
         data: {
@@ -274,23 +217,23 @@ describe('pricing model batch management', () => {
       <RatioBatchAdjustDialog open onOpenChange={() => undefined} />
     )
     const applyButton = findButton('Apply')
-    assert.equal(applyButton.disabled, true)
+    expect(applyButton.disabled).toBe(true)
 
     await act(async () => click(findButton('Preview')))
     await waitFor(() => previewCount === 1)
-    assert.equal(applyButton.disabled, true)
+    expect(applyButton.disabled).toBe(true)
 
     const patternInput = document.querySelector<HTMLInputElement>(
       'input[placeholder="Model match pattern"]'
     )
-    assert.ok(patternInput)
-    await act(async () => changeInputValue(patternInput, 'gpt-'))
+    expect(patternInput).toBeTruthy()
+    await act(async () => changeInputValue(patternInput!, 'gpt-'))
     await act(async () => click(findButton('Preview')))
     await waitFor(() => previewCount === 2 && !applyButton.disabled)
-    assert.equal(applyButton.disabled, false)
+    expect(applyButton.disabled).toBe(false)
 
-    await act(async () => changeInputValue(patternInput, 'claude-'))
-    assert.equal(applyButton.disabled, true)
+    await act(async () => changeInputValue(patternInput!, 'claude-'))
+    expect(applyButton.disabled).toBe(true)
 
     await view.cleanup()
   })

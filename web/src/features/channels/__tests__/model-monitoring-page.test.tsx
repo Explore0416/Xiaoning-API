@@ -16,59 +16,9 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import assert from 'node:assert/strict'
-import { after, describe, test } from 'node:test'
-
-import { Window } from 'happy-dom'
+import { describe, expect, test } from 'vitest'
 
 import type { ChannelMonitoringItem } from '../monitoring-api'
-
-const domWindow = new Window()
-const domGlobals = [
-  'window',
-  'document',
-  'navigator',
-  'HTMLElement',
-  'HTMLButtonElement',
-  'SVGElement',
-  'Node',
-  'Element',
-  'Event',
-  'CustomEvent',
-  'MutationObserver',
-  'ResizeObserver',
-  'requestAnimationFrame',
-  'cancelAnimationFrame',
-  'getComputedStyle',
-  'customElements',
-  'HTMLDivElement',
-  'HTMLSpanElement',
-  'DocumentFragment',
-  'ShadowRoot',
-  'CSSStyleSheet',
-] as const
-
-for (const key of domGlobals) {
-  Object.defineProperty(globalThis, key, {
-    configurable: true,
-    value: domWindow[key],
-  })
-}
-
-// The channel icon set pulls in antd-style, which reads matchMedia on import.
-Object.defineProperty(globalThis, 'matchMedia', {
-  configurable: true,
-  value: (query: string) => ({
-    matches: false,
-    media: query,
-    onchange: null,
-    addListener: () => {},
-    removeListener: () => {},
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    dispatchEvent: () => false,
-  }),
-})
 
 const { act } = await import('react')
 const { createRoot } = await import('react-dom/client')
@@ -172,10 +122,6 @@ async function renderMonitoring(items: ChannelMonitoringItem[]) {
 }
 
 describe('channel monitoring page', () => {
-  after(() => {
-    domWindow.close()
-  })
-
   test('renders one collapsed row per channel even when a channel serves many models', async () => {
     const { container, restore } = await renderMonitoring([
       channel({
@@ -212,12 +158,12 @@ describe('channel monitoring page', () => {
       const triggers = container.querySelectorAll('[data-panel-open]')
       const text = container.textContent ?? ''
       // The channel is the monitored unit, so its name is the row heading.
-      assert.equal(text.includes('Multi model channel'), true)
+      expect(text.includes('Multi model channel')).toBe(true)
       // Models belong to the collapsed detail, not the top-level row.
-      assert.equal(triggers.length <= 1, true)
-      assert.equal(text.includes('model-a'), false)
-      assert.equal(text.includes('model-b'), false)
-      assert.equal(text.includes('model-c'), false)
+      expect(triggers.length <= 1).toBe(true)
+      expect(text.includes('model-a')).toBe(false)
+      expect(text.includes('model-b')).toBe(false)
+      expect(text.includes('model-c')).toBe(false)
     } finally {
       restore()
     }
@@ -231,14 +177,14 @@ describe('channel monitoring page', () => {
 
     try {
       const historyBar = container.querySelector<HTMLElement>('[aria-label]')
-      assert.ok(historyBar)
-      const segments = [...historyBar.children]
-      assert.equal(segments.length, 3)
+      expect(historyBar).toBeTruthy()
+      const segments = [...historyBar!.children]
+      expect(segments.length).toBe(3)
       const failureIndex = segments.findIndex((segment) =>
         segment.className.includes('bg-destructive')
       )
       // The newest entry (a failure) must render last.
-      assert.equal(failureIndex, segments.length - 1)
+      expect(failureIndex).toBe(segments.length - 1)
     } finally {
       restore()
     }
@@ -257,8 +203,8 @@ describe('channel monitoring page', () => {
 
     try {
       const text = container.textContent ?? ''
-      assert.equal(text.includes('—'), true)
-      assert.equal(text.includes('0.00%'), false)
+      expect(text.includes('—')).toBe(true)
+      expect(text.includes('0.00%')).toBe(false)
     } finally {
       restore()
     }

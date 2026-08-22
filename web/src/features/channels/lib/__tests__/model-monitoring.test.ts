@@ -1,5 +1,4 @@
-import assert from 'node:assert/strict'
-import { describe, test } from 'node:test'
+import { describe, expect, test } from 'vitest'
 
 import type { ChannelMonitoringItem } from '../../monitoring-api'
 import {
@@ -32,7 +31,7 @@ function item(
 
 describe('channel monitoring aggregation', () => {
   test('weights availability and latency by request count', () => {
-    assert.deepEqual(
+    expect(
       calculateChannelSummary([
         item('Fast channel'),
         item('Busy channel', {
@@ -43,13 +42,12 @@ describe('channel monitoring aggregation', () => {
           average_latency: 80,
           recent: [true, true, false],
         }),
-      ]),
-      { total: 2, requests: 4, availability: 75, latency: 65 }
-    )
+      ])
+    ).toEqual({ total: 2, requests: 4, availability: 75, latency: 65 })
   })
 
   test('derives unknown health when an enabled channel has no request history', () => {
-    assert.equal(
+    expect(
       getChannelHealth(
         item('Unobserved channel', {
           request_count: 0,
@@ -58,46 +56,42 @@ describe('channel monitoring aggregation', () => {
           average_latency: 0,
           recent: [],
         })
-      ),
-      'unknown'
-    )
+      )
+    ).toBe('unknown')
   })
 
   test('marks a disabled channel unavailable before considering history', () => {
-    assert.equal(
+    expect(
       getChannelHealth(
         item('Disabled channel', {
           channel_status: 2,
           request_count: 100,
           success_count: 100,
         })
-      ),
-      'unavailable'
-    )
+      )
+    ).toBe('unavailable')
   })
 
   test('derives unavailable and degraded health from request availability', () => {
-    assert.equal(
+    expect(
       getChannelHealth(
         item('Unavailable channel', {
           availability: 89,
           success_count: 89,
           request_count: 100,
         })
-      ),
-      'unavailable'
-    )
-    assert.equal(
+      )
+    ).toBe('unavailable')
+    expect(
       getChannelHealth(
         item('Degraded channel', {
           availability: 95,
           success_count: 95,
           request_count: 100,
         })
-      ),
-      'degraded'
-    )
-    assert.equal(getChannelHealth(item('Operational channel')), 'operational')
+      )
+    ).toBe('degraded')
+    expect(getChannelHealth(item('Operational channel'))).toBe('operational')
   })
 
   test('sorts channels by health and then channel name', () => {
@@ -121,15 +115,12 @@ describe('channel monitoring aggregation', () => {
       }),
     ])
 
-    assert.deepEqual(
-      sorted.map((channel) => channel.channel_name),
-      [
-        'Unavailable',
-        'Alpha degraded',
-        'Zulu degraded',
-        'Unknown',
-        'Operational',
-      ]
-    )
+    expect(sorted.map((channel) => channel.channel_name)).toEqual([
+      'Unavailable',
+      'Alpha degraded',
+      'Zulu degraded',
+      'Unknown',
+      'Operational',
+    ])
   })
 })
