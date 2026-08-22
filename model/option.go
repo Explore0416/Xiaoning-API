@@ -189,6 +189,9 @@ func InitOptionMap() {
 
 	common.OptionMapRWMutex.Unlock()
 	loadOptionsFromDatabase()
+	// Ensure invite code options exist in DB so loadOptionsFromDatabase picks them up
+	_ = UpdateOption("InviteCodeEnabled", strconv.FormatBool(common.InviteCodeEnabled))
+	_ = UpdateOption("InviteCodeRegisterEnabled", strconv.FormatBool(common.InviteCodeRegisterEnabled))
 }
 
 func loadOptionsFromDatabase() {
