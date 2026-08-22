@@ -1009,7 +1009,7 @@
     "Configure Waffo payment aggregation platform integration": "Waffo決済アグリゲーションプラットフォームの連携を設定",
     "Configure your account behavior preferences": "アカウントの動作設定を設定します。",
     "Configure your account preferences and integrations": "アカウントの設定と統合を設定します。",
-    "Configured": "設定済み",
+    "Configured": "Configured",
     "Configured as PayMethods JSON. The type value decides which payment flow is used: stripe for Stripe, waffo_pancake for Waffo Pancake, and other values are sent to Epay as the type parameter.": "PayMethods JSON として保存されます。type 値で使用する決済フローを決定します。stripe は Stripe、waffo_pancake は Waffo Pancake、それ以外の値は Epay の type パラメーターとして送信されます。",
     "Configured routes and latency checks": "設定済みルートとレイテンシ確認",
     "Confirm": "確認",
@@ -2072,7 +2072,7 @@
     "footer.columns.related.links.oneApi": "1つのAPI",
     "footer.columns.related.title": "関連プロジェクト",
     "footer.defaultCopyright": "すべての権利を留保します。",
-    "footer.new\u0061pi.projectAttributionSuffix": "すべての権利を留保します。プロジェクトコントリビューターにより設計・開発されています。",
+    "footer.newapi.projectAttributionSuffix": "すべての権利を留保します。プロジェクトコントリビューターにより設計・開発されています。",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "2025 年 5 月 10 日以降に追加されたチャネルの場合、デプロイ時にモデル名から「.」を削除する必要はありません",
     "For private deployments, format: https://fastgpt.run/api/openapi": "プライベートデプロイメントの場合、形式: https://fastgpt.run/api/openapi",
     "For security, existing access tokens cannot be displayed. Regenerate only when you need a new token.": "セキュリティ上、既存のアクセストークンは再表示できません。新しいトークンが必要な場合のみ再生成してください。",
@@ -3591,7 +3591,6 @@
     "This list combines enabled channel models with every explicitly configured pricing entry. Deleting metadata does not disable a channel model.": "This list combines enabled channel models with every explicitly configured pricing entry. Deleting metadata does not disable a channel model.",
     "Sources": "Sources",
     "Pricing": "価格設定",
-    "Configured": "Configured",
     "Create model metadata": "Create model metadata",
     "Edit model metadata": "Edit model metadata",
     "Apply the following metadata to {{count}} selected model(s).": "Apply the following metadata to {{count}} selected model(s).",
@@ -5411,5 +5410,8 @@
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V 4",
     "Zoom": "ズーム"
-  }
+  },
+  "Invitation code": "Invitation code",
+  "Invitation code (optional)": "Invitation code (optional)",
+  "Enter invitation code": "Enter invitation code"
 }

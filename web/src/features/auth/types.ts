@@ -39,6 +39,7 @@ export interface RegisterPayload {
   email?: string
   verification_code?: string
   aff_code?: string
+  invite_code?: string
   turnstile?: string
 }
 
@@ -132,6 +133,8 @@ export interface SystemStatus {
     privacy_policy_enabled?: boolean
     oauth_register_enabled?: boolean
     register_enabled?: boolean
+    invite_code_enabled?: boolean
+    invite_code_register_enabled?: boolean
     password_login_enabled?: boolean
     password_register_enabled?: boolean
     custom_oauth_providers?: CustomOAuthProviderInfo[]

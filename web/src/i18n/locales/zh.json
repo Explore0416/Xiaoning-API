@@ -2072,7 +2072,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "相关项目",
     "footer.defaultCopyright": "版权所有。",
-    "footer.new\u0061pi.projectAttributionSuffix": "版权所有，由项目贡献者设计与开发。",
+    "footer.newapi.projectAttributionSuffix": "版权所有，由项目贡献者设计与开发。",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "对于 2025 年 5 月 10 日之后添加的渠道，在部署时无需从模型名称中移除 \".\"",
     "For private deployments, format: https://fastgpt.run/api/openapi": "对于私有部署，格式为：https://fastgpt.run/api/openapi",
     "For security, existing access tokens cannot be displayed. Regenerate only when you need a new token.": "出于安全考虑，现有访问令牌无法再次显示。仅在需要新令牌时重新生成。",
@@ -3591,7 +3591,6 @@
     "This list combines enabled channel models with every explicitly configured pricing entry. Deleting metadata does not disable a channel model.": "此列表合并了启用渠道模型和所有显式定价条目。删除元数据不会禁用渠道模型。",
     "Sources": "来源",
     "Pricing": "定价",
-    "Configured": "已配置",
     "Create model metadata": "创建模型元数据",
     "Edit model metadata": "编辑模型元数据",
     "Apply the following metadata to {{count}} selected model(s).": "将以下元数据应用到 {{count}} 个选中模型。",
@@ -5411,5 +5410,8 @@
     "Zhipu": "智谱",
     "Zhipu V4": "智谱 V4",
     "Zoom": "缩放"
-  }
+  },
+  "Invitation code": "邀请码",
+  "Invitation code (optional)": "邀请码（选填）",
+  "Enter invitation code": "请输入邀请码"
 }

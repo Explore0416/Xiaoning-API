@@ -224,11 +224,26 @@ func Register(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
 	}
-	if err := common.Validate.Struct(&user); err != nil {
-		common.ApiErrorI18n(c, i18n.MsgUserInputInvalid, map[string]any{"Error": err.Error()})
-		return
-	}
-	if common.EmailVerificationEnabled {
+if err := common.Validate.Struct(&user); err != nil {
+			common.ApiErrorI18n(c, i18n.MsgUserInputInvalid, map[string]any{"Error": err.Error()})
+			return
+		}
+		// Invite code verification: must be consumed before email/user checks so
+		// a valid code doesn't leak whether an email is already registered.
+		var inviteCodeQuota int
+		if common.InviteCodeRegisterEnabled {
+			if user.InviteCode == "" {
+				common.ApiErrorI18n(c, i18n.MsgInviteCodeRequired)
+				return
+			}
+			quota, err := model.RedeemInviteCode(user.InviteCode)
+			if err != nil {
+				common.ApiErrorI18n(c, i18n.MsgInviteCodeInvalid)
+				return
+			}
+			inviteCodeQuota = quota
+		}
+		if common.EmailVerificationEnabled {
 		if user.Email == "" || user.VerificationCode == "" {
 			common.ApiErrorI18n(c, i18n.MsgUserEmailVerificationRequired)
 			return
@@ -262,13 +277,14 @@ func Register(c *gin.Context) {
 	}
 	affCode := user.AffCode // this code is the inviter's code, not the user's own code
 	inviterId, _ := model.GetUserIdByAffCode(affCode)
-	cleanUser := model.User{
-		Username:    user.Username,
-		Password:    user.Password,
-		DisplayName: user.Username,
-		InviterId:   inviterId,
-		Role:        common.RoleCommonUser, // 明确设置角色为普通用户
-	}
+cleanUser := model.User{
+			Username:    user.Username,
+			Password:    user.Password,
+			DisplayName: user.Username,
+			InviterId:   inviterId,
+			Quota:       inviteCodeQuota, // invite code bonus (0 if not used)
+			Role:        common.RoleCommonUser, // 明确设置角色为普通用户
+		}
 	if common.EmailVerificationEnabled {
 		cleanUser.Email = user.Email
 	}

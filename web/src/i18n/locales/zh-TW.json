@@ -1009,7 +1009,7 @@
     "Configure Waffo payment aggregation platform integration": "設定 Waffo 支付聚合平台整合",
     "Configure your account behavior preferences": "設定您的用戶行為偏好",
     "Configure your account preferences and integrations": "設定您的用戶偏好和整合",
-    "Configured": "已設定",
+    "Configured": "Configured",
     "Configured as PayMethods JSON. The type value decides which payment flow is used: stripe for Stripe, waffo_pancake for Waffo Pancake, and other values are sent to Epay as the type parameter.": "儲存為 PayMethods JSON。type 值決定點擊後使用哪個支付流程：stripe 走 Stripe，waffo_pancake 走 Waffo Pancake，其他值作為 Epay 的 type 參數提交。",
     "Configured routes and latency checks": "已設定路由和延遲檢測",
     "Confirm": "確認",
@@ -2072,7 +2072,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "相關項目",
     "footer.defaultCopyright": "版權所有。",
-    "footer.new\u0061pi.projectAttributionSuffix": "版權所有，由項目貢獻者設計與開發。",
+    "footer.newapi.projectAttributionSuffix": "版權所有，由項目貢獻者設計與開發。",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "對於 2025 年 5 月 10 日之後新增的渠道，在部署時無需從模型名稱中移除 \".\"",
     "For private deployments, format: https://fastgpt.run/api/openapi": "對於私有部署，格式為：https://fastgpt.run/api/openapi",
     "For security, existing access tokens cannot be displayed. Regenerate only when you need a new token.": "基於安全考量，現有存取令牌無法再次顯示。僅在需要新令牌時重新生成。",
@@ -3591,7 +3591,6 @@
     "This list combines enabled channel models with every explicitly configured pricing entry. Deleting metadata does not disable a channel model.": "This list combines enabled channel models with every explicitly configured pricing entry. Deleting metadata does not disable a channel model.",
     "Sources": "Sources",
     "Pricing": "定價",
-    "Configured": "Configured",
     "Create model metadata": "Create model metadata",
     "Edit model metadata": "Edit model metadata",
     "Apply the following metadata to {{count}} selected model(s).": "Apply the following metadata to {{count}} selected model(s).",
@@ -5411,5 +5410,8 @@
     "Zhipu": "智譜",
     "Zhipu V4": "智譜 V4",
     "Zoom": "縮放"
-  }
+  },
+  "Invitation code": "邀请码",
+  "Invitation code (optional)": "邀请码（选填）",
+  "Enter invitation code": "请输入邀请码"
 }

@@ -1009,7 +1009,7 @@
     "Configure Waffo payment aggregation platform integration": "Cấu hình tích hợp nền tảng tổng hợp thanh toán Waffo",
     "Configure your account behavior preferences": "Cấu hình tùy chọn hành vi tài khoản của bạn",
     "Configure your account preferences and integrations": "Cấu hình các tùy chọn và tích hợp tài khoản của bạn",
-    "Configured": "Đã cấu hình",
+    "Configured": "Configured",
     "Configured as PayMethods JSON. The type value decides which payment flow is used: stripe for Stripe, waffo_pancake for Waffo Pancake, and other values are sent to Epay as the type parameter.": "Được lưu dưới dạng JSON PayMethods. Giá trị type quyết định luồng thanh toán sẽ dùng: stripe cho Stripe, waffo_pancake cho Waffo Pancake, các giá trị khác được gửi tới Epay dưới dạng tham số type.",
     "Configured routes and latency checks": "Tuyến đã cấu hình và kiểm tra độ trễ",
     "Confirm": "Xác nhận",
@@ -2072,7 +2072,7 @@
     "footer.columns.related.links.oneApi": "One API",
     "footer.columns.related.title": "Các Dự Án Liên Quan",
     "footer.defaultCopyright": "Bản quyền được bảo lưu.",
-    "footer.new\u0061pi.projectAttributionSuffix": "Bản quyền được bảo lưu. Được thiết kế và phát triển bởi các cộng tác viên dự án.",
+    "footer.newapi.projectAttributionSuffix": "Bản quyền được bảo lưu. Được thiết kế và phát triển bởi các cộng tác viên dự án.",
     "For channels added after May 10, 2025, no need to remove \".\" from model names during deployment": "Đối với các kênh được thêm sau ngày 10 tháng 5 năm 2025, không cần loại bỏ \".\" khỏi tên mô hình trong quá trình triển khai",
     "For private deployments, format: https://fastgpt.run/api/openapi": "Đối với các triển khai riêng tư, định dạng: https://fastgpt.run/api/openapi",
     "For security, existing access tokens cannot be displayed. Regenerate only when you need a new token.": "Vì lý do bảo mật, không thể hiển thị lại token truy cập hiện có. Chỉ tạo lại khi bạn cần token mới.",
@@ -3591,7 +3591,6 @@
     "This list combines enabled channel models with every explicitly configured pricing entry. Deleting metadata does not disable a channel model.": "This list combines enabled channel models with every explicitly configured pricing entry. Deleting metadata does not disable a channel model.",
     "Sources": "Sources",
     "Pricing": "Giá cả",
-    "Configured": "Configured",
     "Create model metadata": "Create model metadata",
     "Edit model metadata": "Edit model metadata",
     "Apply the following metadata to {{count}} selected model(s).": "Apply the following metadata to {{count}} selected model(s).",
@@ -5411,5 +5410,8 @@
     "Zhipu": "Zhipu",
     "Zhipu V4": "Zhipu V4",
     "Zoom": "Zoom"
-  }
+  },
+  "Invitation code": "Invitation code",
+  "Invitation code (optional)": "Invitation code (optional)",
+  "Enter invitation code": "Enter invitation code"
 }
