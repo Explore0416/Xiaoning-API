@@ -145,6 +145,11 @@ export function useSidebarData(): SidebarData {
             icon: Ticket,
           },
           {
+            title: t('Invite Codes'),
+            url: '/invite-codes',
+            icon: Ticket,
+          },
+          {
             title: t('Subscriptions'),
             url: '/subscriptions',
             icon: CreditCard,
