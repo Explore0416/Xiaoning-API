@@ -31,7 +31,7 @@ export function InviteCodesTable() {
       toolbar={
         <DataTableToolbar>
           <Input
-            placeholder={t('Search invite codes...')}
+            placeholder={t('Admin Search Invite Codes')}
             value={keyword}
             onChange={(e) => {
               setKeyword(e.target.value)

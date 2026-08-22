@@ -31,7 +31,7 @@ export function InviteCodes() {
     <InviteCodesProvider>
       <SectionPageLayout fixedContent>
         <SectionPageLayout.Title>
-          {t('Invite Codes')}
+          {t('Admin Invite Codes')}
         </SectionPageLayout.Title>
         <SectionPageLayout.Actions>
           <InviteCodesPrimaryButtons />

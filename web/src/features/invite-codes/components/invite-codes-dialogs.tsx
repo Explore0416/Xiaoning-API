@@ -75,12 +75,12 @@ export function InviteCodesDialogs() {
       expired_time,
     })
     if (res.success) {
-      toast.success(t('Invite codes created successfully'))
+      toast.success(t('Admin Invite Codes Created'))
       closeDialog()
       refresh()
       createForm.reset()
     } else {
-      toast.error(res.message || t('Failed to create invite codes'))
+      toast.error(res.message || t('Admin Failed To Create Invite Codes'))
     }
   }
 
@@ -88,11 +88,11 @@ export function InviteCodesDialogs() {
     if (!dialogData) return
     const res = await deleteInviteCode(dialogData.id)
     if (res.success) {
-      toast.success(t('Invite code deleted'))
+      toast.success(t('Admin Invite Code Deleted'))
       closeDialog()
       refresh()
     } else {
-      toast.error(res.message || t('Failed to delete invite code'))
+      toast.error(res.message || t('Admin Failed To Delete Invite Code'))
     }
   }
 
@@ -112,46 +112,46 @@ export function InviteCodesDialogs() {
       <Dialog open={dialog === 'create'} onOpenChange={(o) => !o && closeDialog()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('Generate Invite Codes')}</DialogTitle>
+            <DialogTitle>{t('Admin Generate Invite Codes')}</DialogTitle>
             <DialogDescription>
-              {t('Create batch invite codes for new user registration')}
+              {t('Admin Create Batch Invite Codes')}
             </DialogDescription>
           </DialogHeader>
           <Form {...createForm}>
             <form onSubmit={createForm.handleSubmit(handleCreate)} className='space-y-4'>
               <FormField control={createForm.control} name='count' render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('Number of codes')}</FormLabel>
+                  <FormLabel>{t('Admin Number of Codes')}</FormLabel>
                   <FormControl><Input type='number' min={1} max={1000} {...field} /></FormControl>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={createForm.control} name='quota' render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('Bonus quota per code')}</FormLabel>
+                  <FormLabel>{t('Admin Bonus Quota Per Code')}</FormLabel>
                   <FormControl><Input type='number' min={0} {...field} /></FormControl>
-                  <FormDescription>{t('0 = threshold-only, no quota bonus')}</FormDescription>
+                  <FormDescription>{t('Admin Zero Quota Means Threshold Only')}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={createForm.control} name='max_use_count' render={({ field }) => (
                 <FormItem>
-                  <FormLabel>{t('Max uses per code')}</FormLabel>
+                  <FormLabel>{t('Admin Max Uses Per Code')}</FormLabel>
                   <FormControl><Input type='number' min={0} {...field} /></FormControl>
-                  <FormDescription>{t('0 = unlimited, 1 = single use')}</FormDescription>
+                  <FormDescription>{t('Admin Zero Means Unlimited Uses')}</FormDescription>
                   <FormMessage />
                 </FormItem>
               )} />
               <FormField control={createForm.control} name='has_expiry' render={({ field }) => (
                 <FormItem className='flex items-center gap-2'>
                   <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                  <FormLabel className='!mt-0'>{t('Set expiration')}</FormLabel>
+                  <FormLabel className='!mt-0'>{t('Admin Set Expiration')}</FormLabel>
                 </FormItem>
               )} />
               {createForm.watch('has_expiry') && (
                 <FormField control={createForm.control} name='expired_days' render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{t('Expires in (days)')}</FormLabel>
+                    <FormLabel>{t('Admin Expires In Days')}</FormLabel>
                     <FormControl><Input type='number' min={1} {...field} /></FormControl>
                     <FormMessage />
                   </FormItem>
@@ -171,9 +171,9 @@ export function InviteCodesDialogs() {
       <Dialog open={dialog === 'delete'} onOpenChange={(o) => !o && closeDialog()}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t('Delete Invite Code')}</DialogTitle>
+            <DialogTitle>{t('Admin Delete Invite Code')}</DialogTitle>
             <DialogDescription>
-              {t('Are you sure you want to delete this invite code?')}
+              {t('Admin Confirm Delete Invite Code')}
             </DialogDescription>
           </DialogHeader>
           {dialogData && (

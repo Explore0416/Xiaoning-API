@@ -185,9 +185,9 @@ export function BasicAuthSection({ defaultValues }: BasicAuthSectionProps) {
             render={({ field }) => (
               <SettingsSwitchItem>
                 <SettingsSwitchContent>
-                  <FormLabel>{t('Invitation Code')}</FormLabel>
+                  <FormLabel>{t('Admin Invitation Code')}</FormLabel>
                   <FormDescription>
-                    {t('Allow invitation code based registration')}
+                    {t('Admin Allow Invitation Code Registration')}
                   </FormDescription>
                 </SettingsSwitchContent>
                 <FormControl>
@@ -206,9 +206,9 @@ export function BasicAuthSection({ defaultValues }: BasicAuthSectionProps) {
             render={({ field }) => (
               <SettingsSwitchItem>
                 <SettingsSwitchContent>
-                  <FormLabel>{t('Require Invitation Code')}</FormLabel>
+                  <FormLabel>{t('Admin Require Invitation Code')}</FormLabel>
                   <FormDescription>
-                    {t('Require invitation code for all new registrations')}
+                    {t('Admin Require Invite Code For Registration')}
                   </FormDescription>
                 </SettingsSwitchContent>
                 <FormControl>
