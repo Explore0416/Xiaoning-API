@@ -31,7 +31,7 @@ export function InviteCodes() {
     <InviteCodesProvider>
       <SectionPageLayout fixedContent>
         <SectionPageLayout.Title>
-          {t('InviteCode Codes')}
+          {t('Invite Codes', { defaultValue: '邀请码' })}
         </SectionPageLayout.Title>
         <SectionPageLayout.Actions>
           <InviteCodesPrimaryButtons />
