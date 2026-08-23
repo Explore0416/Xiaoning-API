@@ -145,7 +145,7 @@ export function useSidebarData(): SidebarData {
             icon: Ticket,
           },
           {
-            title: t('Invite Codes'),
+            title: t('Invite Codes', { defaultValue: '邀请码' }),
             url: '/invite-codes',
             icon: Ticket,
           },
