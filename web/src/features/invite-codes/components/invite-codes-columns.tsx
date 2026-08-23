@@ -19,7 +19,6 @@ For commercial licensing, please contact support@quantumnous.com
 import { type ColumnDef } from '@tanstack/react-table'
 import { useTranslation } from 'react-i18next'
 
-import { MaskedValueDisplay } from '@/components/masked-value-display'
 import { StatusBadge } from '@/components/status-badge'
 import { TableId } from '@/components/table-id'
 import { Checkbox } from '@/components/ui/checkbox'
@@ -73,13 +72,13 @@ export function useInviteCodesColumns(): ColumnDef<InviteCode>[] {
       size: 80,
     },
     {
-      accessorKey: 'name',
-      header: t('Name'),
+      accessorKey: 'code',
+      header: t('Code'),
       meta: { mobileTitle: true },
       cell: ({ row }) => (
-        <span className='font-medium'>{row.getValue('name')}</span>
+        <span className='font-mono font-medium'>{row.getValue('code')}</span>
       ),
-      size: 180,
+      size: 200,
     },
     {
       accessorKey: 'status',
@@ -133,26 +132,15 @@ export function useInviteCodesColumns(): ColumnDef<InviteCode>[] {
       size: 120,
     },
     {
-      id: 'code',
-      accessorKey: 'key',
-      header: t('Code'),
-      cell: function CodeCell({ row }) {
-        const inviteCode = row.original
-        const key = inviteCode.key
-        const maskedKey = `${key.slice(0, 8)}${'*'.repeat(16)}${key.slice(-8)}`
-
-        return (
-          <MaskedValueDisplay
-            label={t('Full Code')}
-            fullValue={key}
-            maskedValue={maskedKey}
-            copyTooltip={t('Copy code')}
-            copyAriaLabel={t('Copy inviteCode code')}
-          />
-        )
+      accessorKey: 'used_count',
+      header: t('Used'),
+      cell: ({ row }) => {
+        const { used_count, max_use_count } = row.original
+        if (max_use_count === 0) return <span>{used_count}</span>
+        return <span>{used_count}/{max_use_count}</span>
       },
       enableSorting: false,
-      size: 320,
+      size: 120,
     },
     {
       accessorKey: 'quota',
@@ -211,11 +199,11 @@ export function useInviteCodesColumns(): ColumnDef<InviteCode>[] {
       size: 180,
     },
     {
-      accessorKey: 'used_user_id',
+      accessorKey: 'created_by_user_id',
       header: t('Redeemed By'),
       meta: { mobileHidden: true },
       cell: ({ row }) => {
-        const userId = row.getValue('used_user_id') as number
+        const userId = row.getValue('created_by_user_id') as number
         const inviteCode = row.original
 
         if (userId === 0) {
@@ -239,12 +227,6 @@ export function useInviteCodesColumns(): ColumnDef<InviteCode>[] {
                 <div>
                   {t('User ID:')} {userId}
                 </div>
-                {inviteCode.redeemed_time > 0 && (
-                  <div>
-                    {t('Redeemed:')}{' '}
-                    {formatTimestampToDate(inviteCode.redeemed_time)}
-                  </div>
-                )}
               </div>
             </TooltipContent>
           </Tooltip>
