@@ -54,12 +54,8 @@ export interface GetInviteCodesParams {
 export interface GetInviteCodesResponse {
   success: boolean
   message?: string
-  data?: {
-    items: InviteCode[]
-    total: number
-    page: number
-    page_size: number
-  }
+  data?: InviteCode[]
+  total?: number
 }
 
 export interface SearchInviteCodesParams {

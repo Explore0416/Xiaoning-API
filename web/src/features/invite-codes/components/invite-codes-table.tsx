@@ -120,8 +120,8 @@ export function InviteCodesTable() {
       }
 
       return {
-        items: result.data?.items || [],
-        total: result.data?.total || 0,
+        items: result.data || [],
+        total: result.total || 0,
       }
     },
     placeholderData: (previousData) => previousData,
@@ -137,11 +137,11 @@ export function InviteCodesTable() {
     globalFilter,
     pagination,
     globalFilterFn: (row, _columnId, filterValue) => {
-      const name = String(row.getValue('name')).toLowerCase()
+      const code = String(row.getValue('code')).toLowerCase()
       const id = String(row.getValue('id'))
       const searchValue = String(filterValue).toLowerCase()
 
-      return name.includes(searchValue) || id.includes(searchValue)
+      return code.includes(searchValue) || id.includes(searchValue)
     },
     onPaginationChange,
     onGlobalFilterChange,
@@ -163,9 +163,10 @@ export function InviteCodesTable() {
       columns={columns}
       isLoading={isLoading}
       isFetching={isFetching}
-      emptyTitle={t('No InviteCode Codes Found')}
+      emptyTitle={t('No Invite Codes Found', { defaultValue: '暂无邀请码' })}
       emptyDescription={t(
-        'No invite codes available. Create your first invite code to get started.'
+        'No invite codes available. Create your first invite code to get started.',
+        { defaultValue: '暂无邀请码，请先生成邀请码。' }
       )}
       skeletonKeyPrefix='invite-codes-skeleton'
       applyHeaderSize
