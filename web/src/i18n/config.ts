@@ -32,11 +32,14 @@ import zhCN from './locales/zh.json'
 export const resources = {
   en,
   zhCN,
+  zh: zhCN,
+  'zh-CN': zhCN,
+  zhTW,
+  'zh-TW': zhTW,
   fr,
   ru,
   ja,
   vi,
-  zhTW,
 } as const
 
 i18n
@@ -45,7 +48,7 @@ i18n
   .init({
     resources,
     fallbackLng: 'en',
-    supportedLngs: ['en', 'zhCN', 'fr', 'ru', 'ja', 'vi', 'zhTW'],
+    supportedLngs: ['en', 'zh', 'zh-CN', 'zhCN', 'zh-TW', 'zhTW', 'fr', 'ru', 'ja', 'vi'],
     load: 'currentOnly',
     nsSeparator: false, // Allow literal colons in keys (e.g., URLs, labels)
     debug: import.meta.env.DEV,
