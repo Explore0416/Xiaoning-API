@@ -50,9 +50,19 @@ export const columns: ColumnDef<InviteCode>[] = [
     ),
     cell: ({ row }) => {
       const status = row.original.status
-      if (status === 1) return StatusBadge('enabled', 'Enabled')
-      if (status === 2) return StatusBadge('disabled', 'Disabled')
-      return StatusBadge('exhausted', 'Exhausted')
+      const preset =
+        status === 1
+          ? { variant: 'success' as const, label: 'Enabled' }
+          : status === 2
+            ? { variant: 'neutral' as const, label: 'Disabled' }
+            : { variant: 'danger' as const, label: 'Exhausted' }
+      return (
+        <StatusBadge
+          label={preset.label}
+          variant={preset.variant}
+          copyable={false}
+        />
+      )
     },
   },
   {
