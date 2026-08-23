@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next'
 import { CopyButton } from '@/components/copy-button'
 import { DataTableBulkActions as BulkActionsToolbar } from '@/components/data-table'
 
-import type { Redemption } from '../types'
+import type { InviteCode } from '../types'
 
 type DataTableBulkActionsProps<TData> = {
   table: Table<TData>
@@ -37,14 +37,14 @@ export function DataTableBulkActions<TData>({
 
   const contentToCopy = useMemo(() => {
     const selectedCodes = selectedRows.map((row) => {
-      const redemption = row.original as Redemption
-      return `${redemption.name}\t${redemption.key}`
+      const inviteCode = row.original as InviteCode
+      return `${inviteCode.name}\t${inviteCode.key}`
     })
     return selectedCodes.join('\n')
   }, [selectedRows])
 
   return (
-    <BulkActionsToolbar table={table} entityName={t('redemption code')}>
+    <BulkActionsToolbar table={table} entityName={t('inviteCode code')}>
       <CopyButton
         value={contentToCopy}
         variant='outline'

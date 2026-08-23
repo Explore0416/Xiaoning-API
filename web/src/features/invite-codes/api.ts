@@ -28,9 +28,10 @@ import type {
 } from './types'
 
 // ============================================================================
-// Invite Code Management
+// InviteCode Code Management
 // ============================================================================
 
+// Get paginated inviteCode codes list
 export async function getInviteCodes(
   params: GetInviteCodesParams = {}
 ): Promise<GetInviteCodesResponse> {
@@ -39,6 +40,7 @@ export async function getInviteCodes(
   return res.data
 }
 
+// Search inviteCode codes by keyword
 export async function searchInviteCodes(
   params: SearchInviteCodesParams
 ): Promise<GetInviteCodesResponse> {
@@ -52,19 +54,47 @@ export async function searchInviteCodes(
   return res.data
 }
 
-export async function generateInviteCodes(
+// Get single inviteCode code by ID
+export async function getInviteCode(
+  id: number
+): Promise<ApiResponse<InviteCode>> {
+  const res = await api.get(`/api/invite_code/${id}`)
+  return res.data
+}
+
+// Create inviteCode code(s)
+export async function createInviteCode(
   data: InviteCodeFormData
 ): Promise<ApiResponse<string[]>> {
   const res = await api.post('/api/invite_code/', data)
   return res.data
 }
 
+// Update inviteCode code
+export async function updateInviteCode(
+  data: InviteCodeFormData & { id: number }
+): Promise<ApiResponse<InviteCode>> {
+  const res = await api.put('/api/invite_code/', data)
+  return res.data
+}
+
+// Update inviteCode code status (enable/disable)
+export async function updateInviteCodeStatus(
+  id: number,
+  status: number
+): Promise<ApiResponse<InviteCode>> {
+  const res = await api.put('/api/invite_code/?status_only=true', { id, status })
+  return res.data
+}
+
+// Delete a single inviteCode code
 export async function deleteInviteCode(id: number): Promise<ApiResponse> {
   const res = await api.delete(`/api/invite_code/${id}/`)
   return res.data
 }
 
-export async function deleteExpiredInviteCodes(): Promise<ApiResponse<number>> {
+// Delete invalid inviteCode codes (used, disabled, expired)
+export async function deleteInvalidInviteCodes(): Promise<ApiResponse<number>> {
   const res = await api.delete('/api/invite_code/invalid')
   return res.data
 }

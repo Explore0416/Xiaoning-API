@@ -16,100 +16,61 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { createContext, useContext, useMemo, type ReactNode } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import React, { useState } from 'react'
 
-import { getInviteCodes, searchInviteCodes } from '../api'
-import type { InviteCode, InviteCodesDialogType } from '../types'
+import useDialogState from '@/hooks/use-dialog'
 
-interface InviteCodesContextValue {
-  codes: InviteCode[]
-  total: number
-  isLoading: boolean
-  page: number
-  pageSize: number
-  keyword: string
-  statusFilter: string
-  setPage: (page: number) => void
-  setPageSize: (size: number) => void
-  setKeyword: (keyword: string) => void
-  setStatusFilter: (status: string) => void
-  refresh: () => void
-  dialog: InviteCodesDialogType | null
-  dialogData: InviteCode | null
-  openDialog: (type: InviteCodesDialogType, data?: InviteCode) => void
-  closeDialog: () => void
+import { type InviteCode, type InviteCodesDialogType } from '../types'
+
+type InviteCodesContextType = {
+  open: InviteCodesDialogType | null
+  setOpen: (str: InviteCodesDialogType | null) => void
+  currentRow: InviteCode | null
+  setCurrentRow: React.Dispatch<React.SetStateAction<InviteCode | null>>
+  refreshTrigger: number
+  triggerRefresh: () => void
 }
 
-const InviteCodesContext = createContext<InviteCodesContextValue | null>(null)
+const InviteCodesContext = React.createContext<InviteCodesContextType | null>(
+  null
+)
 
-export function useInviteCodes() {
-  const ctx = useContext(InviteCodesContext)
-  if (!ctx) throw new Error('useInviteCodes must be used within InviteCodesProvider')
-  return ctx
-}
+export function InviteCodesProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
+  const [open, setOpen] = useDialogState<InviteCodesDialogType>(null)
+  const [currentRow, setCurrentRow] = useState<InviteCode | null>(null)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
-interface InviteCodesProviderProps {
-  children: ReactNode
-}
-
-export function InviteCodesProvider({ children }: InviteCodesProviderProps) {
-  const [page, setPage] = useState(1)
-  const [pageSize, setPageSize] = useState(10)
-  const [keyword, setKeyword] = useState('')
-  const [statusFilter, setStatusFilter] = useState('')
-  const [dialog, setDialog] = useState<InviteCodesDialogType | null>(null)
-  const [dialogData, setDialogData] = useState<InviteCode | null>(null)
-
-  const queryKey = useMemo(
-    () => ['invite-codes', page, pageSize, keyword, statusFilter],
-    [page, pageSize, keyword, statusFilter]
-  )
-
-  const { data, isLoading, refetch } = useQuery({
-    queryKey,
-    queryFn: () =>
-      keyword || statusFilter
-        ? searchInviteCodes({ keyword, status: statusFilter, p: page, page_size: pageSize })
-        : getInviteCodes({ p: page, page_size: pageSize }),
-  })
-
-  const codes = data?.data ?? []
-  const total = data?.total ?? 0
-
-  const value = useMemo(
-    () => ({
-      codes,
-      total,
-      isLoading,
-      page,
-      pageSize,
-      keyword,
-      statusFilter,
-      setPage,
-      setPageSize,
-      setKeyword,
-      setStatusFilter,
-      refresh: () => refetch(),
-      dialog,
-      dialogData,
-      openDialog: (type: InviteCodesDialogType, data?: InviteCode) => {
-        setDialog(type)
-        setDialogData(data ?? null)
-      },
-      closeDialog: () => {
-        setDialog(null)
-        setDialogData(null)
-      },
-    }),
-    [codes, total, isLoading, page, pageSize, keyword, statusFilter, dialog, dialogData, refetch]
-  )
+  const triggerRefresh = () => setRefreshTrigger((prev) => prev + 1)
 
   return (
-    <InviteCodesContext.Provider value={value}>
+    <InviteCodesContext
+      value={{
+        open,
+        setOpen,
+        currentRow,
+        setCurrentRow,
+        refreshTrigger,
+        triggerRefresh,
+      }}
+    >
       {children}
-    </InviteCodesContext.Provider>
+    </InviteCodesContext>
   )
 }
 
-import { useState } from 'react'
+// eslint-disable-next-line react-refresh/only-export-components
+export const useInviteCodes = () => {
+  const inviteCodesContext = React.useContext(InviteCodesContext)
+
+  if (!inviteCodesContext) {
+    throw new Error(
+      'useInviteCodes has to be used within <InviteCodesProvider>'
+    )
+  }
+
+  return inviteCodesContext
+}

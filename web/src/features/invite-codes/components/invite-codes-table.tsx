@@ -1,77 +1,192 @@
-import type { PaginationState } from '@tanstack/react-table'
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+import { useQuery } from '@tanstack/react-query'
+import { getRouteApi } from '@tanstack/react-router'
+import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 
-import { DataTablePage, useDataTable } from '@/components/data-table'
-import { Input } from '@/components/ui/input'
+import {
+  DISABLED_ROW_DESKTOP,
+  DISABLED_ROW_MOBILE,
+  DataTablePage,
+  useDataTable,
+} from '@/components/data-table'
+import { useMediaQuery } from '@/hooks'
+import { useTableUrlState } from '@/hooks/use-table-url-state'
 
-import { columns } from './invite-codes-columns'
+import { getInviteCodes, searchInviteCodes } from '../api'
+import {
+  ERROR_MESSAGES,
+  REDEMPTION_STATUS,
+  getInviteCodeStatusOptions,
+} from '../constants'
+import { isInviteCodeExpired } from '../lib'
+import type { InviteCode } from '../types'
+import { DataTableBulkActions } from './data-table-bulk-actions'
+import { useInviteCodesColumns } from './invite-codes-columns'
+import { InviteCodesMobileList } from './invite-codes-mobile-list'
 import { useInviteCodes } from './invite-codes-provider'
+
+const route = getRouteApi('/_authenticated/invite-codes/')
+
+function isDisabledInviteCodeRow(inviteCode: InviteCode) {
+  return (
+    inviteCode.status !== REDEMPTION_STATUS.ENABLED ||
+    isInviteCodeExpired(inviteCode.expired_time, inviteCode.status)
+  )
+}
 
 export function InviteCodesTable() {
   const { t } = useTranslation()
+  const columns = useInviteCodesColumns()
+  const { refreshTrigger } = useInviteCodes()
+  const isMobile = useMediaQuery('(max-width: 640px)')
+
   const {
-    codes,
-    total,
-    isLoading,
-    page,
-    pageSize,
-    keyword,
-    setPage,
-    setPageSize,
-    setKeyword,
-  } = useInviteCodes()
-
-  // Provider keeps 1-based `page`; TanStack pagination is 0-based `pageIndex`.
-  const pagination: PaginationState = { pageIndex: page - 1, pageSize }
-  const onPaginationChange = (updater: unknown) => {
-    const next =
-      typeof updater === 'function'
-        ? (updater as (p: PaginationState) => PaginationState)(pagination)
-        : (updater as PaginationState)
-    setPage(next.pageIndex + 1)
-    setPageSize(next.pageSize)
-  }
-
-  const { table } = useDataTable({
-    data: codes,
-    columns,
-    totalCount: total,
+    globalFilter,
+    onGlobalFilterChange,
+    columnFilters,
+    onColumnFiltersChange,
     pagination,
     onPaginationChange,
+    ensurePageInRange,
+  } = useTableUrlState({
+    search: route.useSearch(),
+    navigate: route.useNavigate(),
+    pagination: { defaultPage: 1, defaultPageSize: isMobile ? 10 : 20 },
+    globalFilter: { enabled: true, key: 'filter' },
+    columnFilters: [{ columnId: 'status', searchKey: 'status', type: 'array' }],
+  })
+  const statusFilter =
+    (columnFilters.find((filter) => filter.id === 'status')?.value as
+      | string[]
+      | undefined) ?? []
+  const statusFilterValue = statusFilter[0] ?? ''
+
+  // Fetch data with React Query
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: [
+      'inviteCodes',
+      pagination.pageIndex + 1,
+      pagination.pageSize,
+      globalFilter,
+      statusFilterValue,
+      refreshTrigger,
+    ],
+    queryFn: async () => {
+      const hasFilter = globalFilter?.trim()
+      const hasStatusFilter = statusFilterValue !== ''
+      const params = {
+        p: pagination.pageIndex + 1,
+        page_size: pagination.pageSize,
+      }
+
+      const result =
+        hasFilter || hasStatusFilter
+          ? await searchInviteCodes({
+              ...params,
+              keyword: globalFilter,
+              status: statusFilterValue,
+            })
+          : await getInviteCodes(params)
+
+      if (!result.success) {
+        toast.error(
+          result.message ||
+            t(
+              hasFilter || hasStatusFilter
+                ? ERROR_MESSAGES.SEARCH_FAILED
+                : ERROR_MESSAGES.LOAD_FAILED
+            )
+        )
+        return { items: [], total: 0 }
+      }
+
+      return {
+        items: result.data?.items || [],
+        total: result.data?.total || 0,
+      }
+    },
+    placeholderData: (previousData) => previousData,
+  })
+
+  const inviteCodes = data?.items || []
+
+  const { table } = useDataTable({
+    data: inviteCodes,
+    columns,
+    enableRowSelection: true,
+    columnFilters,
+    globalFilter,
+    pagination,
+    globalFilterFn: (row, _columnId, filterValue) => {
+      const name = String(row.getValue('name')).toLowerCase()
+      const id = String(row.getValue('id'))
+      const searchValue = String(filterValue).toLowerCase()
+
+      return name.includes(searchValue) || id.includes(searchValue)
+    },
+    onPaginationChange,
+    onGlobalFilterChange,
+    onColumnFiltersChange,
     manualPagination: true,
     manualFiltering: true,
+    totalCount: data?.total || 0,
+    ensurePageInRange,
   })
+
+  const inviteCodeStatusOptions = useMemo(
+    () => getInviteCodeStatusOptions(t),
+    [t]
+  )
 
   return (
     <DataTablePage
       table={table}
       columns={columns}
       isLoading={isLoading}
-      emptyTitle={t('No Invite Codes Found', { defaultValue: '暂无邀请码' })}
+      isFetching={isFetching}
+      emptyTitle={t('No InviteCode Codes Found')}
       emptyDescription={t(
-        'No invite codes available. Create your first invite code to get started.',
-        { defaultValue: '暂无邀请码，请先生成邀请码。' }
+        'No inviteCode codes available. Create your first inviteCode code to get started.'
       )}
       skeletonKeyPrefix='invite-codes-skeleton'
       applyHeaderSize
       toolbarProps={{
-        searchPlaceholder: t('Search invite codes...', {
-          defaultValue: '搜索邀请码...',
-        }),
-        additionalSearch: (
-          <Input
-            placeholder={t('Search invite codes...', {
-              defaultValue: '搜索邀请码...',
-            })}
-            value={keyword}
-            onChange={(e) => {
-              setKeyword(e.target.value)
-              setPage(1)
-            }}
-            className='max-w-xs'
-          />
-        ),
+        searchPlaceholder: t('Filter by name or ID...'),
+        searchDebounceMs: 500,
+        filters: [
+          {
+            columnId: 'status',
+            title: t('Status'),
+            options: inviteCodeStatusOptions,
+            singleSelect: true,
+          },
+        ],
       }}
+      mobile={<InviteCodesMobileList table={table} isLoading={isLoading} />}
+      getRowClassName={(row, { isMobile }) => {
+        if (!isDisabledInviteCodeRow(row.original)) return undefined
+        return isMobile ? DISABLED_ROW_MOBILE : DISABLED_ROW_DESKTOP
+      }}
+      bulkActions={<DataTableBulkActions table={table} />}
     />
   )
 }

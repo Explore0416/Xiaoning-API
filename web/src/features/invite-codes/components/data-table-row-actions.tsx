@@ -34,11 +34,11 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 
-import { updateRedemptionStatus } from '../api'
+import { updateInviteCodeStatus } from '../api'
 import { REDEMPTION_STATUS, SUCCESS_MESSAGES } from '../constants'
-import { isRedemptionExpired } from '../lib'
-import { redemptionSchema } from '../types'
-import { useRedemptions } from './redemptions-provider'
+import { isInviteCodeExpired } from '../lib'
+import { inviteCodeSchema } from '../types'
+import { useInviteCodes } from './invite-codes-provider'
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>
@@ -48,13 +48,13 @@ export function DataTableRowActions<TData>({
   row,
 }: DataTableRowActionsProps<TData>) {
   const { t } = useTranslation()
-  const redemption = redemptionSchema.parse(row.original)
-  const { setOpen, setCurrentRow, triggerRefresh } = useRedemptions()
-  const isEnabled = redemption.status === REDEMPTION_STATUS.ENABLED
-  const isUsed = redemption.status === REDEMPTION_STATUS.USED
-  const isExpired = isRedemptionExpired(
-    redemption.expired_time,
-    redemption.status
+  const inviteCode = inviteCodeSchema.parse(row.original)
+  const { setOpen, setCurrentRow, triggerRefresh } = useInviteCodes()
+  const isEnabled = inviteCode.status === REDEMPTION_STATUS.ENABLED
+  const isUsed = inviteCode.status === REDEMPTION_STATUS.USED
+  const isExpired = isInviteCodeExpired(
+    inviteCode.expired_time,
+    inviteCode.status
   )
 
   const handleToggleStatus = async () => {
@@ -62,7 +62,7 @@ export function DataTableRowActions<TData>({
       ? REDEMPTION_STATUS.DISABLED
       : REDEMPTION_STATUS.ENABLED
 
-    const result = await updateRedemptionStatus(redemption.id, newStatus)
+    const result = await updateInviteCodeStatus(inviteCode.id, newStatus)
     if (result.success) {
       const message = isEnabled
         ? t(SUCCESS_MESSAGES.REDEMPTION_DISABLED)
@@ -84,7 +84,7 @@ export function DataTableRowActions<TData>({
               variant='ghost'
               size='icon-sm'
               onClick={() => {
-                setCurrentRow(redemption)
+                setCurrentRow(inviteCode)
                 setOpen('update')
               }}
               disabled={!canEdit}
@@ -120,7 +120,7 @@ export function DataTableRowActions<TData>({
         {canToggle && <DropdownMenuSeparator />}
         <DropdownMenuItem
           onClick={() => {
-            setCurrentRow(redemption)
+            setCurrentRow(inviteCode)
             setOpen('delete')
           }}
           className='text-destructive focus:text-destructive'

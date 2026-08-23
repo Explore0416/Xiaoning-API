@@ -19,19 +19,20 @@ For commercial licensing, please contact support@quantumnous.com
 import { z } from 'zod'
 
 // ============================================================================
-// Invite Code Schema & Types
+// InviteCode Schema & Types
 // ============================================================================
 
 export const inviteCodeSchema = z.object({
   id: z.number(),
-  code: z.string(),
-  created_by_user_id: z.number(),
+  user_id: z.number(),
+  name: z.string(),
+  key: z.string(),
+  status: z.number(), // 1: enabled, 2: disabled, 3: used
   quota: z.number(),
-  status: z.number(), // 1: enabled, 2: disabled, 3: exhausted
-  max_use_count: z.number(),
-  used_count: z.number(),
-  expired_time: z.number(),
   created_time: z.number(),
+  redeemed_time: z.number(),
+  expired_time: z.number(), // 0 for never expires
+  used_user_id: z.number(),
 })
 
 export type InviteCode = z.infer<typeof inviteCodeSchema>
@@ -54,8 +55,12 @@ export interface GetInviteCodesParams {
 export interface GetInviteCodesResponse {
   success: boolean
   message?: string
-  data?: InviteCode[]
-  total?: number
+  data?: {
+    items: InviteCode[]
+    total: number
+    page: number
+    page_size: number
+  }
 }
 
 export interface SearchInviteCodesParams {
@@ -66,14 +71,16 @@ export interface SearchInviteCodesParams {
 }
 
 export interface InviteCodeFormData {
-  count: number
+  id?: number
+  name: string
   quota: number
-  max_use_count?: number
-  expired_time?: number
+  expired_time: number
+  count?: number // Only for create
+  status?: number // Only for status update
 }
 
 // ============================================================================
 // Dialog Types
 // ============================================================================
 
-export type InviteCodesDialogType = 'create' | 'delete'
+export type InviteCodesDialogType = 'create' | 'update' | 'delete' | 'view'

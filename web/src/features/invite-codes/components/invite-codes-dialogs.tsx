@@ -16,175 +16,22 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { zodResolver } from '@hookform/resolvers/zod'
-import { Loader2, Plus } from 'lucide-react'
-import { useForm } from 'react-hook-form'
-import { useTranslation } from 'react-i18next'
-import { toast } from 'sonner'
-import { z } from 'zod'
-
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from '@/components/ui/form'
-import { Input } from '@/components/ui/input'
-import { Switch } from '@/components/ui/switch'
-
-import { generateInviteCodes, deleteInviteCode, deleteExpiredInviteCodes } from '../api'
+import { InviteCodesDeleteDialog } from './invite-codes-delete-dialog'
+import { InviteCodesMutateDrawer } from './invite-codes-mutate-drawer'
 import { useInviteCodes } from './invite-codes-provider'
 
-const createSchema = z.object({
-  count: z.coerce.number().int().min(1).max(1000),
-  quota: z.coerce.number().int().min(0).default(0),
-  max_use_count: z.coerce.number().int().min(0).default(1),
-  has_expiry: z.boolean().default(false),
-  expired_days: z.coerce.number().int().min(1).optional(),
-})
-
 export function InviteCodesDialogs() {
-  const { t } = useTranslation()
-  const { dialog, dialogData, closeDialog, refresh } = useInviteCodes()
-
-  const createForm = useForm<z.infer<typeof createSchema>>({
-    resolver: zodResolver(createSchema),
-    defaultValues: { count: 10, quota: 0, max_use_count: 1, has_expiry: false, expired_days: 30 },
-  })
-
-  const handleCreate = async (data: z.infer<typeof createSchema>) => {
-    const expired_time = data.has_expiry && data.expired_days
-      ? Math.floor(Date.now() / 1000) + data.expired_days * 86400
-      : 0
-    const res = await generateInviteCodes({
-      count: data.count,
-      quota: data.quota,
-      max_use_count: data.max_use_count,
-      expired_time,
-    })
-    if (res.success) {
-      toast.success(t('Admin Invite Codes Created'))
-      closeDialog()
-      refresh()
-      createForm.reset()
-    } else {
-      toast.error(res.message || t('Admin Failed To Create Invite Codes'))
-    }
-  }
-
-  const handleDelete = async () => {
-    if (!dialogData) return
-    const res = await deleteInviteCode(dialogData.id)
-    if (res.success) {
-      toast.success(t('Admin Invite Code Deleted'))
-      closeDialog()
-      refresh()
-    } else {
-      toast.error(res.message || t('Admin Failed To Delete Invite Code'))
-    }
-  }
-
-  const handleCleanup = async () => {
-    const res = await deleteExpiredInviteCodes()
-    if (res.success) {
-      toast.success(t('Cleaned up expired invite codes'))
-      closeDialog()
-      refresh()
-    } else {
-      toast.error(res.message || t('Failed to clean up'))
-    }
-  }
+  const { open, setOpen, currentRow } = useInviteCodes()
+  const isUpdate = open === 'update'
 
   return (
     <>
-      <Dialog open={dialog === 'create'} onOpenChange={(o) => !o && closeDialog()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('Admin Generate Invite Codes')}</DialogTitle>
-            <DialogDescription>
-              {t('Admin Create Batch Invite Codes')}
-            </DialogDescription>
-          </DialogHeader>
-          <Form {...createForm}>
-            <form onSubmit={createForm.handleSubmit(handleCreate)} className='space-y-4'>
-              <FormField control={createForm.control} name='count' render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('Admin Number of Codes')}</FormLabel>
-                  <FormControl><Input type='number' min={1} max={1000} {...field} /></FormControl>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={createForm.control} name='quota' render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('Admin Bonus Quota Per Code')}</FormLabel>
-                  <FormControl><Input type='number' min={0} {...field} /></FormControl>
-                  <FormDescription>{t('Admin Zero Quota Means Threshold Only')}</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={createForm.control} name='max_use_count' render={({ field }) => (
-                <FormItem>
-                  <FormLabel>{t('Admin Max Uses Per Code')}</FormLabel>
-                  <FormControl><Input type='number' min={0} {...field} /></FormControl>
-                  <FormDescription>{t('Admin Zero Means Unlimited Uses')}</FormDescription>
-                  <FormMessage />
-                </FormItem>
-              )} />
-              <FormField control={createForm.control} name='has_expiry' render={({ field }) => (
-                <FormItem className='flex items-center gap-2'>
-                  <FormControl><Switch checked={field.value} onCheckedChange={field.onChange} /></FormControl>
-                  <FormLabel className='!mt-0'>{t('Admin Set Expiration')}</FormLabel>
-                </FormItem>
-              )} />
-              {createForm.watch('has_expiry') && (
-                <FormField control={createForm.control} name='expired_days' render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>{t('Admin Expires In Days')}</FormLabel>
-                    <FormControl><Input type='number' min={1} {...field} /></FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )} />
-              )}
-              <DialogFooter>
-                <Button type='submit' disabled={createForm.formState.isSubmitting}>
-                  {createForm.formState.isSubmitting && <Loader2 className='animate-spin' />}
-                  {t('Generate')}
-                </Button>
-              </DialogFooter>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
-
-      <Dialog open={dialog === 'delete'} onOpenChange={(o) => !o && closeDialog()}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t('Admin Delete Invite Code')}</DialogTitle>
-            <DialogDescription>
-              {t('Admin Confirm Delete Invite Code')}
-            </DialogDescription>
-          </DialogHeader>
-          {dialogData && (
-            <p className='font-mono text-center text-lg'>{dialogData.code}</p>
-          )}
-          <DialogFooter>
-            <Button variant='outline' onClick={closeDialog}>{t('Cancel')}</Button>
-            <Button variant='destructive' onClick={handleDelete}>{t('Delete')}</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+      <InviteCodesMutateDrawer
+        open={open === 'create' || isUpdate}
+        onOpenChange={(isOpen) => !isOpen && setOpen(null)}
+        currentRow={isUpdate ? currentRow || undefined : undefined}
+      />
+      <InviteCodesDeleteDialog />
     </>
   )
 }
