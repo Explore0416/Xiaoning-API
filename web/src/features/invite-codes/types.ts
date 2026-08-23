@@ -24,15 +24,14 @@ import { z } from 'zod'
 
 export const inviteCodeSchema = z.object({
   id: z.number(),
-  user_id: z.number(),
-  name: z.string(),
-  key: z.string(),
-  status: z.number(), // 1: enabled, 2: disabled, 3: used
+  code: z.string(),
+  created_by_user_id: z.number(),
   quota: z.number(),
-  created_time: z.number(),
-  redeemed_time: z.number(),
+  status: z.number(), // 1: enabled, 2: disabled, 3: exhausted
+  max_use_count: z.number(),
+  used_count: z.number(),
   expired_time: z.number(), // 0 for never expires
-  used_user_id: z.number(),
+  created_time: z.number(),
 })
 
 export type InviteCode = z.infer<typeof inviteCodeSchema>

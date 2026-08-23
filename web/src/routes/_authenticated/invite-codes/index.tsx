@@ -20,13 +20,12 @@ import { createFileRoute } from '@tanstack/react-router'
 import { z } from 'zod'
 
 import { InviteCodes } from '@/features/invite-codes'
-import { INVITE_CODE_FILTER_VALUES } from '@/features/invite-codes/constants'
 
 const inviteCodesSearchSchema = z.object({
   p: z.coerce.number().optional(),
   page_size: z.coerce.number().optional(),
   keyword: z.string().optional(),
-  status: z.nativeEnum(INVITE_CODE_FILTER_VALUES.status).optional(),
+  status: z.string().optional(),
 })
 
 export const Route = createFileRoute('/_authenticated/invite-codes/')({
