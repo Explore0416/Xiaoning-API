@@ -70,12 +70,10 @@ export interface SearchInviteCodesParams {
 }
 
 export interface InviteCodeFormData {
-  id?: number
-  name: string
+  count?: number
   quota: number
+  max_use_count?: number
   expired_time: number
-  count?: number // Only for create
-  status?: number // Only for status update
 }
 
 // ============================================================================

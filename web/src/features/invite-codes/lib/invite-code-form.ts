@@ -21,14 +21,13 @@ import { z } from 'zod'
 
 import {
   parseQuotaFromDollars,
-  quotaUnitsToEditableAmount,
 } from '@/lib/format'
 
 import {
   REDEMPTION_VALIDATION,
   getInviteCodeFormErrorMessages,
 } from '../constants'
-import type { InviteCodeFormData, InviteCode } from '../types'
+import type { InviteCodeFormData } from '../types'
 
 // ============================================================================
 // Form Schema (use getInviteCodeFormSchema(t) in components for i18n messages)
@@ -37,25 +36,23 @@ import type { InviteCodeFormData, InviteCode } from '../types'
 export function getInviteCodeFormSchema(t: TFunction) {
   const msg = getInviteCodeFormErrorMessages(t)
   return z.object({
-    name: z
-      .string()
-      .min(REDEMPTION_VALIDATION.NAME_MIN_LENGTH, msg.NAME_LENGTH_INVALID)
-      .max(REDEMPTION_VALIDATION.NAME_MAX_LENGTH, msg.NAME_LENGTH_INVALID),
-    quota_dollars: z.number().min(0, t('Quota must be a positive number')),
-    expired_time: z.date().optional(),
     count: z
       .number()
       .min(REDEMPTION_VALIDATION.COUNT_MIN, msg.COUNT_INVALID)
-      .max(REDEMPTION_VALIDATION.COUNT_MAX, msg.COUNT_INVALID)
-      .optional(),
+      .max(REDEMPTION_VALIDATION.COUNT_MAX, msg.COUNT_INVALID),
+    quota_dollars: z.number().min(0, t('Quota must be a positive number')),
+    max_use_count: z
+      .number()
+      .min(0, t('Max uses must be a non-negative number')),
+    expired_time: z.date().optional(),
   })
 }
 
 export type InviteCodeFormValues = {
-  name: string
+  count: number
   quota_dollars: number
+  max_use_count: number
   expired_time?: Date
-  count?: number
 }
 
 // ============================================================================
@@ -63,10 +60,10 @@ export type InviteCodeFormValues = {
 // ============================================================================
 
 export const INVITE_CODE_FORM_DEFAULT_VALUES: InviteCodeFormValues = {
-  name: '',
-  quota_dollars: 10,
-  expired_time: undefined,
   count: 1,
+  quota_dollars: 10,
+  max_use_count: 1,
+  expired_time: undefined,
 }
 
 // ============================================================================
@@ -80,28 +77,15 @@ export function transformFormDataToPayload(
   data: InviteCodeFormValues
 ): InviteCodeFormData {
   return {
-    name: data.name,
+    count: data.count || 1,
     quota: parseQuotaFromDollars(data.quota_dollars),
+    max_use_count: data.max_use_count || 0,
     expired_time: data.expired_time
       ? Math.floor(data.expired_time.getTime() / 1000)
       : 0,
-    count: data.count || 1,
   }
 }
 
 /**
  * Transform inviteCode data to form defaults
  */
-export function transformInviteCodeToFormDefaults(
-  inviteCode: InviteCode
-): InviteCodeFormValues {
-  return {
-    name: inviteCode.code,
-    quota_dollars: quotaUnitsToEditableAmount(inviteCode.quota),
-    expired_time:
-      inviteCode.expired_time > 0
-        ? new Date(inviteCode.expired_time * 1000)
-        : undefined,
-    count: 1,
-  }
-}
