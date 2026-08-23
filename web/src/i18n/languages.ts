@@ -34,14 +34,19 @@ export function normalizeInterfaceLanguage(value?: string | null): string {
 
   let normalized = value.trim().replaceAll('_', '-').toLowerCase()
   if (
-    value === 'zh-TW' ||
-    value === 'zh-HK' ||
-    value === 'zh-MO' ||
-    value === 'zhTW'
+    normalized === 'zh-tw' ||
+    normalized === 'zh-hk' ||
+    normalized === 'zh-mo' ||
+    normalized === 'zhtw'
   ) {
     normalized = 'zhTW'
   }
-  if (value === 'zh-CN' || value === 'zh-Hans' || value === 'zhCN') {
+  if (
+    normalized === 'zh-cn' ||
+    normalized === 'zh-hans' ||
+    normalized === 'zhcn' ||
+    normalized === 'zh'
+  ) {
     normalized = 'zhCN'
   }
 
