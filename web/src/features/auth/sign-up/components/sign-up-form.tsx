@@ -358,11 +358,17 @@ export function SignUpForm({
             render={({ field }) => (
               <FormItem>
                 <FormLabel>
-                  {inviteCodeEnabled ? t('Invitation code') : t('Invitation code (optional)')}
+                  {inviteCodeEnabled
+                    ? t('Invitation code', { defaultValue: '邀请码' })
+                    : t('Invitation code (optional)', {
+                        defaultValue: '邀请码（选填）',
+                      })}
                 </FormLabel>
                 <FormControl>
                   <Input
-                    placeholder={t('Enter invitation code')}
+                    placeholder={t('Enter invitation code', {
+                      defaultValue: '请输入邀请码',
+                    })}
                     maxLength={32}
                     {...field}
                   />
