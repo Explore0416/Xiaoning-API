@@ -165,7 +165,7 @@ export function InviteCodesTable() {
       isFetching={isFetching}
       emptyTitle={t('No InviteCode Codes Found')}
       emptyDescription={t(
-        'No inviteCode codes available. Create your first inviteCode code to get started.'
+        'No invite codes available. Create your first invite code to get started.'
       )}
       skeletonKeyPrefix='invite-codes-skeleton'
       applyHeaderSize

@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 /**
- * Utility functions for inviteCode codes
+ * Utility functions for invite codes
  */
 
 /**
@@ -31,8 +31,8 @@ export function isTimestampExpired(timestamp: number): boolean {
 }
 
 /**
- * Check if inviteCode code is expired based on business logic
- * Only enabled inviteCode codes (status === 1) can be considered expired
+ * Check if invite code is expired based on business logic
+ * Only enabled invite codes (status === 1) can be considered expired
  * @param expired_time - Unix timestamp in seconds (0 means never expires)
  * @param status - InviteCode status (1: enabled, 2: disabled, 3: used)
  * @returns true if the code is expired

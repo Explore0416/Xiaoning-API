@@ -92,7 +92,7 @@ export function InviteCodesMobileList(props: InviteCodesMobileListProps) {
             <EmptyTitle>{t('No InviteCode Codes Found')}</EmptyTitle>
             <EmptyDescription>
               {t(
-                'No inviteCode codes available. Create your first inviteCode code to get started.'
+                'No invite codes available. Create your first invite code to get started.'
               )}
             </EmptyDescription>
           </EmptyHeader>
@@ -110,7 +110,7 @@ export function InviteCodesMobileList(props: InviteCodesMobileListProps) {
           inviteCode.status
         )
         const statusConfig = REDEMPTION_STATUSES[inviteCode.status]
-        const maskedKey = `${inviteCode.key.slice(0, 8)}******${inviteCode.key.slice(-8)}`
+        const maskedKey = `${inviteCode.code.slice(0, 8)}******${inviteCode.code.slice(-8)}`
 
         return (
           <div
@@ -125,7 +125,7 @@ export function InviteCodesMobileList(props: InviteCodesMobileListProps) {
             <div className='flex items-start justify-between gap-3'>
               <div className='min-w-0'>
                 <div className='truncate text-sm font-semibold'>
-                  {inviteCode.name}
+                  {inviteCode.code}
                 </div>
                 <div className='text-muted-foreground text-[11px]'>
                   {t('InviteCode Code')}
@@ -152,10 +152,10 @@ export function InviteCodesMobileList(props: InviteCodesMobileListProps) {
               <div className='min-w-0 flex-1 [&_button:first-child]:max-w-full [&_button:first-child]:truncate [&_button:first-child]:px-0'>
                 <MaskedValueDisplay
                   label={t('Full Code')}
-                  fullValue={inviteCode.key}
+                  fullValue={inviteCode.code}
                   maskedValue={maskedKey}
                   copyTooltip={t('Copy code')}
-                  copyAriaLabel={t('Copy inviteCode code')}
+                  copyAriaLabel={t('Copy invite code')}
                 />
               </div>
               <DataTableRowActions row={row} />

@@ -96,7 +96,7 @@ export function transformInviteCodeToFormDefaults(
   inviteCode: InviteCode
 ): InviteCodeFormValues {
   return {
-    name: inviteCode.name,
+    name: inviteCode.code,
     quota_dollars: quotaUnitsToEditableAmount(inviteCode.quota),
     expired_time:
       inviteCode.expired_time > 0

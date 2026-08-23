@@ -204,7 +204,6 @@ export function useInviteCodesColumns(): ColumnDef<InviteCode>[] {
       meta: { mobileHidden: true },
       cell: ({ row }) => {
         const userId = row.getValue('created_by_user_id') as number
-        const inviteCode = row.original
 
         if (userId === 0) {
           return <span className='text-muted-foreground text-sm'>-</span>

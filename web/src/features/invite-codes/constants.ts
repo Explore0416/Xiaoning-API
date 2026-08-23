@@ -59,7 +59,7 @@ export const REDEMPTION_STATUSES: Record<
   },
 } as const
 
-// Virtual status filter value for expired inviteCode codes
+// Virtual status filter value for expired invite codes
 // Note: "Expired" is not a real DB status, it's computed from expired_time
 export const REDEMPTION_FILTER_EXPIRED = 'expired'
 export const INVITE_CODE_FILTER_VALUES = ['enabled','disabled','exhausted','expired'] as const
@@ -103,13 +103,13 @@ export const REDEMPTION_VALIDATION = {
 // i18n keys; use t(ERROR_MESSAGES.xxx) when displaying. For form schema with interpolation use getInviteCodeFormErrorMessages(t).
 export const ERROR_MESSAGES = {
   UNEXPECTED: 'An unexpected error occurred',
-  LOAD_FAILED: 'Failed to load inviteCode codes',
-  SEARCH_FAILED: 'Failed to search inviteCode codes',
-  CREATE_FAILED: 'Failed to create inviteCode code',
-  UPDATE_FAILED: 'Failed to update inviteCode code',
-  DELETE_FAILED: 'Failed to delete inviteCode code',
-  DELETE_INVALID_FAILED: 'Failed to delete invalid inviteCode codes',
-  STATUS_UPDATE_FAILED: 'Failed to update inviteCode code status',
+  LOAD_FAILED: 'Failed to load invite codes',
+  SEARCH_FAILED: 'Failed to search invite codes',
+  CREATE_FAILED: 'Failed to create invite code',
+  UPDATE_FAILED: 'Failed to update invite code',
+  DELETE_FAILED: 'Failed to delete invite code',
+  DELETE_INVALID_FAILED: 'Failed to delete invalid invite codes',
+  STATUS_UPDATE_FAILED: 'Failed to update invite code status',
   NAME_LENGTH_INVALID: 'Name must be between {{min}} and {{max}} characters',
   COUNT_INVALID: 'Count must be between {{min}} and {{max}}',
   EXPIRED_TIME_INVALID: 'Expired time cannot be earlier than current time',

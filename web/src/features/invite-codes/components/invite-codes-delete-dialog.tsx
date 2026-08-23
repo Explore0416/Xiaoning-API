@@ -65,8 +65,8 @@ export function InviteCodesDeleteDialog() {
         <AlertDialogHeader>
           <AlertDialogTitle>{t('Are you sure?')}</AlertDialogTitle>
           <AlertDialogDescription>
-            {t('This will permanently delete inviteCode code')}{' '}
-            <span className='font-semibold'>{currentRow?.name}</span>
+            {t('This will permanently delete invite code')}{' '}
+            <span className='font-semibold'>{currentRow?.code}</span>
             {t('. This action cannot be undone.')}
           </AlertDialogDescription>
         </AlertDialogHeader>

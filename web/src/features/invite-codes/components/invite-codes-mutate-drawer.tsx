@@ -185,7 +185,7 @@ export function InviteCodesMutateDrawer({
           const count = result.data?.length || 0
           toast.success(
             count > 1
-              ? t('Successfully created {{count}} inviteCode codes', {
+              ? t('Successfully created {{count}} invite codes', {
                   count,
                 })
               : t(SUCCESS_MESSAGES.REDEMPTION_CREATED)
@@ -250,9 +250,9 @@ export function InviteCodesMutateDrawer({
           </SheetTitle>
           <SheetDescription>
             {isUpdate
-              ? t('Update the inviteCode code by providing necessary info.')
+              ? t('Update the invite code by providing necessary info.')
               : t(
-                  'Add new inviteCode code(s) by providing necessary info.'
+                  'Add new invite code(s) by providing necessary info.'
                 )}{' '}
             {t('Click save when you&apos;re done.')}
           </SheetDescription>
@@ -279,7 +279,7 @@ export function InviteCodesMutateDrawer({
                         <Input {...field} placeholder={t('Enter a name')} />
                       </FormControl>
                       <FormDescription>
-                        {t('Name for this inviteCode code (1-20 characters)')}
+                        {t('Name for this invite code (1-20 characters)')}
                       </FormDescription>
                       <FormMessage />
                     </FormItem>
@@ -397,7 +397,7 @@ export function InviteCodesMutateDrawer({
                         </FormControl>
                         <FormDescription>
                           {t(
-                            'Create multiple inviteCode codes at once (1-100)'
+                            'Create multiple invite codes at once (1-100)'
                           )}
                         </FormDescription>
                         <FormMessage />

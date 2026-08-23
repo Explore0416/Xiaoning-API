@@ -42,7 +42,7 @@ export function InviteCodesPrimaryButtons() {
       if (result.success) {
         const count = result.data || 0
         toast.success(
-          t('Successfully deleted {{count}} invalid inviteCode codes', {
+          t('Successfully deleted {{count}} invalid invite codes', {
             count,
           })
         )
@@ -86,7 +86,7 @@ export function InviteCodesPrimaryButtons() {
             {t('This will delete all')} <strong>{t('used')}</strong>,{' '}
             <strong>{t('disabled')}</strong>
             {t(', and')} <strong>{t('expired')}</strong>{' '}
-            {t('inviteCode codes.')}
+            {t('invite codes.')}
             <br />
             {t('This action cannot be undone.')}
           </>

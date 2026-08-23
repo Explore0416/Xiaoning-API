@@ -38,13 +38,13 @@ export function DataTableBulkActions<TData>({
   const contentToCopy = useMemo(() => {
     const selectedCodes = selectedRows.map((row) => {
       const inviteCode = row.original as InviteCode
-      return `${inviteCode.name}\t${inviteCode.key}`
+      return `${inviteCode.code}\t${inviteCode.code}`
     })
     return selectedCodes.join('\n')
   }, [selectedRows])
 
   return (
-    <BulkActionsToolbar table={table} entityName={t('inviteCode code')}>
+    <BulkActionsToolbar table={table} entityName={t('invite code')}>
       <CopyButton
         value={contentToCopy}
         variant='outline'
