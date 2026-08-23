@@ -185,9 +185,9 @@ export function BasicAuthSection({ defaultValues }: BasicAuthSectionProps) {
             render={({ field }) => (
               <SettingsSwitchItem>
                 <SettingsSwitchContent>
-                  <FormLabel>{t('Admin Invitation Code')}</FormLabel>
+                  <FormLabel>{t('Admin Invitation Code', { defaultValue: '邀请码' })}</FormLabel>
                   <FormDescription>
-                    {t('Admin Allow Invitation Code Registration')}
+                    {t('Admin Allow Invitation Code Registration', { defaultValue: '允许使用邀请码注册' })}
                   </FormDescription>
                 </SettingsSwitchContent>
                 <FormControl>
@@ -206,9 +206,9 @@ export function BasicAuthSection({ defaultValues }: BasicAuthSectionProps) {
             render={({ field }) => (
               <SettingsSwitchItem>
                 <SettingsSwitchContent>
-                  <FormLabel>{t('Admin Require Invitation Code')}</FormLabel>
+                  <FormLabel>{t('Admin Require Invitation Code', { defaultValue: '要求邀请码注册' })}</FormLabel>
                   <FormDescription>
-                    {t('Admin Require Invite Code For Registration')}
+                    {t('Admin Require Invite Code For Registration', { defaultValue: '所有新用户注册必须提供邀请码' })}
                   </FormDescription>
                 </SettingsSwitchContent>
                 <FormControl>

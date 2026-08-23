@@ -30,10 +30,10 @@ export function InviteCodesPrimaryButtons() {
   return (
     <div className='flex gap-2'>
       <Button variant='outline' size='sm' onClick={handleCleanup} disabled={cleaning}>
-        {t('Admin Clean Up Expired')}
+        {t('Admin Clean Up Expired', { defaultValue: '清理过期邀请码' })}
       </Button>
       <Button size='sm' onClick={() => openDialog('create')}>
-        {t('Admin Generate Codes')}
+        {t('Admin Generate Codes', { defaultValue: '生成邀请码' })}
       </Button>
     </div>
   )
