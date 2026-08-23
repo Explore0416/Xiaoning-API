@@ -119,6 +119,7 @@ export function InviteCodesMutateDrawer({
                         max={1000}
                         placeholder={t('e.g. 10')}
                         {...field}
+                        onChange={(event) => field.onChange(event.target.valueAsNumber)}
                       />
                     </FormControl>
                     <FormDescription>
@@ -142,6 +143,7 @@ export function InviteCodesMutateDrawer({
                         step={quotaStep}
                         placeholder={quotaPlaceholder}
                         {...field}
+                        onChange={(event) => field.onChange(event.target.valueAsNumber)}
                       />
                     </FormControl>
                     <FormDescription>
@@ -164,6 +166,7 @@ export function InviteCodesMutateDrawer({
                         min={0}
                         placeholder={t('e.g. 1')}
                         {...field}
+                        onChange={(event) => field.onChange(event.target.valueAsNumber)}
                       />
                     </FormControl>
                     <FormDescription>
