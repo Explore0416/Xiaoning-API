@@ -171,7 +171,7 @@ export function InviteCodesTable() {
       skeletonKeyPrefix='invite-codes-skeleton'
       applyHeaderSize
       toolbarProps={{
-        searchPlaceholder: t('Filter by name or ID...'),
+        searchPlaceholder: t('Filter by code or ID...', { defaultValue: '按代码或ID搜索...' }),
         searchDebounceMs: 500,
         filters: [
           {
