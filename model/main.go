@@ -147,7 +147,7 @@ func chooseDB(envName string, isLog bool) (*gorm.DB, common.DatabaseType, error)
 		}
 		if strings.HasPrefix(dsn, "local") {
 			common.SysLog("SQL_DSN not set, using SQLite as database")
-			db, err := gorm.Open(sqlite.Open(common.SQLitePath), newGormConfig(true))
+			db, err := openSQLite(common.SQLitePath)
 			return db, common.DatabaseTypeSQLite, err
 		}
 		// Use MySQL
@@ -165,8 +165,22 @@ func chooseDB(envName string, isLog bool) (*gorm.DB, common.DatabaseType, error)
 	}
 	// Use SQLite
 	common.SysLog("SQL_DSN not set, using SQLite as database")
-	db, err := gorm.Open(sqlite.Open(common.SQLitePath), newGormConfig(true))
+	db, err := openSQLite(common.SQLitePath)
 	return db, common.DatabaseTypeSQLite, err
+}
+
+// openSQLite 打开 SQLite 并配置并发参数。glebarez 驱动只识别 `_pragma` DSN 参数，
+// 不会解析 `_busy_timeout`；busy timeout 必须通过 pragma 设置，否则使用默认的
+// 5 秒，写锁竞争时读操作会以 "database is locked" 失败。WAL 模式让写事务提交
+// 不再阻塞读，消除登录/注册等读路径与监控探测写入之间的概率性锁冲突。
+func openSQLite(path string) (*gorm.DB, error) {
+	dsn := path
+	sep := "?"
+	if strings.Contains(dsn, "?") {
+		sep = "&"
+	}
+	dsn += sep + "_pragma=busy_timeout(30000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)"
+	return gorm.Open(sqlite.Open(dsn), newGormConfig(true))
 }
 
 func InitDB() (err error) {

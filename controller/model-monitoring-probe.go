@@ -2,6 +2,7 @@ package controller
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -40,6 +41,7 @@ func (modelMonitoringProbeHandler) Run(ctx context.Context, task *model.SystemTa
 		finishSystemTaskHandler(task, runnerID, model.SystemTaskStatusFailed, nil, err)
 		return
 	}
+	saveFailures := 0
 	for _, target := range targets {
 		if ctx != nil {
 			select {
@@ -51,13 +53,18 @@ func (modelMonitoringProbeHandler) Run(ctx context.Context, task *model.SystemTa
 		}
 		outcome := probeChannelTarget(ctx, target, testUserID)
 		if err := model.SaveChannelProbeOutcome(outcome); err != nil {
-			finishSystemTaskHandler(task, runnerID, model.SystemTaskStatusFailed, nil, err)
-			return
+			common.SysError(fmt.Sprintf(
+				"save channel probe outcome failed: group=%s channel_id=%d model=%s err=%v",
+				outcome.Group, outcome.ChannelID, outcome.ModelName, err,
+			))
+			saveFailures++
+			continue
 		}
 	}
 	finishSystemTaskHandler(task, runnerID, model.SystemTaskStatusSucceeded, map[string]any{
-		"targets":  len(targets),
-		"duration": time.Since(started).Milliseconds(),
+		"targets":       len(targets),
+		"duration":      time.Since(started).Milliseconds(),
+		"save_failures": saveFailures,
 	}, nil)
 }
 
