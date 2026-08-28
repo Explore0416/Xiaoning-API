@@ -39,7 +39,6 @@ import {
   bootstrapAuthentication,
   clearAuthenticatedClientState,
   clearAuthentication,
-  startAuthSessionKeepalive,
 } from '@/lib/auth-session'
 import { subscribeAuthSessionEvents } from '@/lib/auth-session-sync'
 import { resolveLegacyRoute } from '@/lib/legacy-route'
@@ -51,13 +50,6 @@ function RootComponent() {
 
   // Load system configuration (logo, system name, etc.) from backend
   useSystemConfig({ autoLoad: true })
-
-  // Start the dashboard session keepalive loop. Idempotent; teardown is
-  // a no-op because the singleton lives for the SPA's lifetime.
-  useEffect(() => {
-    const stop = startAuthSessionKeepalive()
-    return () => stop()
-  }, [])
 
   useEffect(() => {
     const aff = new URLSearchParams(window.location.search).get('aff')?.trim()
@@ -181,25 +173,7 @@ export const Route = createRootRouteWithContext<{
       setupStatusChecked = true
       setSetupStatusCache(true)
     } else {
-      // Transient network failures during bootstrap must not wipe the SPA into
-      // an error boundary. The auth store still holds a valid access token in
-      // that case; we keep the current shell and let the next successful
-      // request/refresh recover. Only hard-redirect when the session is
-      // definitively gone (anonymous) or out of sync with the server.
-      const outcome = await authBootstrap
-      if (outcome.kind === 'anonymous' || outcome.kind === 'out_of_sync') {
-        // Guard against a self-redirect loop: anonymous users should always
-        // land on /sign-in so the login form renders. Only redirect if we're
-        // NOT already on an auth page (prevents /sign-in → / → /sign-in loop).
-        const authOnlyPaths = ['/sign-in', '/sign-up', '/otp']
-        const alreadyOnAuthPage = authOnlyPaths.some((p) =>
-          location.pathname.startsWith(p)
-        )
-        if (!alreadyOnAuthPage) {
-          throw redirect({ to: '/sign-in' })
-        }
-        // Already on /sign-in — do nothing, let the page render the login form.
-      }
+      await authBootstrap
     }
   },
   component: RootComponent,

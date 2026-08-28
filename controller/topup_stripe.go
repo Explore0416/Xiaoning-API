@@ -109,7 +109,13 @@ func (*StripeAdaptor) RequestPay(c *gin.Context, req *StripePayRequest) {
 	reference := fmt.Sprintf("new-api-ref-%d-%d-%s", user.Id, time.Now().UnixMilli(), randstr.String(4))
 	referenceId := "ref_" + common.Sha1([]byte(reference))
 
-	// P2-15: Insert DB order BEFORE creating Stripe session to prevent orphaned sessions
+	payLink, err := genStripeLink(referenceId, user.StripeCustomer, user.Email, req.Amount, req.SuccessURL, req.CancelURL)
+	if err != nil {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("Stripe 创建 Checkout Session 失败 user_id=%d trade_no=%s amount=%d error=%q", id, referenceId, req.Amount, err.Error()))
+		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "拉起支付失败"})
+		return
+	}
+
 	topUp := &model.TopUp{
 		UserId:          id,
 		Amount:          req.Amount,
@@ -120,19 +126,10 @@ func (*StripeAdaptor) RequestPay(c *gin.Context, req *StripePayRequest) {
 		CreateTime:      time.Now().Unix(),
 		Status:          common.TopUpStatusPending,
 	}
-	if err := topUp.Insert(); err != nil {
+	err = topUp.Insert()
+	if err != nil {
 		logger.LogError(c.Request.Context(), fmt.Sprintf("Stripe 创建充值订单失败 user_id=%d trade_no=%s amount=%d error=%q", id, referenceId, req.Amount, err.Error()))
 		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "创建订单失败"})
-		return
-	}
-
-	payLink, err := genStripeLink(referenceId, user.StripeCustomer, user.Email, req.Amount, req.SuccessURL, req.CancelURL)
-	if err != nil {
-		logger.LogError(c.Request.Context(), fmt.Sprintf("Stripe 创建 Checkout Session 失败 user_id=%d trade_no=%s amount=%d error=%q", id, referenceId, req.Amount, err.Error()))
-		// Clean up the DB order since Stripe session creation failed
-		topUp.Status = common.TopUpStatusFailed
-		_ = topUp.Update()
-		c.JSON(http.StatusOK, gin.H{"message": "error", "data": "拉起支付失败"})
 		return
 	}
 	logger.LogInfo(c.Request.Context(), fmt.Sprintf("Stripe 充值订单创建成功 user_id=%d trade_no=%s amount=%d money=%.2f", id, referenceId, req.Amount, chargedMoney))
@@ -180,13 +177,7 @@ func StripeWebhook(c *gin.Context) {
 	}
 
 	signature := c.GetHeader("Stripe-Signature")
-	// Reject webhooks when secret is empty to prevent HMAC forgery
-	if setting.StripeWebhookSecret == "" {
-		logger.LogWarn(ctx, fmt.Sprintf("Stripe webhook 被拒绝 reason=empty_secret path=%q client_ip=%s", c.Request.RequestURI, c.ClientIP()))
-		c.AbortWithStatus(http.StatusForbidden)
-		return
-	}
-	logger.LogInfo(ctx, fmt.Sprintf("Stripe webhook 收到请求 path=%q client_ip=%s body_len=%d", c.Request.RequestURI, c.ClientIP(), len(payload)))
+	logger.LogInfo(ctx, fmt.Sprintf("Stripe webhook 收到请求 path=%q client_ip=%s signature=%q body=%q", c.Request.RequestURI, c.ClientIP(), signature, string(payload)))
 	event, err := webhook.ConstructEventWithOptions(payload, signature, setting.StripeWebhookSecret, webhook.ConstructEventOptions{
 		IgnoreAPIVersionMismatch: true,
 	})
@@ -442,7 +433,7 @@ func getStripePayMoney(amount float64, group string) float64 {
 	}
 	// apply optional preset discount by the original request amount (if configured), default 1.0
 	discount := 1.0
-	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[fmt.Sprintf("%g", float64(originalAmount))]; ok {
+	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[int(originalAmount)]; ok {
 		if ds > 0 {
 			discount = ds
 		}

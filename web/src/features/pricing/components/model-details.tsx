@@ -459,20 +459,6 @@ function ModelBackendProviderSection(props: { model: PricingModel }) {
     )
   }
 
-  if (model.channels && model.channels.length > 0) {
-    cells.push(
-      <CatalogInfoCell key='channels' label={t('Channels')}>
-        <div className='flex flex-wrap gap-1'>
-          {model.channels.map((channel) => (
-            <span key={channel.name} className='bg-muted rounded px-1.5 py-0.5 text-xs'>
-              {channel.name}
-            </span>
-          ))}
-        </div>
-      </CatalogInfoCell>
-    )
-  }
-
   cells.push(
     <CatalogInfoCell key='type' label={t('Type')}>
       <ModelBillingModeBadge model={model} />

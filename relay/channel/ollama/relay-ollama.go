@@ -2,6 +2,7 @@ package ollama
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
 	"time"
@@ -308,7 +309,7 @@ func requestOpenAI2Embeddings(r dto.EmbeddingRequest) *OllamaEmbeddingRequest {
 
 func ollamaEmbeddingHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Response) (*dto.Usage, *types.NewAPIError) {
 	var oResp OllamaEmbeddingResponse
-	body, err := common.ReadAllMax(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, types.NewOpenAIError(err, types.ErrorCodeBadResponseBody, http.StatusInternalServerError)
 	}
@@ -333,7 +334,7 @@ func ollamaEmbeddingHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *h
 func FetchOllamaModels(baseURL, apiKey string) ([]OllamaModel, error) {
 	url := fmt.Sprintf("%s/api/tags", baseURL)
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{}
 	request, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, fmt.Errorf("创建请求失败: %v", err)
@@ -351,12 +352,12 @@ func FetchOllamaModels(baseURL, apiKey string) ([]OllamaModel, error) {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		body, _ := common.ReadAllMax(response.Body)
+		body, _ := io.ReadAll(response.Body)
 		return nil, fmt.Errorf("服务器返回错误 %d: %s", response.StatusCode, string(body))
 	}
 
 	var tagsResponse OllamaTagsResponse
-	body, err := common.ReadAllMax(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return nil, fmt.Errorf("读取响应失败: %v", err)
 	}
@@ -403,7 +404,7 @@ func PullOllamaModel(baseURL, apiKey, modelName string) error {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		body, _ := common.ReadAllMax(response.Body)
+		body, _ := io.ReadAll(response.Body)
 		return fmt.Errorf("拉取模型失败 %d: %s", response.StatusCode, string(body))
 	}
 
@@ -444,7 +445,7 @@ func PullOllamaModelStream(baseURL, apiKey, modelName string, progressCallback f
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		body, _ := common.ReadAllMax(response.Body)
+		body, _ := io.ReadAll(response.Body)
 		return fmt.Errorf("拉取模型失败 %d: %s", response.StatusCode, string(body))
 	}
 
@@ -500,7 +501,7 @@ func DeleteOllamaModel(baseURL, apiKey, modelName string) error {
 		return fmt.Errorf("序列化请求失败: %v", err)
 	}
 
-	client := &http.Client{Timeout: 30 * time.Second}
+	client := &http.Client{}
 	request, err := http.NewRequest("DELETE", url, strings.NewReader(string(requestBody)))
 	if err != nil {
 		return fmt.Errorf("创建请求失败: %v", err)
@@ -518,7 +519,7 @@ func DeleteOllamaModel(baseURL, apiKey, modelName string) error {
 	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusOK {
-		body, _ := common.ReadAllMax(response.Body)
+		body, _ := io.ReadAll(response.Body)
 		return fmt.Errorf("删除模型失败 %d: %s", response.StatusCode, string(body))
 	}
 
@@ -549,7 +550,7 @@ func FetchOllamaVersion(baseURL, apiKey string) (string, error) {
 	}
 	defer response.Body.Close()
 
-	body, err := common.ReadAllMax(response.Body)
+	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		return "", fmt.Errorf("读取响应失败: %v", err)
 	}

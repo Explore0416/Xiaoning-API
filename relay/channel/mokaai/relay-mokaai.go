@@ -2,7 +2,7 @@ package mokaai
 
 import (
 	"encoding/json"
-
+	"io"
 	"net/http"
 
 	"github.com/QuantumNous/new-api/common"
@@ -54,7 +54,7 @@ func embeddingResponseMoka2OpenAI(response *dto.EmbeddingResponse) *dto.OpenAIEm
 
 func mokaEmbeddingHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Response) (*dto.Usage, *types.NewAPIError) {
 	var baiduResponse dto.EmbeddingResponse
-	responseBody, err := common.ReadAllMax(resp.Body)
+	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, types.NewError(err, types.ErrorCodeBadResponseBody)
 	}

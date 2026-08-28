@@ -96,10 +96,9 @@ func PostSetup(c *gin.Context) {
 		// Create root user
 		hashedPassword, err := common.Password2Hash(req.Password)
 		if err != nil {
-			common.SysLog("password hash failed during setup: " + err.Error())
 			c.JSON(200, gin.H{
 				"success": false,
-				"message": "系统内部错误",
+				"message": "系统错误: " + err.Error(),
 			})
 			return
 		}

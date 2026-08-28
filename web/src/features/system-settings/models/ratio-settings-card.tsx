@@ -25,17 +25,15 @@ import { toast } from 'sonner'
 import * as z from 'zod'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
-import { Button } from '@/components/ui/button'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 import { resetModelRatios } from '../api'
+import { SettingsPageTitleStatusPortal } from '../components/settings-page-context'
 import { SettingsSection } from '../components/settings-section'
 import { useUpdateOption } from '../hooks/use-update-option'
 import { positiveIntegerSchema } from '../utils/numeric-field'
-import { RatioBatchAdjustDialog } from './dialogs/ratio-batch-adjust-dialog'
 import { GroupRatioForm } from './group-ratio-form'
 import { ModelRatioForm } from './model-ratio-form'
-import { PricingModelBatchManager } from './pricing-model-batch-manager'
 import { ToolPriceSettings } from './tool-price-settings'
 import { UpstreamRatioSync } from './upstream-ratio-sync'
 import {
@@ -146,7 +144,6 @@ type RatioTabId =
   | 'groups'
   | 'tool-prices'
   | 'upstream-sync'
-  | 'batch-management'
 
 type RatioSettingsCardProps = {
   modelDefaults: ModelFormValues
@@ -167,7 +164,6 @@ export function RatioSettingsCard({
   const updateOption = useUpdateOption()
   const queryClient = useQueryClient()
   const [confirmOpen, setConfirmOpen] = useState(false)
-  const [batchAdjustOpen, setBatchAdjustOpen] = useState(false)
 
   const resetMutation = useMutation({
     mutationFn: resetModelRatios,
@@ -412,8 +408,15 @@ export function RatioSettingsCard({
     groups: 'Group ratios',
     'tool-prices': 'Tool prices',
     'upstream-sync': 'Upstream price sync',
-    'batch-management': 'Batch management',
   }
+  const tabsGridClass =
+    {
+      1: 'grid-cols-1',
+      2: 'grid-cols-2',
+      3: 'grid-cols-3',
+      4: 'grid-cols-4',
+      5: 'grid-cols-5',
+    }[visibleTabs.length] ?? 'grid-cols-4'
   const defaultTab = visibleTabs[0] ?? 'models'
 
   const renderTabContent = (tab: RatioTabId) => {
@@ -442,9 +445,6 @@ export function RatioSettingsCard({
     if (tab === 'tool-prices') {
       return <ToolPriceSettings defaultValue={toolPricesDefault} />
     }
-    if (tab === 'batch-management') {
-      return <PricingModelBatchManager />
-    }
     return (
       <UpstreamRatioSync
         modelRatios={{
@@ -464,39 +464,26 @@ export function RatioSettingsCard({
   }
 
   const renderTabSwitcher = () => (
-    <div className='w-full overflow-x-auto pb-1'>
-      <TabsList className='min-w-max'>
-        {visibleTabs.map((tab) => (
-          <TabsTrigger
-            key={tab}
-            value={tab}
-            className='min-w-max shrink-0 flex-none px-3'
-          >
-            {t(tabLabels[tab])}
-          </TabsTrigger>
-        ))}
-      </TabsList>
-    </div>
+    <TabsList className={`grid w-fit max-w-full ${tabsGridClass}`}>
+      {visibleTabs.map((tab) => (
+        <TabsTrigger key={tab} value={tab}>
+          {t(tabLabels[tab])}
+        </TabsTrigger>
+      ))}
+    </TabsList>
   )
 
   return (
     <>
       {visibleTabs.length === 1 ? (
         <SettingsSection title={t(titleKey)}>
-          <div className='mb-4 flex justify-end'>
-            <Button
-              size='sm'
-              variant='outline'
-              onClick={() => setBatchAdjustOpen(true)}
-            >
-              {t('Batch Adjust Prices')}
-            </Button>
-          </div>
           {renderTabContent(defaultTab)}
         </SettingsSection>
       ) : (
-        <Tabs defaultValue={defaultTab} className='h-full min-h-0 gap-4'>
-          {renderTabSwitcher()}
+        <Tabs defaultValue={defaultTab} className='h-full min-h-0 gap-6'>
+          <SettingsPageTitleStatusPortal>
+            {renderTabSwitcher()}
+          </SettingsPageTitleStatusPortal>
 
           <SettingsSection title={t(titleKey)} className='min-h-0 flex-1'>
             {visibleTabs.map((tab) => (
@@ -507,11 +494,6 @@ export function RatioSettingsCard({
           </SettingsSection>
         </Tabs>
       )}
-
-      <RatioBatchAdjustDialog
-        open={batchAdjustOpen}
-        onOpenChange={setBatchAdjustOpen}
-      />
 
       <ConfirmDialog
         open={confirmOpen}

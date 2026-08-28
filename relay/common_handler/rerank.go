@@ -1,7 +1,7 @@
 package common_handler
 
 import (
-
+	"io"
 	"net/http"
 
 	"github.com/QuantumNous/new-api/common"
@@ -17,7 +17,7 @@ import (
 )
 
 func RerankHandler(c *gin.Context, info *relaycommon.RelayInfo, resp *http.Response) (*dto.Usage, *types.NewAPIError) {
-	responseBody, err := common.ReadAllMax(resp.Body)
+	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, types.NewOpenAIError(err, types.ErrorCodeReadResponseBodyFailed, http.StatusInternalServerError)
 	}

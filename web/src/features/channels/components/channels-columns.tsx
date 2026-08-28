@@ -710,7 +710,7 @@ export function useChannelsColumns(
                       <Tooltip>
                         <TooltipTrigger
                           render={
-                            <AlertTriangle className='text-warning h-3.5 w-3.5 flex-shrink-0' />
+                            <AlertTriangle className='h-3.5 w-3.5 flex-shrink-0 text-amber-500' />
                           }
                         />
                         <TooltipContent side='top'>

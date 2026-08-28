@@ -224,26 +224,11 @@ func Register(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
 		return
 	}
-if err := common.Validate.Struct(&user); err != nil {
-			common.ApiErrorI18n(c, i18n.MsgUserInputInvalid, map[string]any{"Error": err.Error()})
-			return
-		}
-		// Invite code verification: must be consumed before email/user checks so
-		// a valid code doesn't leak whether an email is already registered.
-		var inviteCodeQuota int
-		if common.InviteCodeRegisterEnabled {
-			if user.InviteCode == "" {
-				common.ApiErrorI18n(c, i18n.MsgInviteCodeRequired)
-				return
-			}
-			quota, err := model.RedeemInviteCode(user.InviteCode)
-			if err != nil {
-				common.ApiErrorI18n(c, i18n.MsgInviteCodeInvalid)
-				return
-			}
-			inviteCodeQuota = quota
-		}
-		if common.EmailVerificationEnabled {
+	if err := common.Validate.Struct(&user); err != nil {
+		common.ApiErrorI18n(c, i18n.MsgUserInputInvalid, map[string]any{"Error": err.Error()})
+		return
+	}
+	if common.EmailVerificationEnabled {
 		if user.Email == "" || user.VerificationCode == "" {
 			common.ApiErrorI18n(c, i18n.MsgUserEmailVerificationRequired)
 			return
@@ -277,14 +262,13 @@ if err := common.Validate.Struct(&user); err != nil {
 	}
 	affCode := user.AffCode // this code is the inviter's code, not the user's own code
 	inviterId, _ := model.GetUserIdByAffCode(affCode)
-cleanUser := model.User{
-			Username:    user.Username,
-			Password:    user.Password,
-			DisplayName: user.Username,
-			InviterId:   inviterId,
-			Quota:       inviteCodeQuota, // invite code bonus (0 if not used)
-			Role:        common.RoleCommonUser, // 明确设置角色为普通用户
-		}
+	cleanUser := model.User{
+		Username:    user.Username,
+		Password:    user.Password,
+		DisplayName: user.Username,
+		InviterId:   inviterId,
+		Role:        common.RoleCommonUser, // 明确设置角色为普通用户
+	}
 	if common.EmailVerificationEnabled {
 		cleanUser.Email = user.Email
 	}
@@ -388,15 +372,6 @@ func canManageTargetRole(myRole int, targetRole int) bool {
 	return myRole == common.RoleRootUser || myRole > targetRole
 }
 
-// canManageTargetUser allows self-edit for non-destructive admin operations
-// while still blocking peer-admin management and self-disable/delete.
-func canManageTargetUser(myRole int, myID int, targetRole int, targetID int) bool {
-	if myID > 0 && myID == targetID {
-		return true
-	}
-	return canManageTargetRole(myRole, targetRole)
-}
-
 func GetUser(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -409,8 +384,7 @@ func GetUser(c *gin.Context) {
 		return
 	}
 	myRole := c.GetInt("role")
-	myID := c.GetInt("id")
-	if !canManageTargetUser(myRole, myID, user.Role, user.Id) {
+	if !canManageTargetRole(myRole, user.Role) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
 		return
 	}
@@ -425,11 +399,6 @@ func GetUser(c *gin.Context) {
 
 func GenerateAccessToken(c *gin.Context) {
 	id := c.GetInt("id")
-	user, err := model.GetUserById(id, true)
-	if err != nil {
-		common.ApiError(c, err)
-		return
-	}
 	// get rand int 28-32
 	randI := common.GetRandomInt(4)
 	key, err := common.GenerateRandomKey(29 + randI)
@@ -438,14 +407,12 @@ func GenerateAccessToken(c *gin.Context) {
 		common.SysLog("failed to generate key: " + err.Error())
 		return
 	}
-	user.SetAccessToken(key)
-
-	if model.DB.Where("access_token = ?", user.AccessToken).First(user).RowsAffected != 0 {
+	if model.DB.Where("access_token = ?", key).First(&model.User{}).RowsAffected != 0 {
 		common.ApiErrorI18n(c, i18n.MsgUuidDuplicate)
 		return
 	}
 
-	if err := user.Update(false); err != nil {
+	if err := model.UpdateUserAccessToken(id, key); err != nil {
 		common.ApiError(c, err)
 		return
 	}
@@ -453,7 +420,7 @@ func GenerateAccessToken(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
 		"message": "",
-		"data":    user.AccessToken,
+		"data":    key,
 	})
 	return
 }
@@ -709,9 +676,6 @@ func UpdateUser(c *gin.Context) {
 	}
 	if updatedUser.Password == "" {
 		updatedUser.Password = "$I_LOVE_U" // make Validator happy :)
-	} else if len(updatedUser.Password) < 8 {
-		common.ApiErrorI18n(c, i18n.MsgUserInputInvalid, map[string]any{"Error": "password must be at least 8 characters"})
-		return
 	}
 	if err := common.Validate.Struct(&updatedUser); err != nil {
 		common.ApiErrorI18n(c, i18n.MsgUserInputInvalid, map[string]any{"Error": err.Error()})
@@ -728,14 +692,9 @@ func UpdateUser(c *gin.Context) {
 	}
 	updatedUser.Role = originUser.Role
 	myRole := c.GetInt("role")
-	myID := c.GetInt("id")
-	if !canManageTargetUser(myRole, myID, originUser.Role, originUser.Id) {
+	if !canManageTargetRole(myRole, originUser.Role) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionHigherLevel)
 		return
-	}
-	// Non-root self-edit cannot escalate or demote own role.
-	if myID == originUser.Id && myRole != common.RoleRootUser {
-		updatedUser.Role = originUser.Role
 	}
 	if updatedUser.Password == "$I_LOVE_U" {
 		updatedUser.Password = "" // rollback to what it should be
@@ -800,8 +759,7 @@ func AdminClearUserBinding(c *gin.Context) {
 	}
 
 	myRole := c.GetInt("role")
-	myID := c.GetInt("id")
-	if !canManageTargetUser(myRole, myID, user.Role, user.Id) {
+	if !canManageTargetRole(myRole, user.Role) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
 		return
 	}
@@ -1142,12 +1100,7 @@ func ManageUser(c *gin.Context) {
 		return
 	}
 	myRole := c.GetInt("role")
-	myID := c.GetInt("id")
-	isQuotaAction := req.Action == "add_quota"
-	// Destructive manage actions never allow self-target or peer-admin. Root may
-	// adjust its own or another root user's quota because quota changes are not
-	// destructive account-management operations.
-	if (!isQuotaAction && myID == user.Id) || (!isQuotaAction && !canManageTargetRole(myRole, user.Role)) || (isQuotaAction && myRole != common.RoleRootUser && !canManageTargetRole(myRole, user.Role)) {
+	if !canManageTargetRole(myRole, user.Role) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionHigherLevel)
 		return
 	}
@@ -1214,6 +1167,10 @@ func ManageUser(c *gin.Context) {
 				common.ApiErrorI18n(c, i18n.MsgUserQuotaChangeZero)
 				return
 			}
+			if err := common.ValidateWalletQuota(req.Value); err != nil {
+				common.ApiError(c, err)
+				return
+			}
 			if err := model.IncreaseUserQuota(user.Id, req.Value, true); err != nil {
 				common.ApiError(c, err)
 				return
@@ -1234,6 +1191,10 @@ func ManageUser(c *gin.Context) {
 				"quota": logger.LogQuota(req.Value),
 			})
 		case "override":
+			if err := common.ValidateWalletQuota(req.Value); err != nil {
+				common.ApiError(c, err)
+				return
+			}
 			oldQuota := user.Quota
 			if err := model.DB.Model(&model.User{}).Where("id = ?", user.Id).Update("quota", req.Value).Error; err != nil {
 				common.ApiError(c, err)

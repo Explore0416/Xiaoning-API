@@ -2,6 +2,7 @@ package openai
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/QuantumNous/new-api/common"
@@ -21,7 +22,7 @@ func OaiChatToResponsesHandler(c *gin.Context, info *relaycommon.RelayInfo, resp
 	}
 	defer service.CloseResponseBodyGracefully(resp)
 
-	body, err := common.ReadAllMax(resp.Body)
+	body, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, types.NewOpenAIError(err, types.ErrorCodeReadResponseBodyFailed, http.StatusInternalServerError)
 	}

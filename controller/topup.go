@@ -23,7 +23,6 @@ import (
 )
 
 func GetTopUpInfo(c *gin.Context) {
-	c.Header("Cache-Control", "no-cache, no-store, must-revalidate")
 	complianceConfirmed := operation_setting.IsPaymentComplianceConfirmed()
 
 	// 获取支付方式
@@ -119,7 +118,7 @@ func GetTopUpInfo(c *gin.Context) {
 		"waffo_min_topup":         setting.WaffoMinTopUp,
 		"waffo_pancake_min_topup": setting.WaffoPancakeMinTopUp,
 		"amount_options":          operation_setting.GetPaymentSetting().AmountOptions,
-		"discount":                operation_setting.GetPaymentSetting().DiscountMap(),
+		"discount":                operation_setting.GetPaymentSetting().AmountDiscount,
 		"topup_link":              common.TopUpLink,
 	}
 	common.ApiSuccess(c, data)
@@ -166,7 +165,7 @@ func getPayMoney(amount int64, group string) float64 {
 	dPrice := decimal.NewFromFloat(operation_setting.Price)
 	// apply optional preset discount by the original request amount (if configured), default 1.0
 	discount := 1.0
-	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[fmt.Sprintf("%g", float64(amount))]; ok {
+	if ds, ok := operation_setting.GetPaymentSetting().AmountDiscount[int(amount)]; ok {
 		if ds > 0 {
 			discount = ds
 		}
@@ -183,7 +182,11 @@ func getMinTopup() int64 {
 	if operation_setting.GetQuotaDisplayType() == operation_setting.QuotaDisplayTypeTokens {
 		dMinTopup := decimal.NewFromInt(int64(minTopup))
 		dQuotaPerUnit := decimal.NewFromFloat(common.QuotaPerUnit)
-		minTopup = common.QuotaFromDecimal(dMinTopup.Mul(dQuotaPerUnit))
+		quota, err := common.WalletQuotaFromDecimalStrict(dMinTopup.Mul(dQuotaPerUnit))
+		if err != nil {
+			return common.MaxWalletQuota
+		}
+		minTopup = quota
 	}
 	return int64(minTopup)
 }
@@ -196,7 +199,7 @@ func getTopUpQuota(amount int64) (int, error) {
 	} else {
 		quota = quota.Mul(decimal.NewFromFloat(common.QuotaPerUnit))
 	}
-	return common.QuotaFromDecimalStrict(quota)
+	return common.WalletQuotaFromDecimalStrict(quota)
 }
 
 func getMaxTopUpAmount() int64 {
@@ -204,7 +207,7 @@ func getMaxTopUpAmount() int64 {
 		return 0
 	}
 	quotaPerUnit := decimal.NewFromFloat(common.QuotaPerUnit)
-	maxStoredAmount := decimal.NewFromInt(common.MaxQuota - 1).
+	maxStoredAmount := decimal.NewFromInt(common.MaxWalletQuota).
 		Div(quotaPerUnit).
 		Floor()
 	if operation_setting.GetQuotaDisplayType() == operation_setting.QuotaDisplayTypeTokens {
@@ -218,7 +221,7 @@ func getMaxTopUpAmount() int64 {
 }
 
 func validateCreditedQuota(quota decimal.Decimal) (int, error) {
-	value, err := common.QuotaFromDecimalStrict(quota)
+	value, err := common.WalletQuotaFromDecimalStrict(quota)
 	if err != nil {
 		return 0, errors.New("充值额度超出系统可表示范围")
 	}
@@ -467,12 +470,10 @@ func EpayNotify(c *gin.Context) {
 			}
 			return
 		}
-
 		if alreadyDone {
 			logger.LogInfo(c.Request.Context(), fmt.Sprintf("易支付 重复回调幂等忽略 trade_no=%s callback_type=%s client_ip=%s", verifyInfo.ServiceTradeNo, verifyInfo.Type, c.ClientIP()))
 		} else {
 			logger.LogInfo(c.Request.Context(), fmt.Sprintf("易支付 充值成功 trade_no=%s callback_type=%s client_ip=%s", verifyInfo.ServiceTradeNo, verifyInfo.Type, c.ClientIP()))
-
 		}
 	} else {
 		logger.LogInfo(c.Request.Context(), fmt.Sprintf("易支付 webhook 忽略事件 trade_no=%s callback_type=%s trade_status=%s client_ip=%s verify_info=%q", verifyInfo.ServiceTradeNo, verifyInfo.Type, verifyInfo.TradeStatus, c.ClientIP(), common.GetJsonString(verifyInfo)))

@@ -12,10 +12,10 @@ import (
 	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/QuantumNous/new-api/relaykit/types"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/service/authz"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
-	"github.com/QuantumNous/new-api/relaykit/types"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -175,21 +175,6 @@ func classifyDashboardCredential(c *gin.Context) (*model.UserBase, service.AuthI
 		return nil, service.AuthIdentity{}, dashboardCredentialPAT, err
 	}
 	return user, service.AuthIdentity{UserID: user.Id, UserAuthVersion: user.AuthVersion}, dashboardCredentialPAT, nil
-}
-
-// IsAdminCredential peeks at the request credential before authentication has
-// run, so rate limiting can exempt operator traffic. It reuses the normal
-// credential classification path and fails closed: any parse, lookup, or
-// status problem yields false and the caller applies the standard limit.
-func IsAdminCredential(c *gin.Context) bool {
-	user, _, kind, err := classifyDashboardCredential(c)
-	if err != nil || kind == dashboardCredentialUnmatched || user == nil {
-		return false
-	}
-	if user.Status != common.UserStatusEnabled {
-		return false
-	}
-	return user.Role >= common.RoleAdminUser
 }
 
 func authorizationToken(header string) (string, bool) {
@@ -522,7 +507,8 @@ func SetupContextForToken(c *gin.Context, token *model.Token, parts ...string) e
 		autoGroups, err := token.GetAutoGroups()
 		if err != nil {
 			common.SysError(fmt.Sprintf("failed to parse auto groups for token %d: %v", token.Id, err))
-			common.SetContextKey(c, constant.ContextKeyTokenAutoGroups, []string{})
+			autoGroups = []string{}
+			common.SetContextKey(c, constant.ContextKeyTokenAutoGroups, autoGroups)
 		} else if len(autoGroups) > 0 {
 			common.SetContextKey(c, constant.ContextKeyTokenAutoGroups, autoGroups)
 		}

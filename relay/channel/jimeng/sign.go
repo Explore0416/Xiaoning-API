@@ -15,7 +15,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/gin-gonic/gin"
 )
@@ -63,7 +62,7 @@ func Sign(c *gin.Context, req *http.Request, apiKey string) error {
 	var err error
 
 	if req.Body != nil {
-		bodyBytes, err = common.ReadAllMax(req.Body)
+		bodyBytes, err = io.ReadAll(req.Body)
 		if err != nil {
 			return err
 		}

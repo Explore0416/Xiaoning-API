@@ -42,19 +42,23 @@ func createUserBindTestUser(t *testing.T) User {
 	return user
 }
 
-func TestUserUpdateDoesNotOverwriteAccountingFields(t *testing.T) {
+func TestUserUpdateDoesNotOverwriteConcurrentAccountingOrTokenChanges(t *testing.T) {
 	setupUserUpdateTestState(t)
 
 	user := User{
-		Id:           1,
-		Username:     "quota-race-user",
-		Password:     "password",
-		DisplayName:  "before",
-		Status:       common.UserStatusEnabled,
-		Quota:        1000,
-		UsedQuota:    20,
-		RequestCount: 3,
+		Id:              1,
+		Username:        "quota-race-user",
+		Password:        "password",
+		DisplayName:     "before",
+		Status:          common.UserStatusEnabled,
+		Quota:           1000,
+		UsedQuota:       20,
+		RequestCount:    3,
+		AffCount:        2,
+		AffQuota:        800,
+		AffHistoryQuota: 1200,
 	}
+	user.SetAccessToken("old-token")
 	require.NoError(t, DB.Create(&user).Error)
 
 	staleUser, err := GetUserById(user.Id, true)
@@ -64,6 +68,10 @@ func TestUserUpdateDoesNotOverwriteAccountingFields(t *testing.T) {
 		"quota":         gorm.Expr("quota - ?", 400),
 		"used_quota":    gorm.Expr("used_quota + ?", 400),
 		"request_count": gorm.Expr("request_count + ?", 1),
+		"aff_count":     gorm.Expr("aff_count + ?", 1),
+		"aff_quota":     gorm.Expr("aff_quota - ?", 500),
+		"aff_history":   gorm.Expr("aff_history + ?", 500),
+		"access_token":  "rotated-token",
 	}).Error)
 
 	staleUser.DisplayName = "after"
@@ -75,6 +83,10 @@ func TestUserUpdateDoesNotOverwriteAccountingFields(t *testing.T) {
 	assert.Equal(t, 600, got.Quota)
 	assert.Equal(t, 420, got.UsedQuota)
 	assert.Equal(t, 4, got.RequestCount)
+	assert.Equal(t, 3, got.AffCount)
+	assert.Equal(t, 300, got.AffQuota)
+	assert.Equal(t, 1700, got.AffHistoryQuota)
+	assert.Equal(t, "rotated-token", got.GetAccessToken())
 }
 
 func TestUsageAccountingSupportsSignedDirectAndBatchDeltas(t *testing.T) {
@@ -183,7 +195,6 @@ func TestUpdateUserAccessTokenRejectsSoftDeletedUser(t *testing.T) {
 	var got User
 	require.NoError(t, DB.Unscoped().First(&got, user.Id).Error)
 	assert.Equal(t, "old-token", got.GetAccessToken())
-
 }
 
 func TestUpdateUserSettingOnlyUpdatesSetting(t *testing.T) {

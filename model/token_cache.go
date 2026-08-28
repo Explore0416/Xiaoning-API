@@ -9,14 +9,12 @@ import (
 	"github.com/QuantumNous/new-api/common"
 )
 
-// P0-6: Use the SHA256 key hash as the Redis cache key (never the plaintext key).
-// The fence key shares the same hashing so both live under the same identity.
 func getTokenCacheKey(key string) string {
-	return fmt.Sprintf("token:%s", ComputeKeyHash(key))
+	return fmt.Sprintf("token:%s", common.GenerateHMAC(key))
 }
 
 func getTokenCacheFenceKey(key string) string {
-	return fmt.Sprintf("token:fence:%s", ComputeKeyHash(key))
+	return fmt.Sprintf("token:fence:%s", common.GenerateHMAC(key))
 }
 
 func tokenCacheTTLSeconds() int {

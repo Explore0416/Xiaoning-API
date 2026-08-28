@@ -880,7 +880,7 @@ export function ChannelMutateDrawer({
     advancedCustomRouteTypeLabels.length
   const advancedCustomRouteTypeTitle =
     hiddenAdvancedCustomRouteTypeCount > 0
-      ? advancedCustomStats.routeTypeLabels.map((label) => t(label)).join(', ')
+      ? advancedCustomStats.routeTypeLabels.join(', ')
       : undefined
 
   // Get all models list
@@ -1270,7 +1270,7 @@ export function ChannelMutateDrawer({
       initialModelMappingRef.current = ''
       initialStatusCodeMappingRef.current = ''
     }
-  }, [isEditing, channelData, open, form])
+  }, [isEditing, channelData, form])
 
   // Handle type change - set default values for specific types
   useEffect(() => {
@@ -1906,7 +1906,7 @@ export function ChannelMutateDrawer({
           </SheetHeader>
 
           {sensitiveLocked && (
-            <Alert className='border-warning/40 bg-warning/10'>
+            <Alert className='border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-50'>
               <AlertDescription>
                 {t(
                   'Sensitive channel settings are read-only for your account.'
@@ -2124,7 +2124,7 @@ export function ChannelMutateDrawer({
                         )}
 
                         {sensitiveLocked && (
-                          <Alert className='border-warning/40 bg-warning/10'>
+                          <Alert className='border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-50'>
                             <AlertDescription>
                               {t('No permission to perform this action')}
                             </AlertDescription>
@@ -2821,10 +2821,10 @@ export function ChannelMutateDrawer({
                                                 key={label}
                                                 variant='outline'
                                                 className='max-w-[12rem]'
-                                                title={t(label)}
+                                                title={label}
                                               >
                                                 <span className='truncate'>
-                                                  {t(label)}
+                                                  {label}
                                                 </span>
                                               </Badge>
                                             )
@@ -3115,7 +3115,7 @@ export function ChannelMutateDrawer({
                                       )}
                                     </div>
                                   </div>
-                                  <Alert className='border-warning/40 bg-warning/10'>
+                                  <Alert className='border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-50'>
                                     <AlertDescription>
                                       {t(
                                         "Disclaimer: Personal use only. Do not distribute or share any credentials. This channel has prerequisites and requires prior setup; use it only if you understand the flow and risks, and comply with OpenAI's terms and policies. Credentials and configuration are for Codex CLI integration only, and are not intended for any other client, platform, or channel."
@@ -3291,7 +3291,7 @@ export function ChannelMutateDrawer({
                                   </FormControl>
                                   {modelMappingGuardrail.exposedTargetModels
                                     .length > 0 && (
-                                    <Alert className='border-warning/40 bg-warning/10'>
+                                    <Alert className='border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-50'>
                                       <AlertDescription className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
                                         <span>
                                           {t('The mapped upstream model(s)')}{' '}
@@ -3498,7 +3498,7 @@ export function ChannelMutateDrawer({
                                                 )
                                               )}
                                               {remainingMappingCount > 0 && (
-                                                <div className='text-xs opacity-70'>
+                                                <div className='text-[11px] opacity-70'>
                                                   +{remainingMappingCount}{' '}
                                                   {t('more mapping')}
                                                   {remainingMappingCount > 1
@@ -3507,7 +3507,7 @@ export function ChannelMutateDrawer({
                                                 </div>
                                               )}
                                             </div>
-                                            <p className='text-xs leading-relaxed opacity-80'>
+                                            <p className='text-[11px] leading-relaxed opacity-80'>
                                               {t(
                                                 'Users call the model on the left. The platform forwards the request to the upstream model on the right.'
                                               )}
@@ -3548,7 +3548,7 @@ export function ChannelMutateDrawer({
                                   )}
                                   {modelMappingGuardrail.missingSourceModels
                                     .length > 0 && (
-                                    <Alert className='border-warning/40 bg-warning/10'>
+                                    <Alert className='border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-50'>
                                       <AlertDescription className='flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between'>
                                         <span>
                                           {t('Add')}{' '}
@@ -4062,7 +4062,7 @@ export function ChannelMutateDrawer({
                             iconTone='chart-3'
                           />
                           {sensitiveLocked && (
-                            <Alert className='border-warning/40 bg-warning/10'>
+                            <Alert className='border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-50'>
                               <AlertDescription>
                                 {t('No permission to perform this action')}
                               </AlertDescription>

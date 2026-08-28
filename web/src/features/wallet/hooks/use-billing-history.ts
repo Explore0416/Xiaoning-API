@@ -40,12 +40,10 @@ interface UseBillingHistoryOptions {
   initialPage?: number
   /** Initial page size */
   initialPageSize?: number
-  /** Whether billing history should be fetched */
-  enabled?: boolean
 }
 
 export function useBillingHistory(options: UseBillingHistoryOptions = {}) {
-  const { initialPage = 1, initialPageSize = 10, enabled = true } = options
+  const { initialPage = 1, initialPageSize = 10 } = options
   const isAdmin = useIsAdmin()
 
   const [records, setRecords] = useState<TopupRecord[]>([])
@@ -62,7 +60,6 @@ export function useBillingHistory(options: UseBillingHistoryOptions = {}) {
    * Fetch billing history
    */
   const fetchBillingHistory = useCallback(async () => {
-    if (!enabled) return
     const requestId = ++requestIdRef.current
     setLoading(true)
     try {
@@ -95,7 +92,7 @@ export function useBillingHistory(options: UseBillingHistoryOptions = {}) {
         setLoading(false)
       }
     }
-  }, [debouncedKeyword, enabled, isAdmin, page, pageSize])
+  }, [debouncedKeyword, isAdmin, page, pageSize])
 
   /**
    * Complete a pending order (admin only)

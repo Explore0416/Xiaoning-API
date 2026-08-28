@@ -2,6 +2,7 @@ package gemini
 
 import (
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/QuantumNous/new-api/common"
@@ -20,7 +21,7 @@ func GeminiTextGenerationHandler(c *gin.Context, info *relaycommon.RelayInfo, re
 	defer service.CloseResponseBodyGracefully(resp)
 
 	// 读取响应体
-	responseBody, err := common.ReadAllMax(resp.Body)
+	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, types.NewOpenAIError(err, types.ErrorCodeBadResponseBody, http.StatusInternalServerError)
 	}
@@ -49,7 +50,7 @@ func GeminiTextGenerationHandler(c *gin.Context, info *relaycommon.RelayInfo, re
 func NativeGeminiEmbeddingHandler(c *gin.Context, resp *http.Response, info *relaycommon.RelayInfo) (*dto.Usage, *types.NewAPIError) {
 	defer service.CloseResponseBodyGracefully(resp)
 
-	responseBody, err := common.ReadAllMax(resp.Body)
+	responseBody, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, types.NewOpenAIError(err, types.ErrorCodeBadResponseBody, http.StatusInternalServerError)
 	}

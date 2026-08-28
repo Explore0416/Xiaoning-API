@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -209,13 +208,7 @@ func updateConfigFromMap(config interface{}, configMap map[string]string) error 
 			if err != nil {
 				continue
 			}
-			if fieldType.Name == "ComplianceConfirmed" {
-				common.SysLog(fmt.Sprintf("CONFIG_DEBUG: before SetBool field=%s was=%v setting=%v kind=%v canset=%v", fieldType.Name, field.Bool(), boolValue, field.Kind(), field.CanSet()))
-			}
 			field.SetBool(boolValue)
-			if fieldType.Name == "ComplianceConfirmed" {
-				common.SysLog(fmt.Sprintf("CONFIG_DEBUG: after  SetBool field=%s now=%v", fieldType.Name, field.Bool()))
-			}
 		case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
 			intValue, err := strconv.ParseInt(strValue, 10, 64)
 			if err != nil {

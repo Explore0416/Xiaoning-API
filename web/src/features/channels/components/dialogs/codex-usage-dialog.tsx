@@ -48,11 +48,7 @@ import { useTranslation } from 'react-i18next'
 
 import { ConfirmDialog } from '@/components/confirm-dialog'
 import { Dialog } from '@/components/dialog'
-import {
-  StatusBadge,
-  textColorMap,
-  type StatusBadgeProps,
-} from '@/components/status-badge'
+import { StatusBadge, type StatusBadgeProps } from '@/components/status-badge'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
 import {
@@ -422,11 +418,32 @@ function formatLabelValue(label: string, value: string) {
   return label.endsWith('：') ? `${label}${value}` : `${label} ${value}`
 }
 
-// Single source of truth for variant → text color lives in status-badge.
 const percentTextClassName: Record<
   NonNullable<StatusBadgeProps['variant']>,
   string
-> = textColorMap
+> = {
+  success: 'text-success',
+  warning: 'text-warning',
+  danger: 'text-destructive',
+  info: 'text-info',
+  neutral: 'text-muted-foreground',
+  purple: 'text-chart-4',
+  amber: 'text-warning',
+  blue: 'text-chart-1',
+  cyan: 'text-chart-2',
+  green: 'text-success',
+  grey: 'text-muted-foreground',
+  indigo: 'text-chart-1',
+  'light-blue': 'text-info',
+  'light-green': 'text-emerald-500 dark:text-emerald-300',
+  lime: 'text-chart-3',
+  orange: 'text-warning',
+  pink: 'text-chart-5',
+  red: 'text-destructive',
+  teal: 'text-chart-2',
+  violet: 'text-chart-4',
+  yellow: 'text-warning',
+}
 
 type RateLimitWindowProps = {
   title: string
@@ -465,7 +482,7 @@ function RateLimitWindow(props: RateLimitWindowProps) {
             >
               {hasData ? `${percent}%` : '-'}
             </div>
-            <div className='text-muted-foreground mt-1 text-xs'>
+            <div className='text-muted-foreground mt-1 text-[11px]'>
               {t('Used')}
             </div>
           </div>
@@ -483,7 +500,7 @@ function RateLimitWindow(props: RateLimitWindowProps) {
         )}
         <div className='mt-3 grid grid-cols-1 gap-2 text-xs sm:grid-cols-2'>
           <div className='min-w-0'>
-            <div className='text-muted-foreground text-xs'>
+            <div className='text-muted-foreground text-[11px]'>
               {t('Reset at:')}
             </div>
             <div className='break-all tabular-nums'>
@@ -491,7 +508,7 @@ function RateLimitWindow(props: RateLimitWindowProps) {
             </div>
           </div>
           <div className='min-w-0 sm:text-right'>
-            <div className='text-muted-foreground text-xs'>
+            <div className='text-muted-foreground text-[11px]'>
               {t('Resets in:')}
             </div>
             <div className='tabular-nums'>
@@ -566,7 +583,9 @@ function RateLimitGroupSection(props: RateLimitGroupSectionProps) {
       </SectionHeading>
       {props.meteredFeature ? (
         <div className='bg-background ring-border/60 inline-flex max-w-full flex-wrap items-center gap-x-2 gap-y-1 rounded-lg px-2 py-1 text-xs ring-1'>
-          <span className='text-muted-foreground text-xs'>metered_feature</span>
+          <span className='text-muted-foreground text-[11px]'>
+            metered_feature
+          </span>
           <span className='min-w-0 font-mono break-all'>
             {props.meteredFeature}
           </span>
@@ -599,7 +618,7 @@ function InfoField(props: {
         props.className
       )}
     >
-      <div className='text-muted-foreground text-xs font-medium'>
+      <div className='text-muted-foreground text-[11px] font-medium'>
         {props.label}
       </div>
       <div className='mt-1 flex min-w-0 items-start justify-between gap-2'>
@@ -634,7 +653,7 @@ function ResetCreditTimeField(props: {
 }) {
   return (
     <div className='min-w-0'>
-      <div className='text-muted-foreground text-xs font-medium'>
+      <div className='text-muted-foreground text-[11px] font-medium'>
         {props.label}
       </div>
       <div
@@ -678,13 +697,13 @@ function ResetCreditItem(props: { credit: CodexResetCredit; index: number }) {
             </div>
           ) : null}
           {props.credit.id ? (
-            <div className='text-muted-foreground mt-1 font-mono text-xs break-all'>
+            <div className='text-muted-foreground mt-1 font-mono text-[11px] break-all'>
               {props.credit.id}
             </div>
           ) : null}
         </div>
         <div className='shrink-0 text-right'>
-          <div className='text-muted-foreground text-xs font-medium'>
+          <div className='text-muted-foreground text-[11px] font-medium'>
             {t('Expires in')}
           </div>
           <div

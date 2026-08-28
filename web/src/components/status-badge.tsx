@@ -39,34 +39,30 @@ For commercial licensing, please contact support@quantumnous.com
 import * as React from 'react'
 
 import { useCopyToClipboard } from '@/hooks/use-copy-to-clipboard'
+import { stringToColor } from '@/lib/colors'
 import { cn } from '@/lib/utils'
 
-/* Color discipline: badges speak exactly five voices — success / warning /
- * danger / info / neutral. Legacy hue keys (blue, purple, teal, ...) remain
- * valid variant names for compatibility, but they all resolve to one of the
- * five semantic tokens so tables stop reading as rainbows. Chart hues stay
- * reserved for data visualization. */
 export const dotColorMap = {
   success: 'bg-success',
   warning: 'bg-warning',
   danger: 'bg-destructive',
   info: 'bg-info',
   neutral: 'bg-neutral',
-  purple: 'bg-neutral',
+  purple: 'bg-chart-4',
   amber: 'bg-warning',
-  blue: 'bg-neutral',
-  cyan: 'bg-neutral',
+  blue: 'bg-chart-1',
+  cyan: 'bg-chart-2',
   green: 'bg-success',
   grey: 'bg-neutral',
-  indigo: 'bg-neutral',
+  indigo: 'bg-chart-1',
   'light-blue': 'bg-info',
-  'light-green': 'bg-success',
-  lime: 'bg-neutral',
+  'light-green': 'bg-emerald-400',
+  lime: 'bg-chart-3',
   orange: 'bg-warning',
-  pink: 'bg-neutral',
+  pink: 'bg-chart-5',
   red: 'bg-destructive',
-  teal: 'bg-neutral',
-  violet: 'bg-neutral',
+  teal: 'bg-chart-2',
+  violet: 'bg-chart-4',
   yellow: 'bg-warning',
 } as const
 
@@ -76,37 +72,25 @@ export const textColorMap = {
   danger: 'text-destructive',
   info: 'text-info',
   neutral: 'text-muted-foreground',
-  purple: 'text-muted-foreground',
+  purple: 'text-chart-4',
   amber: 'text-warning',
-  blue: 'text-muted-foreground',
-  cyan: 'text-muted-foreground',
+  blue: 'text-chart-1',
+  cyan: 'text-chart-2',
   green: 'text-success',
   grey: 'text-muted-foreground',
-  indigo: 'text-muted-foreground',
+  indigo: 'text-chart-1',
   'light-blue': 'text-info',
-  'light-green': 'text-success',
-  lime: 'text-muted-foreground',
+  'light-green': 'text-emerald-500 dark:text-emerald-300',
+  lime: 'text-chart-3',
   orange: 'text-warning',
-  pink: 'text-muted-foreground',
+  pink: 'text-chart-5',
   red: 'text-destructive',
-  teal: 'text-muted-foreground',
-  violet: 'text-muted-foreground',
+  teal: 'text-chart-2',
+  violet: 'text-chart-4',
   yellow: 'text-warning',
 } as const
 
 export type StatusVariant = keyof typeof dotColorMap
-
-/** Soft tinted pill surface per semantic voice — the one sanctioned recipe
- * for badges that need a filled background (timing pills, duration pills).
- * Border/background/text always come from the same token so light and dark
- * modes stay consistent without `!important` overrides. */
-export const tintedBadgeClassMap = {
-  success: 'border border-success/25 bg-success/10 text-success',
-  warning: 'border border-warning/30 bg-warning/10 text-warning',
-  danger: 'border border-destructive/25 bg-destructive/10 text-destructive',
-  info: 'border border-info/25 bg-info/10 text-info',
-  neutral: 'border border-border/60 bg-muted/30 text-muted-foreground',
-} as const
 
 /** Controls the visual style of the badge.
  * - `badge`    — default pill with background and padding (default)
@@ -146,8 +130,6 @@ export interface StatusBadgeProps extends Omit<
   size?: 'sm' | 'md' | 'lg' | null
   copyable?: boolean
   copyText?: string
-  /** Deprecated: categorical identity is conveyed by label/icon, not hue.
-   *  Accepted for call-site compatibility; renders as `neutral`. */
   autoColor?: string
   /** Visual style. Defaults to 'badge'. Can be overridden via StatusBadgeTypeContext. */
   type?: StatusBadgeType
@@ -173,10 +155,9 @@ export function StatusBadge({
   const contextType = React.useContext(StatusBadgeTypeContext)
   const type = typeProp ?? contextType
 
-  // String-hash rainbow coloring is retired; `autoColor` intentionally falls
-  // through to the neutral voice (see prop doc above).
-  void autoColor
-  const computedVariant: StatusVariant = variant ?? 'neutral'
+  const computedVariant: StatusVariant = autoColor
+    ? (stringToColor(autoColor) as StatusVariant)
+    : (variant ?? 'neutral')
 
   const handleClick = (e: React.MouseEvent<HTMLSpanElement>) => {
     if (copyable) {
@@ -203,7 +184,7 @@ export function StatusBadge({
       className={cn(
         'inline-flex w-fit max-w-full min-w-0 shrink items-center font-medium tracking-normal whitespace-nowrap transition-colors',
         isBadge
-          ? cn('rounded-md', sizeMap[size ?? 'sm'])
+          ? cn('rounded-4xl', sizeMap[size ?? 'sm'])
           : cn(
               textSizeMap[size ?? 'sm'],
               type === 'underline' && 'border-b border-current pb-px'

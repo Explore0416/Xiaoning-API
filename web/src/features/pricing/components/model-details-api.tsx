@@ -539,7 +539,7 @@ function CodeSamplesSection(props: {
 
       <p className='text-muted-foreground mt-2 text-xs'>
         {t('Replace')}{' '}
-        <code className='bg-muted rounded px-1 py-0.5 font-mono text-xs'>
+        <code className='bg-muted rounded px-1 py-0.5 font-mono text-[11px]'>
           {'<YOUR_API_KEY>'}
         </code>{' '}
         {t('with the API key from your token settings.')}
@@ -582,7 +582,7 @@ function SupportedParametersSection(props: { model: PricingModel }) {
                 {p.required && (
                   <Badge
                     variant='outline'
-                    className='border-destructive/40 text-destructive h-6 px-2 text-sm'
+                    className='h-6 border-rose-500/40 px-2 text-sm text-rose-600 dark:text-rose-400'
                   >
                     {t('required')}
                   </Badge>
@@ -711,7 +711,7 @@ function RateLimitsSection(props: { model: PricingModel }) {
           },
         ]}
       />
-      <p className='text-muted-foreground mt-2 text-xs leading-relaxed'>
+      <p className='text-muted-foreground mt-2 text-[11px] leading-relaxed'>
         {t(
           'RPM = requests per minute, TPM = tokens per minute, RPD = requests per day. Limits apply per token group.'
         )}
@@ -734,11 +734,11 @@ function AuthSection() {
         <div className='space-y-1.5 text-xs leading-relaxed'>
           <p>
             {t('All requests must include')}{' '}
-            <code className='bg-muted rounded px-1 py-0.5 font-mono text-xs'>
+            <code className='bg-muted rounded px-1 py-0.5 font-mono text-[11px]'>
               Authorization: Bearer &lt;TOKEN&gt;
             </code>{' '}
             {t('header. Anthropic-formatted endpoints accept the')}{' '}
-            <code className='bg-muted rounded px-1 py-0.5 font-mono text-xs'>
+            <code className='bg-muted rounded px-1 py-0.5 font-mono text-[11px]'>
               x-api-key
             </code>{' '}
             {t('header instead.')}

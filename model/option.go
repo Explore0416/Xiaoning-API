@@ -1,8 +1,6 @@
 package model
 
 import (
-	"fmt"
-	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -47,8 +45,6 @@ func InitOptionMap() {
 	common.OptionMap["WeChatAuthEnabled"] = strconv.FormatBool(common.WeChatAuthEnabled)
 	common.OptionMap["TurnstileCheckEnabled"] = strconv.FormatBool(common.TurnstileCheckEnabled)
 	common.OptionMap["RegisterEnabled"] = strconv.FormatBool(common.RegisterEnabled)
-	common.OptionMap["InviteCodeEnabled"] = strconv.FormatBool(common.InviteCodeEnabled)
-	common.OptionMap["InviteCodeRegisterEnabled"] = strconv.FormatBool(common.InviteCodeRegisterEnabled)
 	common.OptionMap["AutomaticDisableChannelEnabled"] = strconv.FormatBool(common.AutomaticDisableChannelEnabled)
 	common.OptionMap["AutomaticEnableChannelEnabled"] = strconv.FormatBool(common.AutomaticEnableChannelEnabled)
 	common.OptionMap["LogConsumeEnabled"] = strconv.FormatBool(common.LogConsumeEnabled)
@@ -189,9 +185,6 @@ func InitOptionMap() {
 
 	common.OptionMapRWMutex.Unlock()
 	loadOptionsFromDatabase()
-	// Ensure invite code options exist in DB so loadOptionsFromDatabase picks them up
-	_ = UpdateOption("InviteCodeEnabled", strconv.FormatBool(common.InviteCodeEnabled))
-	_ = UpdateOption("InviteCodeRegisterEnabled", strconv.FormatBool(common.InviteCodeRegisterEnabled))
 }
 
 func loadOptionsFromDatabase() {
@@ -331,12 +324,8 @@ func updateOptionMap(key string, value string) (err error) {
 			common.TelegramOAuthEnabled = boolValue
 		case "TurnstileCheckEnabled":
 			common.TurnstileCheckEnabled = boolValue
-case "RegisterEnabled":
-				common.RegisterEnabled = boolValue
-			case "InviteCodeEnabled":
-				common.InviteCodeEnabled = boolValue
-			case "InviteCodeRegisterEnabled":
-				common.InviteCodeRegisterEnabled = boolValue
+		case "RegisterEnabled":
+			common.RegisterEnabled = boolValue
 		case "EmailDomainRestrictionEnabled":
 			common.EmailDomainRestrictionEnabled = boolValue
 		case "EmailAliasRestrictionEnabled":
@@ -642,20 +631,7 @@ func handleConfigUpdate(key, value string) bool {
 	configMap := map[string]string{
 		configKey: value,
 	}
-
-	updateErr := config.UpdateConfigFromMap(cfg, configMap)
-
-	if configName == "payment_setting" && configKey == "compliance_confirmed" {
-		// 直接用指针反射验证字段值
-		rv := reflect.ValueOf(cfg)
-		common.SysLog(fmt.Sprintf("PAYMENT_DEBUG cfg type=%T kind=%v", cfg, rv.Kind()))
-		if rv.Kind() == reflect.Ptr {
-			ev := rv.Elem()
-			field := ev.FieldByName("ComplianceConfirmed")
-			common.SysLog(fmt.Sprintf("PAYMENT_DEBUG field.CanSet=%v field.Bool=%v", field.CanSet(), field.Bool()))
-		}
-		common.SysLog(fmt.Sprintf("PAYMENT_DEBUG: UpdateConfigFromMap returned err=%v, ComplianceConfirmed=%v", updateErr, operation_setting.IsPaymentComplianceConfirmed()))
-	}
+	config.UpdateConfigFromMap(cfg, configMap)
 
 	// 特定配置的后处理
 	if configName == "performance_setting" {

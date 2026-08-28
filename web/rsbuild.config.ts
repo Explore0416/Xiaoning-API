@@ -92,13 +92,8 @@ export default defineConfig(({ envMode }) => {
           tanstackRouter({
             target: 'react',
             // Dev: avoid per-route async chunks (reduces white flash on navigation + faster HMR feedback).
-            // Prod: keep route-based code splitting ONLY when the emitted chunk
-            // registry is complete. The tanstack-router plugin's prod
-            // autoCodeSplitting has produced orphaned chunk ids (e.g. /invite-codes
-            // emitted n.e(8984)/n.e(9110) with no matching file), collapsing the
-            // page into the error boundary. Disable splitting so every route loads
-            // from the main bundle and no lazy chunk dependency can 404.
-            autoCodeSplitting: false,
+            // Prod: keep route-based code splitting.
+            autoCodeSplitting: isProd,
           }),
         ],
       },

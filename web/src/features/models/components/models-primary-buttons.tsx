@@ -18,7 +18,6 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import {
   Plus,
-  Upload,
   MoreHorizontal,
   RefreshCw,
   List,
@@ -46,10 +45,6 @@ export function ModelsPrimaryButtons() {
   const handleCreateModel = () => {
     setCurrentRow(null)
     setOpen('create-model')
-  }
-
-  const handleBatchImport = () => {
-    setOpen('batch-import-models')
   }
 
   const handleMissingModels = () => {
@@ -93,13 +88,6 @@ export function ModelsPrimaryButtons() {
             {t('Sync Upstream')}
             <DropdownMenuShortcut>
               <RefreshCw className='h-4 w-4' />
-            </DropdownMenuShortcut>
-          </DropdownMenuItem>
-
-          <DropdownMenuItem onClick={handleBatchImport}>
-            {t('Batch Import Models')}
-            <DropdownMenuShortcut>
-              <Upload className='h-4 w-4' />
             </DropdownMenuShortcut>
           </DropdownMenuItem>
 

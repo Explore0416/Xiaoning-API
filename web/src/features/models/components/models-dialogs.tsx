@@ -17,7 +17,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { DescriptionDialog } from './dialogs/description-dialog'
-import { BatchImportModelsDialog } from './dialogs/batch-import-models-dialog'
 import { MissingModelsDialog } from './dialogs/missing-models-dialog'
 import { PrefillGroupManagement } from './dialogs/prefill-group-management'
 import { SyncWizardDialog } from './dialogs/sync-wizard-dialog'
@@ -73,11 +72,6 @@ export function ModelsDialogs() {
       {/* Prefill Groups Management */}
       <PrefillGroupManagement
         open={open === 'prefill-groups'}
-        onOpenChange={(v) => !v && setOpen(null)}
-      />
-
-      <BatchImportModelsDialog
-        open={open === 'batch-import-models'}
         onOpenChange={(v) => !v && setOpen(null)}
       />
 

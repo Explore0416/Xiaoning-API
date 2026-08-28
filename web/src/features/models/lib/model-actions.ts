@@ -20,11 +20,7 @@ import { type QueryClient } from '@tanstack/react-query'
 import i18next from 'i18next'
 import { toast } from 'sonner'
 
-import {
-  batchDeleteModels,
-  updateModelStatus,
-  deleteModel as deleteModelAPI,
-} from '../api'
+import { updateModelStatus, deleteModel as deleteModelAPI } from '../api'
 import { modelsQueryKeys } from './query-keys'
 
 // ============================================================================
@@ -137,29 +133,35 @@ export async function handleBatchDeleteModels(
   }
 
   try {
-    const result = await batchDeleteModels(ids)
-    if (!result.success) {
-      throw new Error(result.message || i18next.t('Batch delete failed'))
-    }
+    const deletePromises = ids.map((id) => deleteModelAPI(id))
+    const results = await Promise.all(deletePromises)
 
-    const deletedCount = result.data?.deleted.length ?? 0
-    if (deletedCount > 0) {
+    let successCount = 0
+    let failedCount = 0
+
+    results.forEach((res, index) => {
+      if (res.success) {
+        successCount++
+      } else {
+        failedCount++
+        // eslint-disable-next-line no-console
+        console.error(`Failed to delete model ${ids[index]}:`, res.message)
+      }
+    })
+
+    if (successCount > 0) {
       toast.success(
         i18next.t('Successfully deleted {{count}} model(s)', {
-          count: deletedCount,
+          count: successCount,
         })
       )
       queryClient?.invalidateQueries({ queryKey: modelsQueryKeys.lists() })
-      onSuccess?.(deletedCount)
+      onSuccess?.(successCount)
     }
 
-    const referencedCount = result.data?.referenced.length ?? 0
-    if (referencedCount > 0) {
-      toast.warning(
-        i18next.t(
-          '{{count}} deleted model(s) are still provided by enabled channels. Remove them from channel configuration to take them offline.',
-          { count: referencedCount }
-        )
+    if (failedCount > 0) {
+      toast.error(
+        i18next.t('Failed to delete {{count}} model(s)', { count: failedCount })
       )
     }
   } catch (error: unknown) {

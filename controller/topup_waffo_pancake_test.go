@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/QuantumNous/new-api/common"
@@ -31,7 +30,7 @@ func TestFormatWaffoPancakeAmount_UsesDisplayPriceString(t *testing.T) {
 func TestGetWaffoPancakePayMoney(t *testing.T) {
 	originalUnitPrice := setting.WaffoPancakeUnitPrice
 	originalQuotaDisplayType := operation_setting.GetGeneralSetting().QuotaDisplayType
-	originalDiscounts := make(map[string]float64, len(operation_setting.GetPaymentSetting().AmountDiscount))
+	originalDiscounts := make(map[int]float64, len(operation_setting.GetPaymentSetting().AmountDiscount))
 	for k, v := range operation_setting.GetPaymentSetting().AmountDiscount {
 		originalDiscounts[k] = v
 	}
@@ -45,10 +44,10 @@ func TestGetWaffoPancakePayMoney(t *testing.T) {
 	})
 
 	setting.WaffoPancakeUnitPrice = 2.5
-	operation_setting.GetPaymentSetting().AmountDiscount = map[string]float64{
-		fmt.Sprintf("%g", float64(10)):                    0.8,
-		fmt.Sprintf("%g", float64(common.QuotaPerUnit*3)): 0.5,
-		fmt.Sprintf("%g", float64(20)):                    0,
+	operation_setting.GetPaymentSetting().AmountDiscount = map[int]float64{
+		10:                           0.8,
+		int(common.QuotaPerUnit * 3): 0.5,
+		20:                           0,
 	}
 	require.NoError(t, common.UpdateTopupGroupRatioByJSONString(`{"default":1,"vip":1.2}`))
 

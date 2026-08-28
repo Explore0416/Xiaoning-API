@@ -68,7 +68,7 @@ export function useSubscriptionsColumns(): ColumnDef<PlanRecord>[] {
         id: 'price',
         header: t('Price'),
         cell: ({ row }) => (
-          <span className='text-success font-semibold'>
+          <span className='font-semibold text-emerald-600'>
             ${Number(row.original.plan.price_amount || 0).toFixed(2)}
           </span>
         ),

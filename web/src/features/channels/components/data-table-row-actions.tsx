@@ -175,7 +175,6 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
                   e.stopPropagation()
                   handleEdit()
                 }}
-                disabled={isTesting}
                 aria-label={t('Edit')}
               />
             }
@@ -218,7 +217,6 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
                   e.stopPropagation()
                   handleTest()
                 }}
-                disabled={isTesting}
                 aria-label={t('Test Channel Connection')}
               />
             }
@@ -236,7 +234,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
               variant='ghost'
               size='icon-sm'
               onClick={handleToggleStatus}
-              disabled={isTesting || isTogglingStatus}
+              disabled={isTogglingStatus}
               aria-label={isEnabled ? t('Disable') : t('Enable')}
               className={
                 isEnabled
@@ -255,7 +253,6 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
 
       <DropdownMenu>
         <DropdownMenuTrigger
-          disabled={isTesting}
           render={
             <Button
               variant='ghost'

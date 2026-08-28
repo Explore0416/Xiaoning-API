@@ -295,7 +295,9 @@ export function ChannelsPrimaryButtons() {
         destructive
         handleConfirm={() => {
           if (!canEditSensitive) return
-          handleDeleteAllDisabled(queryClient, () => {
+          handleDeleteAllDisabled(queryClient, (_count) => {
+            // eslint-disable-next-line no-console
+            console.log(`Deleted ${_count} channels`)
           })
           setShowDeleteDialog(false)
         }}
@@ -313,7 +315,9 @@ export function ChannelsPrimaryButtons() {
         handleConfirm={async () => {
           setIsRepairingConsistency(true)
           try {
-            await handleFixAbilities(queryClient, () => {
+            await handleFixAbilities(queryClient, (_result) => {
+              // eslint-disable-next-line no-console
+              console.log('Repair channel consistency result:', _result)
             })
             setShowConsistencyDialog(false)
           } finally {

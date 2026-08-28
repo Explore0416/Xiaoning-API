@@ -152,7 +152,7 @@ func applyDeepSeekV4ClaudeThinkingSuffix(info *relaycommon.RelayInfo, request *d
 }
 
 func (a *Adaptor) ConvertRerankRequest(c *gin.Context, relayMode int, request dto.RerankRequest) (any, error) {
-	return nil, errors.New("rerank not supported")
+	return nil, nil
 }
 
 func (a *Adaptor) ConvertEmbeddingRequest(c *gin.Context, info *relaycommon.RelayInfo, request dto.EmbeddingRequest) (any, error) {

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"math"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -37,11 +36,9 @@ import (
 )
 
 type testResult struct {
-	context           *gin.Context
-	localErr          error
-	newAPIError       *types.NewAPIError
-	endpoint          string
-	upstreamModelName string
+	context     *gin.Context
+	localErr    error
+	newAPIError *types.NewAPIError
 }
 
 func normalizeChannelTestEndpoint(channel *model.Channel, endpointType string) string {
@@ -73,10 +70,6 @@ func resolveChannelTestUserID(c *gin.Context) (int, error) {
 }
 
 func testChannel(ctx context.Context, channel *model.Channel, testUserID int, testModel string, endpointType string, isStream bool) testResult {
-	return testChannelWithGroup(ctx, channel, testUserID, testModel, endpointType, isStream, "", false)
-}
-
-func testChannelWithGroup(ctx context.Context, channel *model.Channel, testUserID int, testModel string, endpointType string, isStream bool, probeGroup string, isProbe bool) testResult {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -172,12 +165,7 @@ func testChannelWithGroup(ctx context.Context, channel *model.Channel, testUserI
 	c.Set("channel", channel.Type)
 	c.Set("base_url", channel.GetBaseURL())
 	group, _ := model.GetUserGroup(testUserID, false)
-	if probeGroup != "" {
-		group = probeGroup
-	}
 	c.Set("group", group)
-	common.SetContextKey(c, constant.ContextKeyUserGroup, group)
-	common.SetContextKey(c, constant.ContextKeyUsingGroup, group)
 
 	newAPIError := middleware.SetupContextForSelectedChannel(c, channel, testModel)
 	if newAPIError != nil {
@@ -251,7 +239,6 @@ func testChannelWithGroup(ctx context.Context, channel *model.Channel, testUserI
 	}
 
 	info.IsChannelTest = true
-	info.IsMonitoringProbe = isProbe
 	info.InitChannelMeta(c)
 
 	err = attachTestBillingRequestInput(info, request)
@@ -502,33 +489,29 @@ func testChannelWithGroup(ctx context.Context, channel *model.Channel, testUserI
 	}
 	info.SetEstimatePromptTokens(usage.PromptTokens)
 
-	if !isProbe {
-		quota, tieredResult := settleTestQuota(info, priceData, usage)
-		tok := time.Now()
-		milliseconds := tok.Sub(tik).Milliseconds()
-		consumedTime := float64(milliseconds) / 1000.0
-		other := buildTestLogOther(c, info, priceData, usage, tieredResult)
-		model.RecordConsumeLog(c, testUserID, model.RecordConsumeLogParams{
-			ChannelId:        channel.Id,
-			PromptTokens:     usage.PromptTokens,
-			CompletionTokens: usage.CompletionTokens,
-			ModelName:        info.OriginModelName,
-			TokenName:        "模型测试",
-			Quota:            quota,
-			Content:          "模型测试",
-			UseTimeSeconds:   int(consumedTime),
-			IsStream:         info.IsStream,
-			Group:            info.UsingGroup,
-			Other:            other,
-		})
-	}
+	quota, tieredResult := settleTestQuota(info, priceData, usage)
+	tok := time.Now()
+	milliseconds := tok.Sub(tik).Milliseconds()
+	consumedTime := float64(milliseconds) / 1000.0
+	other := buildTestLogOther(c, info, priceData, usage, tieredResult)
+	model.RecordConsumeLog(c, testUserID, model.RecordConsumeLogParams{
+		ChannelId:        channel.Id,
+		PromptTokens:     usage.PromptTokens,
+		CompletionTokens: usage.CompletionTokens,
+		ModelName:        info.OriginModelName,
+		TokenName:        "模型测试",
+		Quota:            quota,
+		Content:          "模型测试",
+		UseTimeSeconds:   int(consumedTime),
+		IsStream:         info.IsStream,
+		Group:            info.UsingGroup,
+		Other:            other,
+	})
 	common.SysLog(fmt.Sprintf("testing channel #%d, response: \n%s", channel.Id, string(respBody)))
 	return testResult{
-		context:           c,
-		localErr:          nil,
-		newAPIError:       nil,
-		endpoint:          requestPath,
-		upstreamModelName: info.UpstreamModelName,
+		context:     c,
+		localErr:    nil,
+		newAPIError: nil,
 	}
 }
 
@@ -556,15 +539,16 @@ func settleTestQuota(info *relaycommon.RelayInfo, priceData hosttypes.PriceData,
 
 	quota := 0
 	if !priceData.UsePrice {
-		quota = usage.PromptTokens + int(math.Round(float64(usage.CompletionTokens)*priceData.CompletionRatio))
-		quota = int(math.Round(float64(quota) * priceData.ModelRatio))
+		completionQuota := common.QuotaRound(float64(usage.CompletionTokens) * priceData.CompletionRatio)
+		quota = common.QuotaRound(float64(usage.PromptTokens) + float64(completionQuota))
+		quota = common.QuotaRound(float64(quota) * priceData.ModelRatio)
 		if priceData.ModelRatio != 0 && quota <= 0 {
 			quota = 1
 		}
 		return quota, nil
 	}
 
-	return int(priceData.ModelPrice * common.QuotaPerUnit), nil
+	return common.QuotaFromFloat(priceData.ModelPrice * common.QuotaPerUnit), nil
 }
 
 func buildTestLogOther(c *gin.Context, info *relaycommon.RelayInfo, priceData hosttypes.PriceData, usage *dto.Usage, tieredResult *billingexpr.TieredResult) map[string]interface{} {

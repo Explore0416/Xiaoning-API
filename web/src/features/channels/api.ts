@@ -27,7 +27,6 @@ import type {
   ChannelBalanceResponse,
   ChannelOpsResponse,
   ChannelTestResponse,
-  ChannelsMatrixResponse,
   CopyChannelParams,
   CopyChannelResponse,
   FetchModelsResponse,
@@ -84,7 +83,7 @@ export type CodexCredentialRefreshResponse = {
 export async function getChannels(
   params: GetChannelsParams = {}
 ): Promise<GetChannelsResponse> {
-  const res = await api.get('/api/channel/', { params })
+  const res = await api.get('/api/channel', { params })
   return res.data
 }
 
@@ -111,11 +110,6 @@ export async function getChannel(id: number): Promise<GetChannelResponse> {
  */
 export async function getChannelOps(): Promise<ChannelOpsResponse> {
   const res = await api.get('/api/channel/ops', channelActionConfig())
-  return res.data
-}
-
-export async function getChannelsModelsMatrix(): Promise<ChannelsMatrixResponse> {
-  const res = await api.get('/api/channel/models-matrix', channelActionConfig())
   return res.data
 }
 

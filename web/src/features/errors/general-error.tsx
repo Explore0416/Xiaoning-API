@@ -16,7 +16,6 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { useEffect } from 'react'
 import { useNavigate, useRouter } from '@tanstack/react-router'
 import { useTranslation } from 'react-i18next'
 
@@ -48,48 +47,10 @@ export function GeneralError({
   const { history } = useRouter()
   const status = getHttpStatus(error)
   const isRateLimited = status === 429
-
-  // Heuristic for transient failures: status is missing (network), 5xx, or 429.
-  // These should not trap the user; auto-recover once and offer a retry.
-  const transientError =
-    !status || status === 0 || status >= 500 || isRateLimited
-
-  // Transient network blips should not leave users stuck on a dead-end page.
-  // Automatically recover once, then offer a manual retry.
-  useEffect(() => {
-    if (!transientError || typeof window === 'undefined') return
-    const key = 'new-api:auto-recovered-transient-error'
-    let already = false
-    try {
-      already = sessionStorage.getItem(key) === '1'
-      if (!already) sessionStorage.setItem(key, '1')
-    } catch {
-      /* empty */
-    }
-    if (already) return
-    const timer = window.setTimeout(() => {
-      window.location.reload()
-    }, 1200)
-    return () => window.clearTimeout(timer)
-  }, [transientError])
-
-  const handleRetry = () => {
-    try {
-      sessionStorage.removeItem('new-api:auto-recovered-transient-error')
-    } catch {
-      /* empty */
-    }
-    if (typeof window !== 'undefined') {
-      window.location.reload()
-      return
-    }
-    void navigate({ to: '/' })
-  }
-
   const title = isRateLimited
     ? t('Too many requests')
     : `${t('Oops! Something went wrong')} ${`:')`}`
-  const description = isRateLimited || transientError
+  const description = isRateLimited
     ? t('Please wait a moment before trying again.')
     : t('Please try again later.')
 
@@ -98,49 +59,38 @@ export function GeneralError({
       <div className='m-auto flex h-full w-full flex-col items-center justify-center gap-2'>
         {!minimal && (
           <h1 className='text-[7rem] leading-tight font-bold'>
-            {transientError ? '!' : status ?? 500}
+            {status ?? 500}
           </h1>
         )}
         <span className='font-medium'>{title}</span>
         <p className='text-muted-foreground text-center'>
           {t('We apologize for the inconvenience.')} <br /> {description}
         </p>
-        {!minimal && !transientError && (
+        {!minimal && (
           <p className='text-muted-foreground text-center text-sm'>
             {t('If this keeps happening, please report it on GitHub Issues.')}
           </p>
         )}
         {!minimal && (
           <div className='mt-6 flex flex-wrap justify-center gap-4'>
-            {transientError ? (
-              <>
-                <Button onClick={handleRetry}>{t('Retry')}</Button>
-                <Button variant='outline' onClick={() => history.go(-1)}>
-                  {t('Go Back')}
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button variant='outline' onClick={() => history.go(-1)}>
-                  {t('Go Back')}
-                </Button>
-                <Button
-                  variant='outline'
-                  render={
-                    <a
-                      href={FEEDBACK_URL}
-                      target='_blank'
-                      rel='noopener noreferrer'
-                    />
-                  }
-                >
-                  {t('Report an issue')}
-                </Button>
-                <Button onClick={() => navigate({ to: '/' })}>
-                  {t('Back to Home')}
-                </Button>
-              </>
-            )}
+            <Button variant='outline' onClick={() => history.go(-1)}>
+              {t('Go Back')}
+            </Button>
+            <Button
+              variant='outline'
+              render={
+                <a
+                  href={FEEDBACK_URL}
+                  target='_blank'
+                  rel='noopener noreferrer'
+                />
+              }
+            >
+              {t('Report an issue')}
+            </Button>
+            <Button onClick={() => navigate({ to: '/' })}>
+              {t('Back to Home')}
+            </Button>
           </div>
         )}
       </div>

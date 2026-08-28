@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { formatQuotaDual } from '@/lib/format'
+import { formatQuota } from '@/lib/format'
 
 import { FormDirtyIndicator } from '../components/form-dirty-indicator'
 import { FormNavigationGuard } from '../components/form-navigation-guard'
@@ -68,7 +68,7 @@ type QuotaFormValues = z.infer<typeof quotaSchema>
 type QuotaInputValue = number | ''
 
 function formatQuotaInputValue(value: QuotaInputValue): string {
-  return formatQuotaDual(value === '' ? 0 : value)
+  return formatQuota(value === '' ? 0 : value)
 }
 
 type QuotaSettingsSectionProps = {
@@ -147,7 +147,7 @@ export function QuotaSettingsSection({
                   </FormControl>
                   <FormDescription>
                     {t(
-                      'Initial quota given to new users (stored as points). Equivalent: {{formattedQuota}}',
+                      'Initial quota given to new users ({{formattedQuota}})',
                       {
                         formattedQuota: formatQuotaInputValue(field.value),
                       }
@@ -200,7 +200,7 @@ export function QuotaSettingsSection({
                   </FormControl>
                   <FormDescription>
                     {t(
-                      'Quota given to users who invite others (stored as points). Equivalent: {{formattedQuota}}',
+                      'Quota given to users who invite others ({{formattedQuota}})',
                       {
                         formattedQuota: formatQuotaInputValue(field.value),
                       }
@@ -228,12 +228,9 @@ export function QuotaSettingsSection({
                     />
                   </FormControl>
                   <FormDescription>
-                    {t(
-                      'Quota given to invited users (stored as points). Equivalent: {{formattedQuota}}',
-                      {
-                        formattedQuota: formatQuotaInputValue(field.value),
-                      }
-                    )}
+                    {t('Quota given to invited users ({{formattedQuota}})', {
+                      formattedQuota: formatQuotaInputValue(field.value),
+                    })}
                   </FormDescription>
                   <FormMessage />
                 </FormItem>

@@ -8,7 +8,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"net/url"
-	"regexp"
 	"strings"
 	"time"
 
@@ -22,9 +21,6 @@ const KeyRequestBody = "key_request_body"
 const KeyBodyStorage = "key_body_storage"
 
 var ErrRequestBodyTooLarge = errors.New("request body too large")
-
-// dbRe matches database driver error patterns to prevent leaking schema details
-var dbRe = regexp.MustCompile(`(?i)(pq:|mysql|sqlite|duplicate key|unique constraint|column\s+"|table\s+")`)
 
 func IsRequestBodyTooLargeError(err error) bool {
 	if err == nil {
@@ -201,15 +197,9 @@ func GetContextKeyType[T any](c *gin.Context, key constant.ContextKey) (T, bool)
 }
 
 func ApiError(c *gin.Context, err error) {
-	// Mask database errors to prevent leaking schema details (P2-1)
-	msg := err.Error()
-	if dbRe.MatchString(msg) {
-		SysLog("database error exposed to client, masking: " + msg)
-		msg = "Internal server error"
-	}
 	c.JSON(http.StatusOK, gin.H{
 		"success": false,
-		"message": msg,
+		"message": err.Error(),
 	})
 }
 
@@ -221,7 +211,11 @@ func ApiErrorMsg(c *gin.Context, msg string) {
 }
 
 func ApiSuccess(c *gin.Context, data any) {
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "", "data": data})
+	c.JSON(http.StatusOK, gin.H{
+		"success": true,
+		"message": "",
+		"data":    data,
+	})
 }
 
 // ApiErrorI18n returns a translated error message based on the user's language preference

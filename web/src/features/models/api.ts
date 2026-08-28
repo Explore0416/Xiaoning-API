@@ -111,27 +111,6 @@ export async function deleteModel(
   return res.data
 }
 
-export async function batchCreateModels(models: Partial<Model>[]) {
-  const res = await api.post('/api/models/batch', { models })
-  return res.data as {
-    success: boolean
-    message?: string
-    data?: { created: Model[]; skipped: Array<{ model_name: string; reason: string }> }
-  }
-}
-
-export async function batchDeleteModels(ids: number[]) {
-  const res = await api.delete('/api/models/batch', { data: { ids } })
-  return res.data as {
-    success: boolean
-    message?: string
-    data?: {
-      deleted: string[]
-      referenced: Array<{ model_name: string; channels: Array<{ name: string; type: number }> }>
-    }
-  }
-}
-
 // ============================================================================
 // Vendor Management
 // ============================================================================

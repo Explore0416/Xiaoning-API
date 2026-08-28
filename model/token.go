@@ -56,11 +56,6 @@ func (token *Token) SetAutoGroups(groups []string) error {
 	return nil
 }
 
-// ComputeKeyHash returns the SHA256 hex digest of a token key.
-func ComputeKeyHash(key string) string {
-	return common.Sha256Hex([]byte(key))
-}
-
 func (token *Token) Clean() {
 	token.Key = ""
 }
@@ -429,24 +424,14 @@ func DecreaseTokenQuota(id int, key string, quota int) (err error) {
 }
 
 func decreaseTokenQuota(id int, quota int) (err error) {
-	// Unlimited tokens carry no meaningful remain_quota (it is commonly 0 or
-	// already negative), so the balance guard below would always reject them.
-	result := DB.Model(&Token{}).
-		Where("id = ? AND (unlimited_quota = ? OR remain_quota >= ?)", id, true, quota).
-		Updates(
-			map[string]interface{}{
-				"remain_quota":  gorm.Expr("remain_quota - ?", quota),
-				"used_quota":    gorm.Expr("used_quota + ?", quota),
-				"accessed_time": common.GetTimestamp(),
-			},
-		)
-	if result.Error != nil {
-		return result.Error
-	}
-	if result.RowsAffected == 0 {
-		return errors.New("insufficient token quota")
-	}
-	return nil
+	err = DB.Model(&Token{}).Where("id = ?", id).Updates(
+		map[string]interface{}{
+			"remain_quota":  gorm.Expr("remain_quota - ?", quota),
+			"used_quota":    gorm.Expr("used_quota + ?", quota),
+			"accessed_time": common.GetTimestamp(),
+		},
+	).Error
+	return err
 }
 
 // CountUserTokens returns total number of tokens for the given user, used for pagination
@@ -527,45 +512,4 @@ func invalidateTokensCache(tokens []Token) error {
 		}
 	}
 	return firstErr
-}
-
-// migrateTokenKeyHash backfills the KeyHash column for existing tokens
-// that were created before P0-6 was implemented.
-func migrateTokenKeyHash() {
-	var tokens []Token
-	if err := DB.Unscoped().Where("key_hash = '' OR key_hash IS NULL").
-		Select("id", "key").Find(&tokens).Error; err != nil {
-		common.SysLog("migrateTokenKeyHash: failed to query tokens: " + err.Error())
-		return
-	}
-	if len(tokens) == 0 {
-		return
-	}
-	common.SysLog(fmt.Sprintf("migrateTokenKeyHash: backfilling %d tokens", len(tokens)))
-	batch := make(map[int]string, len(tokens))
-	for _, t := range tokens {
-		if t.Key == "" {
-			continue
-		}
-		batch[t.Id] = ComputeKeyHash(t.Key)
-	}
-	ids := make([]int, 0, len(batch))
-	hashes := make([]string, 0, len(batch))
-	for id, hash := range batch {
-		ids = append(ids, id)
-		hashes = append(hashes, hash)
-	}
-	for i := 0; i < len(ids); i += 200 {
-		end := i + 200
-		if end > len(ids) {
-			end = len(ids)
-		}
-		chunkIDs := ids[i:end]
-		chunkHashes := hashes[i:end]
-		for j, id := range chunkIDs {
-			if err := DB.Model(&Token{}).Where("id = ?", id).Update("key_hash", chunkHashes[j]).Error; err != nil {
-				common.SysLog(fmt.Sprintf("migrateTokenKeyHash: failed to update token %d: %v", id, err))
-			}
-		}
-	}
 }

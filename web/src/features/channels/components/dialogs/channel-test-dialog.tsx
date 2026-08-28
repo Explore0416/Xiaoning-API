@@ -741,6 +741,7 @@ function ChannelTestDialogContent({
         setIsBatchTesting(false)
         setIsBatchStopRequested(false)
         setBatchProgress(null)
+        setRowSelection({})
         refreshChannelLists(resultPatch)
       }
     },
@@ -764,11 +765,9 @@ function ChannelTestDialogContent({
   }, [successModels])
 
   const handleDeleteFailedModels = useCallback(async () => {
-    const selectedKeys = Object.keys(rowSelection)
-    const failed = models.filter((model) => {
-      if (testResults[model]?.status !== 'error') return false
-      return selectedKeys.length === 0 || selectedKeys.includes(model)
-    })
+    const failed = models.filter(
+      (model) => testResults[model]?.status === 'error'
+    )
     if (!failed.length) {
       setIsDeleteFailedDialogOpen(false)
       return
@@ -815,7 +814,7 @@ function ChannelTestDialogContent({
     } finally {
       setIsDeletingFailed(false)
     }
-  }, [currentRow.id, models, refreshChannelLists, rowSelection, t, testResults])
+  }, [currentRow.id, models, refreshChannelLists, t, testResults])
 
   const handleClose = useCallback(() => {
     resetState()

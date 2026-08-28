@@ -49,8 +49,6 @@ const basicAuthSchema = z.object({
   PasswordRegisterEnabled: z.boolean(),
   EmailVerificationEnabled: z.boolean(),
   RegisterEnabled: z.boolean(),
-  InviteCodeEnabled: z.boolean(),
-  InviteCodeRegisterEnabled: z.boolean(),
   EmailDomainRestrictionEnabled: z.boolean(),
   EmailAliasRestrictionEnabled: z.boolean(),
   EmailDomainWhitelist: z.string(),
@@ -167,48 +165,6 @@ export function BasicAuthSection({ defaultValues }: BasicAuthSectionProps) {
                   <FormLabel>{t('Password Registration')}</FormLabel>
                   <FormDescription>
                     {t('Allow registration with password')}
-                  </FormDescription>
-                </SettingsSwitchContent>
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-              </SettingsSwitchItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name='InviteCodeEnabled'
-            render={({ field }) => (
-              <SettingsSwitchItem>
-                <SettingsSwitchContent>
-                  <FormLabel>{t('Admin Invitation Code', { defaultValue: '邀请码' })}</FormLabel>
-                  <FormDescription>
-                    {t('Admin Allow Invitation Code Registration', { defaultValue: '允许使用邀请码注册' })}
-                  </FormDescription>
-                </SettingsSwitchContent>
-                <FormControl>
-                  <Switch
-                    checked={field.value}
-                    onCheckedChange={field.onChange}
-                  />
-                </FormControl>
-              </SettingsSwitchItem>
-            )}
-          />
-
-          <FormField
-            control={form.control}
-            name='InviteCodeRegisterEnabled'
-            render={({ field }) => (
-              <SettingsSwitchItem>
-                <SettingsSwitchContent>
-                  <FormLabel>{t('Admin Require Invitation Code', { defaultValue: '要求邀请码注册' })}</FormLabel>
-                  <FormDescription>
-                    {t('Admin Require Invite Code For Registration', { defaultValue: '所有新用户注册必须提供邀请码' })}
                   </FormDescription>
                 </SettingsSwitchContent>
                 <FormControl>

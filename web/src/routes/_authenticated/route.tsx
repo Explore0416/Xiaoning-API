@@ -26,18 +26,9 @@ export const Route = createFileRoute('/_authenticated')({
     const { auth } = useAuthStore.getState()
 
     if (!auth.user || !auth.accessToken) {
-      // Avoid redirect loops: never echo an auth-only path (sign-in / sign-up
-      // / otp) back as the redirect target, since doing so causes the
-      // bootstrap to bounce to /sign-in again and re-encode this URL.
-      const authOnlyPaths = ['/sign-in', '/sign-up', '/otp']
-      const target = authOnlyPaths.some((p) =>
-        location.pathname.startsWith(p)
-      )
-        ? '/'
-        : `${location.pathname}${location.search}${location.hash}`
       throw redirect({
         to: '/sign-in',
-        search: { redirect: target },
+        search: { redirect: location.href },
       })
     }
   },

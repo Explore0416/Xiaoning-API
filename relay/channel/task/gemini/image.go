@@ -2,10 +2,10 @@ package gemini
 
 import (
 	"encoding/base64"
+	"io"
 	"net/http"
 	"strings"
 
-	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/gin-gonic/gin"
@@ -34,7 +34,7 @@ func ExtractMultipartImage(c *gin.Context, info *relaycommon.RelayInfo) *VeoImag
 	}
 	defer file.Close()
 
-	fileBytes, err := common.ReadAllMax(file)
+	fileBytes, err := io.ReadAll(file)
 	if err != nil {
 		return nil
 	}
