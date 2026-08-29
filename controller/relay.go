@@ -361,7 +361,9 @@ func shouldRetry(c *gin.Context, openaiErr *types.NewAPIError, retryTimes int) b
 }
 
 func processChannelError(c *gin.Context, channelError types.ChannelError, err *types.NewAPIError) {
-	logger.LogError(c, fmt.Sprintf("channel error (channel #%d, status code: %d): %s", channelError.ChannelId, err.StatusCode, common.LocalLogPreview(err.Error())))
+	// 带上 error code：上游把私有错误码放在响应体的 code 字段里（例如腾讯 LKEAP 的
+	// 20057 / 20059），只记录 message 时无法按错误码检索日志。
+	logger.LogError(c, fmt.Sprintf("channel error (channel #%d, status code: %d, error code: %s): %s", channelError.ChannelId, err.StatusCode, err.GetErrorCode(), common.LocalLogPreview(err.Error())))
 	// 不要使用context获取渠道信息，异步处理时可能会出现渠道信息不一致的情况
 	// do not use context to get channel info, there may be inconsistent channel info when processing asynchronously
 	if service.ShouldDisableChannel(err) && channelError.AutoBan {
