@@ -55,6 +55,7 @@ const headerNavSchema = z.object({
   pricingRequireAuth: z.boolean(),
   rankingsEnabled: z.boolean(),
   rankingsRequireAuth: z.boolean(),
+  monitoringEnabled: z.boolean(),
   docs: z.boolean(),
   about: z.boolean(),
 })
@@ -89,6 +90,10 @@ const toFormValues = (config: HeaderNavModulesConfig): HeaderNavFormValues => ({
     config.rankings?.requireAuth === undefined
       ? HEADER_NAV_DEFAULT.rankings.requireAuth
       : Boolean(config.rankings.requireAuth),
+  monitoringEnabled:
+    config.monitoring?.enabled === undefined
+      ? HEADER_NAV_DEFAULT.monitoring.enabled
+      : Boolean(config.monitoring.enabled),
   docs:
     config.docs === undefined ? HEADER_NAV_DEFAULT.docs : Boolean(config.docs),
   about:
@@ -131,6 +136,11 @@ export function HeaderNavigationSection({
         enabled: values.rankingsEnabled,
         requireAuth: values.rankingsRequireAuth,
       },
+      monitoring: {
+        ...(config.monitoring ?? HEADER_NAV_DEFAULT.monitoring),
+        enabled: values.monitoringEnabled,
+        requireAuth: true,
+      },
     }
 
     const serialized = serializeHeaderNavModules(payload)
@@ -172,6 +182,13 @@ export function HeaderNavigationSection({
       key: 'about',
       title: t('About'),
       description: t('Static page describing the platform.'),
+    },
+    {
+      key: 'monitoringEnabled',
+      title: t('Model Monitoring'),
+      description: t(
+        'Authenticated model availability and request health overview.'
+      ),
     },
   ]
 

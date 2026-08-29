@@ -34,7 +34,7 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
-import { formatQuota } from '@/lib/format'
+import { formatQuotaDual } from '@/lib/format'
 
 import { FormDirtyIndicator } from '../components/form-dirty-indicator'
 import { FormNavigationGuard } from '../components/form-navigation-guard'
@@ -68,7 +68,7 @@ type QuotaFormValues = z.infer<typeof quotaSchema>
 type QuotaInputValue = number | ''
 
 function formatQuotaInputValue(value: QuotaInputValue): string {
-  return formatQuota(value === '' ? 0 : value)
+  return formatQuotaDual(value === '' ? 0 : value)
 }
 
 type QuotaSettingsSectionProps = {

@@ -252,6 +252,29 @@ export interface MultiKeyStatusResponse {
   }
 }
 
+export type ChannelMatrixModel = {
+  model: string
+  group: string
+  enabled: boolean
+  priority: number | null
+  weight: number
+  tag: string | null
+}
+
+export type ChannelMatrixEntry = {
+  id: number
+  name: string
+  type: number
+  status: number
+  models: ChannelMatrixModel[]
+}
+
+export type ChannelsMatrixResponse = {
+  success: boolean
+  message?: string
+  data?: ChannelMatrixEntry[]
+}
+
 // ============================================================================
 // API Request Parameters
 // ============================================================================

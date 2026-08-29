@@ -29,6 +29,7 @@ import {
   type ParsedTier,
 } from './billing-expr'
 import { getDisplayGroupRatio } from './model-helpers'
+import { formatDualCurrencyFromUSD } from './price'
 
 type DynamicPriceOptions = {
   tokenUnit: TokenUnit
@@ -104,6 +105,28 @@ export function formatDynamicUnitPrice(
     digitsLarge: 4,
     digitsSmall: 6,
     abbreviate: false,
+  })
+}
+
+export function formatDynamicUnitPriceHint(
+  valuePerMillionTokens: number,
+  options: DynamicPriceOptions
+): string {
+  const groupRatio = options.groupRatioMultiplier ?? 1
+  const priceRate = options.priceRate ?? 1
+  const usdExchangeRate = options.usdExchangeRate ?? 1
+  const priceUSD =
+    (valuePerMillionTokens * groupRatio) /
+    TOKEN_UNIT_DIVISORS[options.tokenUnit]
+  const displayPrice = applyRechargeRate(
+    priceUSD,
+    options.showRechargePrice ?? false,
+    priceRate,
+    usdExchangeRate
+  )
+  return formatDualCurrencyFromUSD(displayPrice, {
+    digitsLarge: 4,
+    digitsSmall: 6,
   })
 }
 

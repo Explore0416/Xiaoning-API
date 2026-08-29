@@ -372,6 +372,7 @@ func ChatCompletionsRequestToResponsesRequest(req *dto.GeneralOpenAIRequest) (*d
 		topP = kitutil.GetPointer(lo.FromPtr(req.TopP))
 	}
 
+
 	var frequencyPenaltyRaw, presencePenaltyRaw json.RawMessage
 	if req.FrequencyPenalty != nil {
 		frequencyPenaltyRaw, _ = kitutil.Marshal(req.FrequencyPenalty)
@@ -387,6 +388,7 @@ func ChatCompletionsRequestToResponsesRequest(req *dto.GeneralOpenAIRequest) (*d
 			return nil, fmt.Errorf("marshal prompt_cache_key: %w", err)
 		}
 	}
+
 
 	out := &dto.OpenAIResponsesRequest{
 		Model:             req.Model,

@@ -2,6 +2,7 @@ package controller
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/Calcium-Ion/go-epay/epay"
 	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/model"
 	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
@@ -159,6 +161,19 @@ func SubscriptionEpayNotify(c *gin.Context) {
 
 	LockOrder(verifyInfo.ServiceTradeNo)
 	defer UnlockOrder(verifyInfo.ServiceTradeNo)
+
+	// Verify callback amount matches order amount
+	subOrder := model.GetSubscriptionOrderByTradeNo(verifyInfo.ServiceTradeNo)
+	if subOrder == nil {
+		_, _ = c.Writer.Write([]byte("fail"))
+		return
+	}
+	callbackMoney, parseErr := strconv.ParseFloat(verifyInfo.Money, 64)
+	if parseErr != nil || math.Abs(callbackMoney-subOrder.Money) > 0.01 {
+		logger.LogError(c.Request.Context(), fmt.Sprintf("订阅易支付 金额不匹配 trade_no=%s order_money=%.2f callback_money=%q client_ip=%s", verifyInfo.ServiceTradeNo, subOrder.Money, verifyInfo.Money, c.ClientIP()))
+		_, _ = c.Writer.Write([]byte("fail"))
+		return
+	}
 
 	if err := model.CompleteSubscriptionOrder(verifyInfo.ServiceTradeNo, common.GetJsonString(verifyInfo), model.PaymentProviderEpay, verifyInfo.Type); err != nil {
 		_, _ = c.Writer.Write([]byte("fail"))

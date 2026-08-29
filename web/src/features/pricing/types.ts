@@ -68,6 +68,7 @@ export type PricingModel = {
   input_modalities?: Modality[]
   output_modalities?: Modality[]
   capabilities?: ModelCapability[]
+  channels?: Array<{ name: string; type: number }>
 }
 
 /** Input/output modalities supported by a model. */

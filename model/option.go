@@ -45,6 +45,8 @@ func InitOptionMap() {
 	common.OptionMap["WeChatAuthEnabled"] = strconv.FormatBool(common.WeChatAuthEnabled)
 	common.OptionMap["TurnstileCheckEnabled"] = strconv.FormatBool(common.TurnstileCheckEnabled)
 	common.OptionMap["RegisterEnabled"] = strconv.FormatBool(common.RegisterEnabled)
+	common.OptionMap["InviteCodeEnabled"] = strconv.FormatBool(common.InviteCodeEnabled)
+	common.OptionMap["InviteCodeRegisterEnabled"] = strconv.FormatBool(common.InviteCodeRegisterEnabled)
 	common.OptionMap["AutomaticDisableChannelEnabled"] = strconv.FormatBool(common.AutomaticDisableChannelEnabled)
 	common.OptionMap["AutomaticEnableChannelEnabled"] = strconv.FormatBool(common.AutomaticEnableChannelEnabled)
 	common.OptionMap["LogConsumeEnabled"] = strconv.FormatBool(common.LogConsumeEnabled)
@@ -185,6 +187,10 @@ func InitOptionMap() {
 
 	common.OptionMapRWMutex.Unlock()
 	loadOptionsFromDatabase()
+	// 邀请码开关是二开新增项，首次启动时数据库里没有对应行，
+	// loadOptionsFromDatabase 读不到；先落库一次让后续加载和管理端可见。
+	_ = UpdateOption("InviteCodeEnabled", strconv.FormatBool(common.InviteCodeEnabled))
+	_ = UpdateOption("InviteCodeRegisterEnabled", strconv.FormatBool(common.InviteCodeRegisterEnabled))
 }
 
 func loadOptionsFromDatabase() {
@@ -326,6 +332,10 @@ func updateOptionMap(key string, value string) (err error) {
 			common.TurnstileCheckEnabled = boolValue
 		case "RegisterEnabled":
 			common.RegisterEnabled = boolValue
+		case "InviteCodeEnabled":
+			common.InviteCodeEnabled = boolValue
+		case "InviteCodeRegisterEnabled":
+			common.InviteCodeRegisterEnabled = boolValue
 		case "EmailDomainRestrictionEnabled":
 			common.EmailDomainRestrictionEnabled = boolValue
 		case "EmailAliasRestrictionEnabled":

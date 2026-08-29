@@ -77,6 +77,10 @@ export function SidebarModulesSection({
       title: t('Personal area'),
       description: t('Wallet management and personal preferences.'),
     },
+    general: {
+      title: t('General area'),
+      description: t('Overview and platform health information.'),
+    },
     admin: {
       title: t('Admin area'),
       description: t('Global configuration and administrative tools.'),
@@ -127,6 +131,12 @@ export function SidebarModulesSection({
       personal: {
         title: t('Profile'),
         description: t('Personal settings and profile management.'),
+      },
+    },
+    general: {
+      monitoring: {
+        title: t('Model Monitoring'),
+        description: t('Model availability and request health overview.'),
       },
     },
     admin: {

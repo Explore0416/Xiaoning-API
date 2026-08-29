@@ -228,6 +228,21 @@ func Register(c *gin.Context) {
 		common.ApiErrorI18n(c, i18n.MsgUserInputInvalid, map[string]any{"Error": err.Error()})
 		return
 	}
+	// 邀请码必须在邮箱/用户名校验之前消费，否则一个有效邀请码可以被用来
+	// 探测某个邮箱是否已注册。
+	var inviteCodeQuota int
+	if common.InviteCodeRegisterEnabled {
+		if user.InviteCode == "" {
+			common.ApiErrorI18n(c, i18n.MsgInviteCodeRequired)
+			return
+		}
+		quota, err := model.RedeemInviteCode(user.InviteCode)
+		if err != nil {
+			common.ApiErrorI18n(c, i18n.MsgInviteCodeInvalid)
+			return
+		}
+		inviteCodeQuota = quota
+	}
 	if common.EmailVerificationEnabled {
 		if user.Email == "" || user.VerificationCode == "" {
 			common.ApiErrorI18n(c, i18n.MsgUserEmailVerificationRequired)
@@ -267,6 +282,7 @@ func Register(c *gin.Context) {
 		Password:    user.Password,
 		DisplayName: user.Username,
 		InviterId:   inviterId,
+		Quota:       inviteCodeQuota,       // 邀请码赠送额度，未使用邀请码时为 0
 		Role:        common.RoleCommonUser, // 明确设置角色为普通用户
 	}
 	if common.EmailVerificationEnabled {
@@ -372,6 +388,15 @@ func canManageTargetRole(myRole int, targetRole int) bool {
 	return myRole == common.RoleRootUser || myRole > targetRole
 }
 
+// canManageTargetUser allows self-edit for non-destructive admin operations
+// while still blocking peer-admin management and self-disable/delete.
+func canManageTargetUser(myRole int, myID int, targetRole int, targetID int) bool {
+	if myID > 0 && myID == targetID {
+		return true
+	}
+	return canManageTargetRole(myRole, targetRole)
+}
+
 func GetUser(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -384,7 +409,8 @@ func GetUser(c *gin.Context) {
 		return
 	}
 	myRole := c.GetInt("role")
-	if !canManageTargetRole(myRole, user.Role) {
+	myID := c.GetInt("id")
+	if !canManageTargetUser(myRole, myID, user.Role, user.Id) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
 		return
 	}
@@ -676,6 +702,9 @@ func UpdateUser(c *gin.Context) {
 	}
 	if updatedUser.Password == "" {
 		updatedUser.Password = "$I_LOVE_U" // make Validator happy :)
+	} else if len(updatedUser.Password) < 8 {
+		common.ApiErrorI18n(c, i18n.MsgUserInputInvalid, map[string]any{"Error": "password must be at least 8 characters"})
+		return
 	}
 	if err := common.Validate.Struct(&updatedUser); err != nil {
 		common.ApiErrorI18n(c, i18n.MsgUserInputInvalid, map[string]any{"Error": err.Error()})
@@ -692,9 +721,14 @@ func UpdateUser(c *gin.Context) {
 	}
 	updatedUser.Role = originUser.Role
 	myRole := c.GetInt("role")
-	if !canManageTargetRole(myRole, originUser.Role) {
+	myID := c.GetInt("id")
+	if !canManageTargetUser(myRole, myID, originUser.Role, originUser.Id) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionHigherLevel)
 		return
+	}
+	// 非 root 用户自编辑不得提升或降低自己的角色。
+	if myID == originUser.Id && myRole != common.RoleRootUser {
+		updatedUser.Role = originUser.Role
 	}
 	if updatedUser.Password == "$I_LOVE_U" {
 		updatedUser.Password = "" // rollback to what it should be
@@ -759,7 +793,8 @@ func AdminClearUserBinding(c *gin.Context) {
 	}
 
 	myRole := c.GetInt("role")
-	if !canManageTargetRole(myRole, user.Role) {
+	myID := c.GetInt("id")
+	if !canManageTargetUser(myRole, myID, user.Role, user.Id) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionSameLevel)
 		return
 	}
@@ -1100,7 +1135,11 @@ func ManageUser(c *gin.Context) {
 		return
 	}
 	myRole := c.GetInt("role")
-	if !canManageTargetRole(myRole, user.Role) {
+	myID := c.GetInt("id")
+	isQuotaAction := req.Action == "add_quota"
+	// 破坏性管理动作永远不允许作用于自己或同级管理员。root 可以调整自己或
+	// 另一个 root 的额度，因为额度变更不属于破坏性账号管理操作。
+	if (!isQuotaAction && myID == user.Id) || (!isQuotaAction && !canManageTargetRole(myRole, user.Role)) || (isQuotaAction && myRole != common.RoleRootUser && !canManageTargetRole(myRole, user.Role)) {
 		common.ApiErrorI18n(c, i18n.MsgUserNoPermissionHigherLevel)
 		return
 	}

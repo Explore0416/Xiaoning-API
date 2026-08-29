@@ -41,6 +41,7 @@ type DialogType =
   | 'sync-wizard'
   | 'upstream-conflict'
   | 'prefill-groups'
+  | 'batch-import-models'
   | 'description'
   | null
 

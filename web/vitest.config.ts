@@ -35,5 +35,12 @@ export default defineConfig({
     clearMocks: true,
     restoreMocks: true,
     include: ['src/**/*.{test,spec}.{ts,tsx}'],
+    // @lobehub packages ship ESM with directory imports ('./FluentEmoji');
+    // Node's externalized resolver rejects those while Vite's inlines them.
+    server: {
+      deps: {
+        inline: [/@lobehub\/.*/],
+      },
+    },
   },
 })

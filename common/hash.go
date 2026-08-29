@@ -23,6 +23,10 @@ func Sha1(data []byte) string {
 	return hex.EncodeToString(Sha1Raw(data))
 }
 
+func Sha256Hex(data []byte) string {
+	return hex.EncodeToString(Sha256Raw(data))
+}
+
 func HmacSha256Raw(message, key []byte) []byte {
 	h := hmac.New(sha256.New, key)
 	h.Write(message)

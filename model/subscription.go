@@ -1399,6 +1399,9 @@ func PreConsumeUserSubscription(requestId string, userId int, modelName string, 
 }
 
 // RefundSubscriptionPreConsume is idempotent and refunds pre-consumed subscription quota by requestId.
+// The subscription delta update runs inside the same transaction: nesting a
+// second DB.Transaction here would hold the outer write lock across two
+// transactions and turn WAL write contention into SQLITE_BUSY_SNAPSHOT errors.
 func RefundSubscriptionPreConsume(requestId string) error {
 	if strings.TrimSpace(requestId) == "" {
 		return errors.New("requestId is empty")
@@ -1412,12 +1415,21 @@ func RefundSubscriptionPreConsume(requestId string) error {
 		if record.Status == "refunded" {
 			return nil
 		}
-		if record.PreConsumed <= 0 {
-			record.Status = "refunded"
-			return tx.Save(&record).Error
-		}
-		if err := PostConsumeUserSubscriptionDelta(record.UserSubscriptionId, -record.PreConsumed); err != nil {
-			return err
+		if record.PreConsumed > 0 {
+			var sub UserSubscription
+			if err := lockForUpdate(tx).
+				Where("id = ?", record.UserSubscriptionId).
+				First(&sub).Error; err != nil {
+				return err
+			}
+			newUsed := sub.AmountUsed - record.PreConsumed
+			if newUsed < 0 {
+				newUsed = 0
+			}
+			sub.AmountUsed = newUsed
+			if err := tx.Save(&sub).Error; err != nil {
+				return err
+			}
 		}
 		record.Status = "refunded"
 		return tx.Save(&record).Error

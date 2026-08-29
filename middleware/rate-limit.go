@@ -165,10 +165,19 @@ func GlobalWebRateLimit() func(c *gin.Context) {
 }
 
 func GlobalAPIRateLimit() func(c *gin.Context) {
-	if common.GlobalApiRateLimitEnable {
-		return rateLimitFactory(common.GlobalApiRateLimitNum, common.GlobalApiRateLimitDuration, "GA")
+	if !common.GlobalApiRateLimitEnable {
+		return defNext
 	}
-	return defNext
+	limiter := rateLimitFactory(common.GlobalApiRateLimitNum, common.GlobalApiRateLimitDuration, "GA")
+	return func(c *gin.Context) {
+		// Operators drive bulk maintenance scripts (model/vendor sync) that
+		// legitimately exceed the per-IP budget meant for untrusted traffic.
+		if IsAdminCredential(c) {
+			c.Next()
+			return
+		}
+		limiter(c)
+	}
 }
 
 func CriticalRateLimit() func(c *gin.Context) {
@@ -176,6 +185,15 @@ func CriticalRateLimit() func(c *gin.Context) {
 		return rateLimitFactory(common.CriticalRateLimitNum, common.CriticalRateLimitDuration, "CT")
 	}
 	return defNext
+}
+
+// AuthRefreshRateLimit is a generous per-IP limiter for the session refresh
+// endpoint. Token refresh is a high-frequency, legitimate operation that the
+// dashboard keepalive performs in the background; it must not share the login
+// critical-rate-limit budget, which a few failed attempts or many users behind
+// one NAT can easily exhaust.
+func AuthRefreshRateLimit() func(c *gin.Context) {
+	return rateLimitFactory(120, 60, "RF")
 }
 
 func UserCriticalRateLimit(scope string) func(c *gin.Context) {

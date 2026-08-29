@@ -32,6 +32,7 @@ import { DEFAULT_TOKEN_UNIT } from '../constants'
 import {
   getDynamicDisplayGroupRatio,
   getDynamicPricingSummary,
+  formatDynamicUnitPriceHint,
 } from '../lib/dynamic-price'
 import { parseTags } from '../lib/filters'
 import { isTokenBasedModel } from '../lib/model-helpers'
@@ -39,6 +40,9 @@ import {
   formatPrice,
   formatRequestPrice,
   stripTrailingZeros,
+  formatDualCurrencyFromUSD,
+  getTokenPriceUSD,
+  getRequestPriceUSD,
 } from '../lib/price'
 import type { PricingModel, TokenUnit } from '../types'
 import { ModelBillingModeBadge } from './model-billing-mode-badge'
@@ -170,6 +174,22 @@ export function usePricingColumns(
                     count: dynamicSummary.tierCount,
                   })}`}
               </div>
+              <div className='text-muted-foreground/40 text-[10px] tabular-nums'>
+                {primaryEntries
+                  .map((entry) =>
+                    formatDynamicUnitPriceHint(entry.value, {
+                      tokenUnit,
+                      showRechargePrice,
+                      priceRate,
+                      usdExchangeRate,
+                      groupRatioMultiplier: getDynamicDisplayGroupRatio(
+                        model,
+                        selectedGroup
+                      ),
+                    })
+                  )
+                  .join(' / ')}
+              </div>
             </div>
           )
         }
@@ -200,6 +220,29 @@ export function usePricingColumns(
             )
           )
 
+          const inputUSD = getTokenPriceUSD(
+            model,
+            'input',
+            tokenUnit,
+            showRechargePrice,
+            priceRate,
+            usdExchangeRate,
+            selectedGroup
+          )
+          const outputUSD = getTokenPriceUSD(
+            model,
+            'output',
+            tokenUnit,
+            showRechargePrice,
+            priceRate,
+            usdExchangeRate,
+            selectedGroup
+          )
+          const dualHint =
+            Number.isFinite(inputUSD) && Number.isFinite(outputUSD)
+              ? `${formatDualCurrencyFromUSD(inputUSD)} / ${formatDualCurrencyFromUSD(outputUSD)}`
+              : null
+
           return (
             <div className='max-w-full min-w-0'>
               <span className='font-mono text-sm tabular-nums'>
@@ -210,6 +253,11 @@ export function usePricingColumns(
               <div className='text-muted-foreground/50 text-[10px]'>
                 / {tokenUnitLabel} tokens
               </div>
+              {dualHint ? (
+                <div className='text-muted-foreground/40 text-[10px] tabular-nums'>
+                  {dualHint}
+                </div>
+              ) : null}
             </div>
           )
         }
@@ -224,12 +272,28 @@ export function usePricingColumns(
           )
         )
 
+        const requestUSD = getRequestPriceUSD(
+          model,
+          showRechargePrice,
+          priceRate,
+          usdExchangeRate,
+          selectedGroup
+        )
+
         return (
           <div className='max-w-full min-w-0'>
             <span className='font-mono text-sm tabular-nums'>{price}</span>
             <div className='text-muted-foreground/50 text-[10px]'>
               / {t('request')}
             </div>
+            {Number.isFinite(requestUSD) ? (
+              <div className='text-muted-foreground/40 text-[10px] tabular-nums'>
+                {formatDualCurrencyFromUSD(requestUSD, {
+                  digitsLarge: 4,
+                  digitsSmall: 4,
+                })}
+              </div>
+            ) : null}
           </div>
         )
       },

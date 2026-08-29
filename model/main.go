@@ -56,9 +56,8 @@ var LOG_DB *gorm.DB
 
 func createRootAccountIfNeed() error {
 	var user User
-	//if user.Status != common.UserStatusEnabled {
 	if err := DB.First(&user).Error; err != nil {
-		common.SysLog("no user exists, create a root user for you: username is root, password is 123456")
+		common.SysLog("no user exists, creating a default root user (username: root) — please change the default password immediately after first login")
 		hashedPassword, err := common.Password2Hash("123456")
 		if err != nil {
 			return err
@@ -72,7 +71,9 @@ func createRootAccountIfNeed() error {
 			AccessToken: nil,
 			Quota:       100000000,
 		}
-		DB.Create(&rootUser)
+		if err := DB.Create(&rootUser).Error; err != nil {
+			return fmt.Errorf("failed to create root user: %w", err)
+		}
 	}
 	return nil
 }
@@ -146,7 +147,7 @@ func chooseDB(envName string, isLog bool) (*gorm.DB, common.DatabaseType, error)
 		}
 		if strings.HasPrefix(dsn, "local") {
 			common.SysLog("SQL_DSN not set, using SQLite as database")
-			db, err := gorm.Open(sqlite.Open(common.SQLitePath), newGormConfig(true))
+			db, err := openSQLite(common.SQLitePath)
 			return db, common.DatabaseTypeSQLite, err
 		}
 		// Use MySQL
@@ -164,8 +165,26 @@ func chooseDB(envName string, isLog bool) (*gorm.DB, common.DatabaseType, error)
 	}
 	// Use SQLite
 	common.SysLog("SQL_DSN not set, using SQLite as database")
-	db, err := gorm.Open(sqlite.Open(common.SQLitePath), newGormConfig(true))
+	db, err := openSQLite(common.SQLitePath)
 	return db, common.DatabaseTypeSQLite, err
+}
+
+// openSQLite 打开 SQLite 并配置并发参数。glebarez 驱动只识别 `_pragma` 和
+// `_txlock` DSN 参数，不会解析 `_busy_timeout`；busy timeout 必须通过 pragma
+// 设置，否则使用默认的 5 秒，写锁竞争时读操作会以 "database is locked" 失败。
+// WAL 模式让写事务提交不再阻塞读，消除登录/注册等读路径与监控探测写入之间
+// 的概率性锁冲突。`_txlock=immediate` 让事务以 BEGIN IMMEDIATE 开工：WAL 下
+// 先读后写的事务在写锁被他人推进后会以 SQLITE_BUSY_SNAPSHOT(517) 立即失败，
+// busy_timeout 对该冲突不生效；immediate 事务在 BEGIN 时就拿写锁，busy_timeout
+// 可以正常排队等待。
+func openSQLite(path string) (*gorm.DB, error) {
+	dsn := path
+	sep := "?"
+	if strings.Contains(dsn, "?") {
+		sep = "&"
+	}
+	dsn += sep + "_txlock=immediate&_pragma=busy_timeout(30000)&_pragma=journal_mode(WAL)&_pragma=synchronous(NORMAL)"
+	return gorm.Open(sqlite.Open(dsn), newGormConfig(true))
 }
 
 func InitDB() (err error) {
@@ -336,6 +355,9 @@ func migrateDB() error {
 		&CustomOAuthProvider{},
 		&UserOAuthBinding{},
 		&PerfMetric{},
+		&ChannelProbeResult{},
+		&ChannelProbeHistory{},
+		&InviteCode{},
 		&SystemInstance{},
 		&SystemTask{},
 		&SystemTaskLock{},
@@ -360,6 +382,8 @@ func migrateDB() error {
 			return err
 		}
 	}
+	// P0-6: Backfill KeyHash for existing tokens
+	migrateTokenKeyHash()
 	return nil
 }
 
@@ -399,6 +423,9 @@ func migrateDBFast() error {
 		{&CustomOAuthProvider{}, "CustomOAuthProvider"},
 		{&UserOAuthBinding{}, "UserOAuthBinding"},
 		{&PerfMetric{}, "PerfMetric"},
+		{&ChannelProbeResult{}, "ChannelProbeResult"},
+		{&ChannelProbeHistory{}, "ChannelProbeHistory"},
+		{&InviteCode{}, "InviteCode"},
 		{&SystemInstance{}, "SystemInstance"},
 		{&SystemTask{}, "SystemTask"},
 		{&SystemTaskLock{}, "SystemTaskLock"},

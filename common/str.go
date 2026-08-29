@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	kitutil "github.com/QuantumNous/new-api/relaykit/relayconvert/kitutil"
+	"regexp"
 	"strconv"
 	"strings"
 	"unsafe"
@@ -140,4 +141,58 @@ func MaskEmail(email string) string {
 // package error formatting depends on it; host callers keep this name.
 func MaskSensitiveInfo(str string) string {
 	return kitutil.MaskSensitiveInfo(str)
+}
+
+// sanitizePatterns chains regex replacements to strip credentials from log messages.
+var sanitizePatterns = []*regexp.Regexp{
+	// Bearer tokens: Bearer sk-xxxxx, Bearer eyJhbG...
+	regexp.MustCompile(`(?i)(bearer\s+)[A-Za-z0-9_\-.]{20,}`),
+	// x-api-key header values
+	regexp.MustCompile(`(?i)(x-api-key[:\s]+)[A-Za-z0-9_\-.]{16,}`),
+	// sk- prefixed keys (OpenAI-style)
+	regexp.MustCompile(`\b(sk-[A-Za-z0-9]{20,})\b`),
+	// key- prefixed keys (Azure-style)
+	regexp.MustCompile(`\b(key-[A-Za-z0-9]{20,})\b`),
+	// Generic api_key= or apikey= URL parameters
+	regexp.MustCompile(`(?i)(api[_-]?key=)[^\s&]{8,}`),
+	// Password in URL: ://user:password@host
+	regexp.MustCompile(`(://[^:]+:)[^@\s]{3,}(@)`),
+	// password= or passwd= or secret= or token= in query strings
+	regexp.MustCompile(`(?i)(password|passwd|secret|token=)[^\s&]{3,}`),
+	// AWS secret access keys
+	regexp.MustCompile(`(?i)(secret[_\s]*access[_\s]*key[:\s]+)[A-Za-z0-9/+=]{30,}`),
+	// Generic long hex tokens that look like keys (64+ hex chars, must contain at least 2 distinct characters)
+	regexp.MustCompile(`\b([a-f0-9]{64,})\b`),
+}
+
+// hasMixedChars returns true if s contains at least 2 distinct characters.
+func hasMixedChars(s string) bool {
+	if len(s) < 2 {
+		return false
+	}
+	first := s[0]
+	for i := 1; i < len(s); i++ {
+		if s[i] != first {
+			return true
+		}
+	}
+	return false
+}
+
+// SanitizeForLog applies comprehensive credential redaction to log messages.
+func SanitizeForLog(msg string) string {
+	for _, re := range sanitizePatterns {
+		msg = re.ReplaceAllStringFunc(msg, func(match string) string {
+			if !hasMixedChars(match) {
+				return match
+			}
+			for _, sub := range re.FindStringSubmatch(match) {
+				if sub != "" && sub != match {
+					return sub + "***"
+				}
+			}
+			return "***"
+		})
+	}
+	return msg
 }

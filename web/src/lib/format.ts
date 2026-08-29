@@ -79,6 +79,34 @@ export function formatQuota(quota: number): string {
 }
 
 /**
+ * Format quota with dual-currency hint so admins can see both USD and CNY
+ * when configuring large point values (e.g. new-user gift quota).
+ *
+ * Points remain the stored unit; this only helps human review.
+ */
+export function formatQuotaDual(quota: number): string {
+  if (!Number.isFinite(quota)) return '-'
+  const { config } = getCurrencyDisplay()
+  const quotaPerUnit =
+    config.quotaPerUnit && config.quotaPerUnit > 0 ? config.quotaPerUnit : 500000
+  const usd = quota / quotaPerUnit
+  const rate =
+    config.usdExchangeRate && config.usdExchangeRate > 0
+      ? config.usdExchangeRate
+      : 7.3
+
+  const trimNum = (n: number) => {
+    if (Math.abs(n) >= 1) return n.toFixed(2).replace(/\.?0+$/, '')
+    return n.toFixed(4).replace(/\.?0+$/, '')
+  }
+
+  const primary = formatQuota(quota)
+  const usdPlain = `$${trimNum(usd)}`
+  const cnyPlain = `¥${trimNum(usd * rate)}`
+  return `${primary} · ${usdPlain} / ${cnyPlain}`
+}
+
+/**
  * Parse quota from the current display input back to quota units.
  */
 export function parseQuotaFromDollars(amount: number): number {

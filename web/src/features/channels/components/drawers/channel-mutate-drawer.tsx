@@ -880,7 +880,7 @@ export function ChannelMutateDrawer({
     advancedCustomRouteTypeLabels.length
   const advancedCustomRouteTypeTitle =
     hiddenAdvancedCustomRouteTypeCount > 0
-      ? advancedCustomStats.routeTypeLabels.join(', ')
+      ? advancedCustomStats.routeTypeLabels.map((label) => t(label)).join(', ')
       : undefined
 
   // Get all models list
@@ -1270,7 +1270,7 @@ export function ChannelMutateDrawer({
       initialModelMappingRef.current = ''
       initialStatusCodeMappingRef.current = ''
     }
-  }, [isEditing, channelData, form])
+  }, [isEditing, channelData, open, form])
 
   // Handle type change - set default values for specific types
   useEffect(() => {
@@ -2821,10 +2821,10 @@ export function ChannelMutateDrawer({
                                                 key={label}
                                                 variant='outline'
                                                 className='max-w-[12rem]'
-                                                title={label}
+                                                title={t(label)}
                                               >
                                                 <span className='truncate'>
-                                                  {label}
+                                                  {t(label)}
                                                 </span>
                                               </Badge>
                                             )

@@ -20,7 +20,10 @@ import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useStatus } from '@/hooks/use-status'
-import { parseHeaderNavModulesFromStatus } from '@/lib/nav-modules'
+import {
+  isAuthenticatedModuleVisible,
+  parseHeaderNavModulesFromStatus,
+} from '@/lib/nav-modules'
 import { useAuthStore } from '@/stores/auth-store'
 
 export type TopNavLink = {
@@ -84,6 +87,18 @@ export function useTopNavLinks(): TopNavLink[] {
   if (rankings && typeof rankings === 'object' && rankings.enabled) {
     const requiresAuth = rankings.requireAuth && !isAuthed
     links.push({ title: t('Rankings'), href: '/rankings', requiresAuth })
+  }
+
+  const monitoring = modules?.monitoring
+  if (
+    monitoring &&
+    typeof monitoring === 'object' &&
+    isAuthenticatedModuleVisible(monitoring, isAuthed)
+  ) {
+    links.push({
+      title: t('Model Monitoring'),
+      href: '/model-monitoring',
+    })
   }
 
   // Docs (supports external links)
