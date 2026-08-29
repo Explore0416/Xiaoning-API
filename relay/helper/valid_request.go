@@ -329,6 +329,20 @@ func GetAndValidateTextRequest(c *gin.Context, relayMode int) (*dto.GeneralOpenA
 	if textRequest.Model == "" {
 		return nil, errors.New("model is required")
 	}
+	// tools[].type 在 OpenAI 规范里是必填的判别字段，但 ToolCallRequest.Type 是非指针字符串，
+	// 客户端省略它时会被序列化成 "type":""。宽松上游（腾讯 LKEAP）会放过，严格上游
+	// （LiteLLM/vLLM 前置网关）则报 literal_error 400，使故障只在切换渠道后才暴露。
+	// 这里按规范补上默认判别值，让省略等价于显式声明。
+	for i := range textRequest.Tools {
+		if textRequest.Tools[i].Type != "" {
+			continue
+		}
+		if textRequest.Tools[i].Custom != nil {
+			textRequest.Tools[i].Type = dto.CustomType
+		} else {
+			textRequest.Tools[i].Type = dto.FunctionType
+		}
+	}
 	if textRequest.WebSearchOptions != nil {
 		if textRequest.WebSearchOptions.SearchContextSize != "" {
 			validSizes := map[string]bool{
