@@ -291,12 +291,16 @@ func ChatCompletionsRequestToResponsesRequest(req *dto.GeneralOpenAIRequest) (*d
 		for _, tool := range req.Tools {
 			switch tool.Type {
 			case "function":
-				tools = append(tools, map[string]any{
+				fn := map[string]any{
 					"type":        "function",
 					"name":        tool.Function.Name,
 					"description": tool.Function.Description,
 					"parameters":  tool.Function.Parameters,
-				})
+				}
+				if tool.Function.Strict != nil {
+					fn["strict"] = *tool.Function.Strict
+				}
+				tools = append(tools, fn)
 			default:
 				// Best-effort: keep original tool shape for unknown types.
 				var m map[string]any
@@ -372,7 +376,6 @@ func ChatCompletionsRequestToResponsesRequest(req *dto.GeneralOpenAIRequest) (*d
 		topP = kitutil.GetPointer(lo.FromPtr(req.TopP))
 	}
 
-
 	var frequencyPenaltyRaw, presencePenaltyRaw json.RawMessage
 	if req.FrequencyPenalty != nil {
 		frequencyPenaltyRaw, _ = kitutil.Marshal(req.FrequencyPenalty)
@@ -388,7 +391,6 @@ func ChatCompletionsRequestToResponsesRequest(req *dto.GeneralOpenAIRequest) (*d
 			return nil, fmt.Errorf("marshal prompt_cache_key: %w", err)
 		}
 	}
-
 
 	out := &dto.OpenAIResponsesRequest{
 		Model:             req.Model,

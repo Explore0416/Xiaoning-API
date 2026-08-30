@@ -143,8 +143,12 @@ http=200   {"model":"qwen3.6-27b", "system_fingerprint":"vllm-0.21.0-tp4-..."}
 ```
 
 如果你方之前偶发过"同一份 body 有时 200、有时 400"，很可能就是这个。
-（顺带一提，`tools[].function.strict` 目前仍会在转发时被丢弃——如果你方依赖它，请告知，
-我方补上。）
+
+同一批排查里还修掉了第二个转发保真度问题：`tools[].function.strict`（OpenAI structured
+outputs 用来要求上游严格遵守工具参数 schema 的开关）此前会在转发时被静默丢弃。现在它会
+原样转发，显式的 `false` 也会保留（不会被当成"未设置"而省略）；`/v1/chat/completions` 与
+`/v1/responses` 互转的两个方向都已覆盖，并加了回归测试。如果你方依赖 `strict`，现在可以
+直接下发。
 
 ### 顺带排除的假设
 

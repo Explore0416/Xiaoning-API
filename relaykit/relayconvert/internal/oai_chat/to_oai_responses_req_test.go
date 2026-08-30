@@ -161,6 +161,43 @@ func TestChatCompletionsRequestToResponsesRequestPreservesPenalties(t *testing.T
 	}
 }
 
+// TestChatCompletionsRequestToResponsesRequestToolStrict guards that the
+// structured-outputs flag on a function tool survives the chat -> responses hop.
+// The converter rebuilds each tool as a fresh map instead of re-marshalling it,
+// so any field it does not copy explicitly is silently dropped upstream.
+func TestChatCompletionsRequestToResponsesRequestToolStrict(t *testing.T) {
+	tests := []struct {
+		name   string
+		strict *bool
+		want   string // gjson result for tools.0.strict; "" means absent
+	}{
+		{name: "strict true forwarded", strict: lo.ToPtr(true), want: "true"},
+		{name: "strict false forwarded", strict: lo.ToPtr(false), want: "false"},
+		{name: "strict omitted stays absent", strict: nil, want: ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ChatCompletionsRequestToResponsesRequest(&dto.GeneralOpenAIRequest{
+				Model:    "gpt-test",
+				Messages: []dto.Message{{Role: "user", Content: "hi"}},
+				Tools: []dto.ToolCallRequest{{
+					Type: dto.FunctionType,
+					Function: dto.FunctionRequest{
+						Name:       "read_file",
+						Parameters: map[string]any{"type": "object"},
+						Strict:     tt.strict,
+					},
+				}},
+			})
+			require.NoError(t, err)
+
+			strict := gjson.GetBytes(got.Tools, "0.strict")
+			assert.Equal(t, tt.want, strict.Raw)
+		})
+	}
+}
+
 func assistantMessageWithTool(content string, id string, name string, args string) dto.Message {
 	msg := dto.Message{Role: "assistant", Content: content}
 	msg.SetToolCalls([]dto.ToolCallRequest{

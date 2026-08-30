@@ -232,6 +232,51 @@ func TestResponsesRequestToChatCompletionsRequestToolsToolChoiceAndTextFormat(t 
 	assert.True(t, gjson.GetBytes(got.ResponseFormat.JsonSchema, "strict").Bool())
 }
 
+// TestResponsesRequestToChatCompletionsRequestToolStrict guards the reverse hop:
+// the responses tool array arrives as untyped maps, so strict has to be read back
+// explicitly or it is lost when the request is relayed to a chat upstream.
+func TestResponsesRequestToChatCompletionsRequestToolStrict(t *testing.T) {
+	tests := []struct {
+		name string
+		tool map[string]any
+		want *bool
+	}{
+		{
+			name: "strict true forwarded",
+			tool: map[string]any{"type": "function", "name": "lookup", "strict": true},
+			want: lo.ToPtr(true),
+		},
+		{
+			name: "strict false forwarded",
+			tool: map[string]any{"type": "function", "name": "lookup", "strict": false},
+			want: lo.ToPtr(false),
+		},
+		{
+			name: "strict omitted stays nil",
+			tool: map[string]any{"type": "function", "name": "lookup"},
+			want: nil,
+		},
+		{
+			name: "non-boolean strict ignored",
+			tool: map[string]any{"type": "function", "name": "lookup", "strict": "yes"},
+			want: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := ResponsesRequestToChatCompletionsRequest(&dto.OpenAIResponsesRequest{
+				Model: "gpt-test",
+				Input: mustRawMessage(t, "hi"),
+				Tools: mustRawMessage(t, []map[string]any{tt.tool}),
+			})
+			require.NoError(t, err)
+			require.Len(t, got.Tools, 1)
+			assert.Equal(t, tt.want, got.Tools[0].Function.Strict)
+		})
+	}
+}
+
 func TestResponsesRequestToChatCompletionsRequestCustomToolCallPreservesRawShape(t *testing.T) {
 	got, err := ResponsesRequestToChatCompletionsRequest(&dto.OpenAIResponsesRequest{
 		Model: "gpt-test",
