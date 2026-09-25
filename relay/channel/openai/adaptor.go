@@ -51,6 +51,11 @@ func (a *Adaptor) ConvertGeminiRequest(c *gin.Context, info *relaycommon.RelayIn
 	if !ok {
 		return nil, fmt.Errorf("expected OpenAI chat completions request, got %T", result.Value)
 	}
+	if info.SupportStreamOptions && info.IsStream {
+		openaiRequest.StreamOptions = &dto.StreamOptions{
+			IncludeUsage: true,
+		}
+	}
 	return a.ConvertOpenAIRequest(c, info, openaiRequest)
 }
 
@@ -105,12 +110,12 @@ func (a *Adaptor) Init(info *relaycommon.RelayInfo) {
 
 func (a *Adaptor) GetRequestURL(info *relaycommon.RelayInfo) (string, error) {
 	if info.RelayMode == relayconstant.RelayModeRealtime {
-		if strings.HasPrefix(info.ChannelBaseUrl, "https://") {
-			baseUrl := strings.TrimPrefix(info.ChannelBaseUrl, "https://")
+		if after, ok := strings.CutPrefix(info.ChannelBaseUrl, "https://"); ok {
+			baseUrl := after
 			baseUrl = "wss://" + baseUrl
 			info.ChannelBaseUrl = baseUrl
-		} else if strings.HasPrefix(info.ChannelBaseUrl, "http://") {
-			baseUrl := strings.TrimPrefix(info.ChannelBaseUrl, "http://")
+		} else if after, ok := strings.CutPrefix(info.ChannelBaseUrl, "http://"); ok {
+			baseUrl := after
 			baseUrl = "ws://" + baseUrl
 			info.ChannelBaseUrl = baseUrl
 		}
@@ -249,31 +254,45 @@ func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayIn
 	if info.ChannelType != constant.ChannelTypeOpenAI && info.ChannelType != constant.ChannelTypeAzure {
 		request.StreamOptions = nil
 	}
+	// Nested reasoning is an OpenRouter-compatible input dialect and needs
+	// projection even without a protocol conversion hop. Native top-level
+	// reasoning_effort stays untouched unless a modifier or conversion applies.
+	// OpenRouter retains its own dialect normalization below.
+	preserveSuffix := model_setting.ShouldPreserveThinkingSuffix(info.OriginModelName) || model_setting.ShouldPreserveThinkingSuffix(info.UpstreamModelName)
+	upstreamEffort, _ := reasoning.ParseOpenAIReasoningEffortFromModelSuffix(info.UpstreamModelName)
+	originEffort, _ := reasoning.ParseOpenAIReasoningEffortFromModelSuffix(info.OriginModelName)
+	renderReasoning := len(request.Reasoning) > 0 || len(info.RequestConversionChain) > 1 || request.ReasoningConversion != nil || info.ReasoningState() != nil ||
+		!preserveSuffix && (upstreamEffort != "" || originEffort != "")
+	if info.ChannelType != constant.ChannelTypeOpenRouter && !renderReasoning {
+		info.SetReasoningEffort(request.ReasoningEffort)
+	}
 	if info.ChannelType == constant.ChannelTypeOpenRouter {
-		initialIntent, err := kitreasoning.FromOpenAIChat(request)
+		initialIntent, diagnostics, err := kitreasoning.FromOpenAIChat(request)
 		if err != nil {
 			return nil, kitreasoning.AsClientError(err)
 		}
+		recordReasoningDiagnostics(c, info, diagnostics)
 		if request.THINKING != nil && strings.HasPrefix(info.UpstreamModelName, "anthropic") {
 			var thinking dto.Thinking
 			if err := common.Unmarshal(request.THINKING, &thinking); err != nil {
 				return nil, fmt.Errorf("error Unmarshal thinking: %w", err)
 			}
-			legacyIntent, err := kitreasoning.FromClaude(&dto.ClaudeRequest{Thinking: &thinking})
+			legacyIntent, diagnostics, err := kitreasoning.FromClaude(&dto.ClaudeRequest{Thinking: &thinking})
 			if err != nil {
 				return nil, kitreasoning.AsClientError(err)
 			}
-			initialIntent, err = kitreasoning.MergeExplicit(initialIntent, legacyIntent, request.Model)
+			recordReasoningDiagnostics(c, info, diagnostics)
+			initialIntent, diagnostics, err = kitreasoning.MergeExplicit(initialIntent, legacyIntent, request.Model)
 			if err != nil {
 				return nil, kitreasoning.AsClientError(err)
 			}
+			recordReasoningDiagnostics(c, info, diagnostics)
 			request.THINKING = nil
 		}
 		if len(request.Usage) == 0 {
 			request.Usage = json.RawMessage(`{"include":true}`)
 		}
 		// 合并 effort 尾巴产生的意图
-		preserveSuffix := model_setting.ShouldPreserveThinkingSuffix(info.OriginModelName) || model_setting.ShouldPreserveThinkingSuffix(info.UpstreamModelName)
 		mergeEffortSuffix := func(modelName string) error {
 			rawEffort, _ := reasoning.ParseOpenAIReasoningEffortFromModelSuffix(modelName)
 			if rawEffort == "" {
@@ -287,7 +306,9 @@ func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayIn
 			if effort == kitreasoning.EffortNone {
 				mode = kitreasoning.ModeDisabled
 			}
-			initialIntent, err = kitreasoning.MergeExplicitAndSuffix(initialIntent, kitreasoning.Intent{Mode: mode, Effort: effort, Source: kitreasoning.SourceSuffix}, modelName)
+			var diagnostics []types.ConversionDiagnostic
+			initialIntent, diagnostics, err = kitreasoning.MergeExplicitAndSuffix(initialIntent, kitreasoning.Intent{Mode: mode, Effort: effort, Source: kitreasoning.SourceSuffix}, modelName)
+			recordReasoningDiagnostics(c, info, diagnostics)
 			return err
 		}
 		if !preserveSuffix {
@@ -346,44 +367,16 @@ func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayIn
 		info.SetReasoningEffort(string(effectiveEffort))
 
 	}
-	isOModel := dto.IsOpenAIReasoningOModel(info.UpstreamModelName)
-	isGPT5Model := dto.IsOpenAIGPT5Model(info.UpstreamModelName)
-	if isOModel || isGPT5Model {
-		if lo.FromPtrOr(request.MaxCompletionTokens, uint(0)) == 0 && lo.FromPtrOr(request.MaxTokens, uint(0)) != 0 {
-			request.MaxCompletionTokens = request.MaxTokens
-			request.MaxTokens = nil
-		}
-
-		if isOModel {
-			request.Temperature = nil
-		}
-
-		// gpt-5系列模型适配 归零不再支持的参数
-		if isGPT5Model {
-			request.Temperature = nil
-			request.TopP = nil
-			request.LogProbs = nil
-		}
-
-		// o系列模型developer适配（o1-mini除外）
-		if !strings.HasPrefix(info.UpstreamModelName, "o1-mini") && !strings.HasPrefix(info.UpstreamModelName, "o1-preview") {
-			//修改第一个Message的内容，将system改为developer
-			if len(request.Messages) > 0 && request.Messages[0].Role == "system" {
-				request.Messages[0].Role = "developer"
-			}
-		}
-	}
-
-	if info.ChannelType != constant.ChannelTypeOpenRouter {
-		preserveSuffix := model_setting.ShouldPreserveThinkingSuffix(info.OriginModelName) || model_setting.ShouldPreserveThinkingSuffix(info.UpstreamModelName)
+	if info.ChannelType != constant.ChannelTypeOpenRouter && renderReasoning {
 		effort, baseModel := reasoning.ParseOpenAIReasoningEffortFromModelSuffix(info.UpstreamModelName)
 		if preserveSuffix {
 			effort = ""
 		}
-		currentIntent, err := kitreasoning.FromOpenAIChat(request)
+		currentIntent, diagnostics, err := kitreasoning.FromOpenAIChat(request)
 		if err != nil {
 			return nil, kitreasoning.AsClientError(err)
 		}
+		recordReasoningDiagnostics(c, info, diagnostics)
 		mergeSuffix := func(modelName, rawEffort string) error {
 			if rawEffort == "" {
 				return nil
@@ -396,7 +389,9 @@ func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayIn
 			if suffixEffort == kitreasoning.EffortNone {
 				mode = kitreasoning.ModeDisabled
 			}
-			currentIntent, err = kitreasoning.MergeExplicitAndSuffix(currentIntent, kitreasoning.Intent{Mode: mode, Effort: suffixEffort, Source: kitreasoning.SourceSuffix}, modelName)
+			var diagnostics []types.ConversionDiagnostic
+			currentIntent, diagnostics, err = kitreasoning.MergeExplicitAndSuffix(currentIntent, kitreasoning.Intent{Mode: mode, Effort: suffixEffort, Source: kitreasoning.SourceSuffix}, modelName)
+			recordReasoningDiagnostics(c, info, diagnostics)
 			return err
 		}
 		if err := mergeSuffix(info.UpstreamModelName, effort); err != nil {
@@ -412,13 +407,34 @@ func (a *Adaptor) ConvertOpenAIRequest(c *gin.Context, info *relaycommon.RelayIn
 			info.UpstreamModelName = baseModel
 			request.Model = baseModel
 		}
-		if canonicalEffort := kitreasoning.OpenAIEffort(kitreasoning.EffectiveEffort(currentIntent)); canonicalEffort != "" {
+		if canonicalEffort := kitreasoning.EffectiveEffort(currentIntent); canonicalEffort != "" {
 			request.ReasoningEffort = string(canonicalEffort)
 			info.SetReasoningEffort(string(canonicalEffort))
 		}
 		if info.ChannelType == constant.ChannelTypeOpenAI || info.ChannelType == constant.ChannelTypeAzure {
 			request.Reasoning = nil
 		}
+	}
+
+	capabilities := dto.GetOpenAIChatCapabilities(info.UpstreamModelName, info.ReasoningEffort)
+	if capabilities.UseMaxCompletionTokens {
+		if lo.FromPtrOr(request.MaxCompletionTokens, uint(0)) == 0 && lo.FromPtrOr(request.MaxTokens, uint(0)) != 0 {
+			request.MaxCompletionTokens = request.MaxTokens
+			request.MaxTokens = nil
+		}
+	}
+	if !capabilities.SupportsTemperature {
+		request.Temperature = nil
+	}
+	if !capabilities.SupportsTopP {
+		request.TopP = nil
+	}
+	if !capabilities.SupportsLogProbs {
+		request.LogProbs = nil
+		request.TopLogProbs = nil
+	}
+	if capabilities.UseDeveloperRole && len(request.Messages) > 0 && request.Messages[0].Role == "system" {
+		request.Messages[0].Role = "developer"
 	}
 
 	return request, nil
@@ -666,10 +682,26 @@ func (a *Adaptor) ConvertOpenAIResponsesRequest(c *gin.Context, info *relaycommo
 	if preserveSuffix {
 		effort = ""
 	}
-	currentIntent, err := kitreasoning.FromOpenAIResponses(&request)
+	originEffort := ""
+	if info != nil && !preserveSuffix {
+		originEffort, _ = reasoning.ParseOpenAIReasoningEffortFromModelSuffix(info.OriginModelName)
+	}
+	crossProtocol := info != nil && len(info.RequestConversionChain) > 1
+	if (info == nil || info.ChannelType != constant.ChannelTypeOpenRouter) && !crossProtocol && effort == "" && originEffort == "" && request.ReasoningConversion == nil && info.ReasoningState() == nil {
+		if info != nil {
+			rawEffort := ""
+			if request.Reasoning != nil {
+				rawEffort = request.Reasoning.Effort
+			}
+			info.SetReasoningEffort(rawEffort)
+		}
+		return request, nil
+	}
+	currentIntent, diagnostics, err := kitreasoning.FromOpenAIResponses(&request)
 	if err != nil {
 		return nil, kitreasoning.AsClientError(err)
 	}
+	recordReasoningDiagnostics(c, info, diagnostics)
 	mergeSuffix := func(modelName, rawEffort string) error {
 		if rawEffort == "" {
 			return nil
@@ -682,7 +714,9 @@ func (a *Adaptor) ConvertOpenAIResponsesRequest(c *gin.Context, info *relaycommo
 		if suffixEffort == kitreasoning.EffortNone {
 			mode = kitreasoning.ModeDisabled
 		}
-		currentIntent, err = kitreasoning.MergeExplicitAndSuffix(currentIntent, kitreasoning.Intent{Mode: mode, Effort: suffixEffort, Source: kitreasoning.SourceSuffix}, modelName)
+		var diagnostics []types.ConversionDiagnostic
+		currentIntent, diagnostics, err = kitreasoning.MergeExplicitAndSuffix(currentIntent, kitreasoning.Intent{Mode: mode, Effort: suffixEffort, Source: kitreasoning.SourceSuffix}, modelName)
+		recordReasoningDiagnostics(c, info, diagnostics)
 		return err
 	}
 	if err := mergeSuffix(request.Model, effort); err != nil {
@@ -700,7 +734,7 @@ func (a *Adaptor) ConvertOpenAIResponsesRequest(c *gin.Context, info *relaycommo
 			info.UpstreamModelName = originModel
 		}
 	}
-	if canonicalEffort := kitreasoning.OpenAIEffort(kitreasoning.EffectiveEffort(currentIntent)); canonicalEffort != "" {
+	if canonicalEffort := kitreasoning.EffectiveEffort(currentIntent); canonicalEffort != "" {
 		if request.Reasoning == nil {
 			request.Reasoning = &dto.Reasoning{}
 		}
@@ -792,4 +826,16 @@ func (a *Adaptor) GetChannelName() string {
 	default:
 		return ChannelName
 	}
+}
+
+// recordReasoningDiagnostics attaches best-effort reasoning resolutions made
+// while merging request fields with model-name effort tails to the request log.
+func recordReasoningDiagnostics(c *gin.Context, info *relaycommon.RelayInfo, diagnostics []types.ConversionDiagnostic) {
+	if info == nil || len(diagnostics) == 0 {
+		return
+	}
+	for i := range diagnostics {
+		diagnostics[i].From = info.RelayFormat
+	}
+	info.RecordConversionDiagnostics(c, diagnostics)
 }

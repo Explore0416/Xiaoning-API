@@ -31,6 +31,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip'
 import { ROLE } from '@/lib/roles'
+import { requireServerSuccess } from '@/lib/server-error-message'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { getChannelOps } from './api'
@@ -48,7 +49,7 @@ export function Channels() {
   const [tabView, setTabView] = useState<'list' | 'matrix'>('list')
   const channelOpsQuery = useQuery({
     queryKey: ['channel-ops'],
-    queryFn: getChannelOps,
+    queryFn: async () => requireServerSuccess(await getChannelOps()),
     retry: false,
     staleTime: 5 * 60 * 1000,
   })
@@ -67,8 +68,8 @@ export function Channels() {
               aria-label={t('Retry Settings')}
               render={
                 <Link
-                  to='/system-settings/models/$section'
-                  params={{ section: 'routing-reliability' }}
+                  to='/system-settings/request-policies/$section'
+                  params={{ section: 'routing' }}
                 />
               }
             />

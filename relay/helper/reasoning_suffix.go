@@ -59,10 +59,11 @@ func ApplyReasoningModelSuffix(c *gin.Context, info *relaycommon.RelayInfo, outb
 	}
 
 	if selected.hasThinking {
-		explicit, err := explicitIntentFromRequest(info.Request)
+		explicit, explicitDiagnostics, err := explicitIntentFromRequest(info.Request)
 		if err != nil {
 			return reasoning.AsClientError(err)
 		}
+		diagnostics = append(diagnostics, explicitDiagnostics...)
 		diagnostics = append(diagnostics, modifierRequestOverrideDiagnostics(explicit, selected.intent)...)
 		if selected.intent.IncludeThoughts == nil {
 			selected.intent.IncludeThoughts = explicit.IncludeThoughts
@@ -105,6 +106,9 @@ func ApplyReasoningModelSuffix(c *gin.Context, info *relaycommon.RelayInfo, outb
 	}
 	if info.Request != nil {
 		info.Request.SetModelName(info.UpstreamModelName)
+	}
+	if selected.hasThinking {
+		info.SetReasoningEffort(string(reasoning.EffectiveEffort(selected.intent)))
 	}
 	for i := range diagnostics {
 		diagnostics[i].From = info.RelayFormat
@@ -212,7 +216,7 @@ func parseHostModelSuffix(name string, opts *convmeta.Options) (string, reasonin
 	)
 }
 
-func explicitIntentFromRequest(req dto.Request) (reasoning.Intent, error) {
+func explicitIntentFromRequest(req dto.Request) (reasoning.Intent, []types.ConversionDiagnostic, error) {
 	switch r := req.(type) {
 	case *dto.ClaudeRequest:
 		return reasoning.FromClaude(r)
@@ -223,6 +227,6 @@ func explicitIntentFromRequest(req dto.Request) (reasoning.Intent, error) {
 	case *dto.OpenAIResponsesRequest:
 		return reasoning.FromOpenAIResponses(r)
 	default:
-		return reasoning.Intent{}, nil
+		return reasoning.Intent{}, nil, nil
 	}
 }

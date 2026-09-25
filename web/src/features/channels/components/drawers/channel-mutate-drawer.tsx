@@ -695,16 +695,7 @@ export function ChannelMutateDrawer({
 
   const { copyToClipboard } = useCopyToClipboard()
 
-  const {
-    open: verificationOpen,
-    methods: verificationMethods,
-    state: verificationState,
-    executeVerification,
-    withVerification,
-    cancel: cancelVerification,
-    setCode: setVerificationCode,
-    switchMethod: switchVerificationMethod,
-  } = useSecureVerification()
+  const verification = useSecureVerification()
 
   useEffect(() => {
     if (!open) {
@@ -1264,6 +1255,8 @@ export function ChannelMutateDrawer({
     upstreamDetectedModelsPreview.length
 
   // Load channel data into form when editing
+  // channelId is a dependency: without it the drawer keeps the previously
+  // loaded channel's form values when it is reused for another channel.
   useEffect(() => {
     if (isEditing && channelData?.data) {
       const defaults = transformChannelToFormDefaults(channelData.data)
@@ -1285,7 +1278,7 @@ export function ChannelMutateDrawer({
       initialModelMappingRef.current = ''
       initialStatusCodeMappingRef.current = ''
     }
-  }, [isEditing, channelData, open, form])
+  }, [isEditing, channelId, channelData, open, form])
 
   // Handle type change - set default values for specific types
   useEffect(() => {
@@ -1380,7 +1373,7 @@ export function ChannelMutateDrawer({
 
       setIsChannelKeyLoading(true)
       try {
-        const res = await getChannelKey(channelId, proofToken)
+        const res = await getChannelKey(channelId, proofToken ?? '')
         if (!res.success) {
           throw new Error(res.message || t('Failed to fetch channel key'))
         }
@@ -1399,21 +1392,26 @@ export function ChannelMutateDrawer({
   const handleRevealKey = useCallback(async () => {
     if (!channelId) return
 
+    // The proof gates the fetch: it is only requested once the user has
+    // completed verification (a null result means they cancelled).
+    const proof = await verification.requestVerification({
+      scope: 'channel.key.read',
+      context: { channel_id: channelId },
+      title: t('Verify to view channel key'),
+      description: t(
+        'Use Passkey or 2FA to confirm your identity before revealing this channel key.'
+      ),
+    })
+    if (!proof) return
+
     try {
-      await withVerification(fetchChannelKey, {
-        scope: 'channel.key.read',
-        preferredMethod: 'passkey',
-        title: t('Verify to view channel key'),
-        description: t(
-          'Use Passkey or 2FA to confirm your identity before revealing this channel key.'
-        ),
-      })
+      await fetchChannelKey()
     } catch (error) {
       if (error instanceof Error) {
         toast.error(error.message)
       }
     }
-  }, [channelId, withVerification, fetchChannelKey, t])
+  }, [channelId, verification, fetchChannelKey, t])
 
   const handleRefreshCodexCredential = useCallback(async () => {
     if (!channelId) return
@@ -3132,11 +3130,11 @@ export function ChannelMutateDrawer({
                                                 onClick={handleRevealKey}
                                                 disabled={
                                                   isChannelKeyLoading ||
-                                                  verificationState.loading
+                                                  verification.dialogProps.state.phase !== 'idle'
                                                 }
                                               >
                                                 {isChannelKeyLoading ||
-                                                verificationState.loading ? (
+                                                verification.dialogProps.state.phase !== 'idle' ? (
                                                   <Loader2 className='mr-2 h-4 w-4 animate-spin' />
                                                 ) : (
                                                   <Eye className='mr-2 h-4 w-4' />
@@ -4931,22 +4929,7 @@ export function ChannelMutateDrawer({
         existingModelsOverride={currentModelsArray}
       />
 
-      <SecureVerificationDialog
-        open={verificationOpen}
-        onOpenChange={(open) => {
-          if (!open) {
-            cancelVerification()
-          }
-        }}
-        methods={verificationMethods}
-        state={verificationState}
-        onVerify={async (method, code) => {
-          await executeVerification(method, code)
-        }}
-        onCancel={cancelVerification}
-        onCodeChange={setVerificationCode}
-        onMethodChange={switchVerificationMethod}
-      />
+      <SecureVerificationDialog {...verification.dialogProps} />
 
       {/* Missing Models Confirmation Dialog */}
       <MissingModelsConfirmationDialog

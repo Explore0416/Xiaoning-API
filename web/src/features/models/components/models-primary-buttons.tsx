@@ -22,7 +22,6 @@ import {
   MoreHorizontal,
   RefreshCw,
   List,
-  Building2,
   AlertCircle,
 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
@@ -36,12 +35,14 @@ import {
   DropdownMenuShortcut,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
+import { useCanEditModelPricing } from '@/features/model-pricing/api'
 
 import { useModels } from './models-provider'
 
 export function ModelsPrimaryButtons() {
   const { t } = useTranslation()
   const { setOpen, setCurrentRow } = useModels()
+  const canPrice = useCanEditModelPricing()
 
   const handleCreateModel = () => {
     setCurrentRow(null)
@@ -64,12 +65,20 @@ export function ModelsPrimaryButtons() {
     setOpen('prefill-groups')
   }
 
-  const handleManageVendors = () => {
-    setOpen('create-vendor') // Will be a separate vendors management dialog
-  }
-
   return (
-    <div className='flex items-center gap-2'>
+    <div className='flex flex-wrap items-center gap-2'>
+      <Button onClick={handleSync} variant='outline' size='sm'>
+        {t('Sync metadata')}
+      </Button>
+      {canPrice && (
+        <Button
+          onClick={() => setOpen('price-sync')}
+          variant='outline'
+          size='sm'
+        >
+          {t('Sync pricing')}
+        </Button>
+      )}
       {/* Create Model */}
       <Button onClick={handleCreateModel} size='sm'>
         <Plus className='h-4 w-4' />
@@ -78,7 +87,11 @@ export function ModelsPrimaryButtons() {
 
       {/* More Actions */}
       <DropdownMenu>
-        <DropdownMenuTrigger render={<Button variant='outline' size='sm' />}>
+        <DropdownMenuTrigger
+          render={
+            <Button variant='outline' size='sm' aria-label={t('Open menu')} />
+          }
+        >
           <MoreHorizontal className='h-4 w-4' />
         </DropdownMenuTrigger>
         <DropdownMenuContent align='end' className='w-56'>
@@ -102,20 +115,12 @@ export function ModelsPrimaryButtons() {
               <Upload className='h-4 w-4' />
             </DropdownMenuShortcut>
           </DropdownMenuItem>
-
           <DropdownMenuSeparator />
 
           <DropdownMenuItem onClick={handlePrefillGroups}>
             {t('Prefill Groups')}
             <DropdownMenuShortcut>
               <List className='h-4 w-4' />
-            </DropdownMenuShortcut>
-          </DropdownMenuItem>
-
-          <DropdownMenuItem onClick={handleManageVendors}>
-            {t('Manage Vendors')}
-            <DropdownMenuShortcut>
-              <Building2 className='h-4 w-4' />
             </DropdownMenuShortcut>
           </DropdownMenuItem>
         </DropdownMenuContent>
