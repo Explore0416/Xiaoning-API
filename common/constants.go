@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 )
 
-var StartTime = time.Now().Unix() // unit: second
-var Version = "v1.0.0+xiaoning"   // this hard coding will be replaced automatically when building, no need to manually change
+var StartTime = time.Now().Unix()     // unit: second
+var Version = "v1.0.0-rc.41+Xiaoning" // this hard coding will be replaced automatically when building, no need to manually change
 var SystemName = "New API"
 var Footer = ""
 var Logo = ""
