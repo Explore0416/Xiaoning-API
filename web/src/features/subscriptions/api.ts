@@ -30,6 +30,9 @@ import type {
   SubscriptionPayResponse,
   SubscriptionPayRequest,
   SelfSubscriptionData,
+  ResetCardListData,
+  ResetCardUseResult,
+  CreateResetCardsRequest,
 } from './types'
 
 // ============================================================================
@@ -235,5 +238,50 @@ export async function updateBillingPreference(
 
 export async function getGroups(): Promise<ApiResponse<string[]>> {
   const res = await api.get('/api/group')
+  return res.data
+}
+
+// ============================================================================
+// Reset Cards
+// ============================================================================
+
+export async function getSelfResetCards(): Promise<
+  ApiResponse<ResetCardListData>
+> {
+  const res = await api.get('/api/subscription/self/reset_cards')
+  return res.data
+}
+
+export async function useResetCard(
+  cardId: number
+): Promise<ApiResponse<ResetCardUseResult>> {
+  const res = await api.post(`/api/subscription/self/reset_cards/${cardId}/use`)
+  return res.data
+}
+
+export async function adminListUserResetCards(
+  userId: number
+): Promise<ApiResponse<ResetCardListData>> {
+  const res = await api.get(
+    `/api/subscription/admin/users/${userId}/reset_cards`
+  )
+  return res.data
+}
+
+export async function adminCreateResetCards(
+  userId: number,
+  data: CreateResetCardsRequest
+): Promise<ApiResponse<{ count: number }>> {
+  const res = await api.post(
+    `/api/subscription/admin/users/${userId}/reset_cards`,
+    data
+  )
+  return res.data
+}
+
+export async function adminRevokeResetCard(
+  cardId: number
+): Promise<ApiResponse> {
+  const res = await api.delete(`/api/subscription/admin/reset_cards/${cardId}`)
   return res.data
 }

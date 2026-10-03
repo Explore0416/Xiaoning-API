@@ -173,6 +173,8 @@ func SetApiRouter(router *gin.Engine) {
 			subscriptionRoute.GET("/plans", controller.GetSubscriptionPlans)
 			subscriptionRoute.GET("/self", controller.GetSubscriptionSelf)
 			subscriptionRoute.PUT("/self/preference", controller.UpdateSubscriptionPreference)
+			subscriptionRoute.GET("/self/reset_cards", controller.GetSelfResetCards)
+			subscriptionRoute.POST("/self/reset_cards/:id/use", controller.UseResetCard)
 			subscriptionRoute.POST("/balance/pay", middleware.CriticalRateLimit(), controller.SubscriptionRequestBalancePay)
 			subscriptionRoute.POST("/epay/pay", middleware.CriticalRateLimit(), controller.SubscriptionRequestEpay)
 			subscriptionRoute.POST("/stripe/pay", middleware.CriticalRateLimit(), controller.SubscriptionRequestStripePay)
@@ -195,6 +197,11 @@ func SetApiRouter(router *gin.Engine) {
 			subscriptionAdminRoute.POST("/users/:id/subscriptions/reset", controller.AdminResetUserSubscriptionsByPlan)
 			subscriptionAdminRoute.POST("/user_subscriptions/:id/invalidate", controller.AdminInvalidateUserSubscription)
 			subscriptionAdminRoute.DELETE("/user_subscriptions/:id", controller.AdminDeleteUserSubscription)
+
+			// Reset cards (admin)
+			subscriptionAdminRoute.GET("/users/:id/reset_cards", controller.AdminListUserResetCards)
+			subscriptionAdminRoute.POST("/users/:id/reset_cards", controller.AdminCreateResetCards)
+			subscriptionAdminRoute.DELETE("/reset_cards/:id", controller.AdminRevokeResetCard)
 		}
 
 		// Subscription payment callbacks (no auth)

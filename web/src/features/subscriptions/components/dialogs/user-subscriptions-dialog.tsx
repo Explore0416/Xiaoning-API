@@ -16,7 +16,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Ban, Plus, RotateCcw, Trash2 } from 'lucide-react'
+import { Ban, Plus, RotateCcw, Ticket, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { toast } from 'sonner'
@@ -40,6 +40,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuShortcut,
 } from '@/components/ui/dropdown-menu'
+import { Input } from '@/components/ui/input'
 import {
   Sheet,
   SheetContent,
@@ -58,9 +59,12 @@ import {
   invalidateUserSubscription,
   deleteUserSubscription,
   resetUserSubscriptionsByPlan,
+  adminListUserResetCards,
+  adminCreateResetCards,
+  adminRevokeResetCard,
 } from '../../api'
 import { formatTimestamp } from '../../lib'
-import type { PlanRecord, UserSubscriptionRecord } from '../../types'
+import type { PlanRecord, ResetCard, UserSubscriptionRecord } from '../../types'
 
 interface Props {
   open: boolean
@@ -122,6 +126,17 @@ export function UserSubscriptionsDialog(props: Props) {
     subId: number
   } | null>(null)
 
+  // Reset cards
+  const [resetCards, setResetCards] = useState<ResetCard[]>([])
+  const [resetAvailable, setResetAvailable] = useState(0)
+  const [grantOpen, setGrantOpen] = useState(false)
+  const [granting, setGranting] = useState(false)
+  const [grantCount, setGrantCount] = useState('1')
+  const [grantNote, setGrantNote] = useState('')
+  const [grantExpiresDays, setGrantExpiresDays] = useState('0')
+  const [revokeCard, setRevokeCard] = useState<ResetCard | null>(null)
+  const [revoking, setRevoking] = useState(false)
+
   const planTitleMap = useMemo(() => {
     const map = new Map<number, string>()
     plans.forEach((p) => {
@@ -134,9 +149,10 @@ export function UserSubscriptionsDialog(props: Props) {
     if (!props.user?.id) return
     setLoading(true)
     try {
-      const [plansRes, subsRes] = await Promise.all([
+      const [plansRes, subsRes, cardsRes] = await Promise.all([
         getAdminPlans(),
         getUserSubscriptions(props.user.id),
+        adminListUserResetCards(props.user.id),
       ])
       if (plansRes.success) {
         setPlans(plansRes.data || [])
@@ -148,6 +164,12 @@ export function UserSubscriptionsDialog(props: Props) {
       } else {
         handleServerError(subsRes)
       }
+      if (cardsRes.success) {
+        setResetCards(cardsRes.data?.cards || [])
+        setResetAvailable(cardsRes.data?.available || 0)
+      } else {
+        handleServerError(cardsRes)
+      }
     } catch (error) {
       handleServerError(error, t('Loading failed'))
     } finally {
@@ -158,6 +180,9 @@ export function UserSubscriptionsDialog(props: Props) {
   useEffect(() => {
     if (props.open && props.user?.id) {
       setSelectedPlanId('')
+      setGrantCount('1')
+      setGrantNote('')
+      setGrantExpiresDays('0')
       loadData()
     }
   }, [props.open, props.user?.id, loadData])
@@ -240,6 +265,62 @@ export function UserSubscriptionsDialog(props: Props) {
     } finally {
       setResetting(false)
       setResetAction(null)
+    }
+  }
+
+  const handleGrant = async () => {
+    if (!props.user?.id) return
+    const count = Number(grantCount)
+    if (!Number.isInteger(count) || count <= 0 || count > 1000) {
+      toast.error(t('Quantity must be between 1 and 1000'))
+      return
+    }
+    const days = Number(grantExpiresDays)
+    if (!Number.isFinite(days) || days < 0) {
+      toast.error(t('Expiry days cannot be negative'))
+      return
+    }
+    setGranting(true)
+    try {
+      const res = await adminCreateResetCards(props.user.id, {
+        count,
+        note: grantNote.trim(),
+        expires_at: days > 0 ? Math.floor(Date.now() / 1000) + days * 86400 : 0,
+      })
+      if (res.success) {
+        toast.success(
+          t('Issued {{count}} reset cards', { count: res.data?.count || 0 })
+        )
+        setGrantOpen(false)
+        await loadData()
+        props.onSuccess?.()
+      } else {
+        handleServerError(res)
+      }
+    } catch (error) {
+      handleServerError(error, t('Operation failed'))
+    } finally {
+      setGranting(false)
+    }
+  }
+
+  const handleRevoke = async () => {
+    if (!revokeCard) return
+    setRevoking(true)
+    try {
+      const res = await adminRevokeResetCard(revokeCard.id)
+      if (res.success) {
+        toast.success(t('Revoked'))
+        await loadData()
+        props.onSuccess?.()
+      } else {
+        handleServerError(res)
+      }
+    } catch (error) {
+      handleServerError(error, t('Operation failed'))
+    } finally {
+      setRevoking(false)
+      setRevokeCard(null)
     }
   }
 
@@ -409,6 +490,111 @@ export function UserSubscriptionsDialog(props: Props) {
                 },
               ]}
             />
+
+            {/* Reset cards */}
+            <div className='rounded-xl border p-3'>
+              <div className='flex flex-wrap items-center justify-between gap-2'>
+                <div className='flex items-center gap-2 text-sm font-medium'>
+                  <Ticket className='h-4 w-4' />
+                  {t('Reset Cards')}
+                  <StatusBadge
+                    label={`${resetAvailable} ${t('Available')}`}
+                    variant={resetAvailable > 0 ? 'success' : 'neutral'}
+                    copyable={false}
+                  />
+                </div>
+                <Button
+                  size='sm'
+                  variant='outline'
+                  onClick={() => setGrantOpen(true)}
+                  disabled={!props.user?.id}
+                >
+                  <Plus className='mr-1 h-4 w-4' />
+                  {t('Issue reset cards')}
+                </Button>
+              </div>
+
+              {resetCards.length === 0 ? (
+                <p className='text-muted-foreground mt-2 text-xs'>
+                  {t('No reset cards issued')}
+                </p>
+              ) : (
+                <div className='mt-3 max-h-56 space-y-2 overflow-y-auto pr-1'>
+                  {resetCards.map((card) => {
+                    // eslint-disable-next-line react-hooks/purity
+                    const now = Date.now() / 1000
+                    const expired = card.expires_at > 0 && card.expires_at < now
+                    const usable = card.status === 'available' && !expired
+                    let badge = (
+                      <StatusBadge
+                        label={t('Available')}
+                        variant='success'
+                        copyable={false}
+                      />
+                    )
+                    if (card.status === 'used') {
+                      badge = (
+                        <StatusBadge
+                          label={t('Used')}
+                          variant='neutral'
+                          copyable={false}
+                        />
+                      )
+                    } else if (card.status === 'revoked') {
+                      badge = (
+                        <StatusBadge
+                          label={t('Revoked')}
+                          variant='neutral'
+                          copyable={false}
+                        />
+                      )
+                    } else if (expired) {
+                      badge = (
+                        <StatusBadge
+                          label={t('Expired')}
+                          variant='warning'
+                          copyable={false}
+                        />
+                      )
+                    }
+
+                    return (
+                      <div
+                        key={card.id}
+                        className='bg-background flex items-center justify-between gap-3 rounded-md border p-2.5 text-xs'
+                      >
+                        <div className='min-w-0'>
+                          <div className='flex items-center gap-2'>
+                            <span className='font-medium'>
+                              {t('Reset Card')} #{card.id}
+                            </span>
+                            {badge}
+                          </div>
+                          <div className='text-muted-foreground mt-1'>
+                            {card.note ? `${t('Note')}: ${card.note} · ` : null}
+                            {card.expires_at > 0
+                              ? `${t('Expires at')}: ${new Date(
+                                  card.expires_at * 1000
+                                ).toLocaleString()}`
+                              : t('Never expires')}
+                          </div>
+                        </div>
+                        <Button
+                          size='sm'
+                          variant='outline'
+                          className='shrink-0'
+                          disabled={!usable}
+                          onClick={() => setRevokeCard(card)}
+                        >
+                          <Ban className='mr-1 h-3.5 w-3.5' />
+                          {t('Revoke')}
+                        </Button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
           </div>
         </SheetContent>
       </Sheet>
@@ -457,6 +643,66 @@ export function UserSubscriptionsDialog(props: Props) {
             />
           </label>
         </ConfirmDialog>
+      )}
+
+      {grantOpen && (
+        <ConfirmDialog
+          open
+          onOpenChange={(v) => !v && setGrantOpen(false)}
+          title={t('Issue reset cards')}
+          desc={t(
+            'Each reset card lets the user reset the quota of all their active subscriptions once.'
+          )}
+          confirmText={t('Issue reset cards')}
+          handleConfirm={handleGrant}
+          isLoading={granting}
+        >
+          <div className='space-y-3'>
+            <label className='block space-y-1.5 text-sm'>
+              <span>{t('Quantity')}</span>
+              <Input
+                type='number'
+                min={1}
+                max={1000}
+                value={grantCount}
+                onChange={(e) => setGrantCount(e.target.value)}
+              />
+            </label>
+            <label className='block space-y-1.5 text-sm'>
+              <span>{t('Expiry days (0 = never)')}</span>
+              <Input
+                type='number'
+                min={0}
+                value={grantExpiresDays}
+                onChange={(e) => setGrantExpiresDays(e.target.value)}
+              />
+            </label>
+            <label className='block space-y-1.5 text-sm'>
+              <span>{t('Note')}</span>
+              <Input
+                value={grantNote}
+                maxLength={255}
+                onChange={(e) => setGrantNote(e.target.value)}
+                placeholder={t('Optional')}
+              />
+            </label>
+          </div>
+        </ConfirmDialog>
+      )}
+
+      {revokeCard && (
+        <ConfirmDialog
+          open
+          onOpenChange={(v) => !v && setRevokeCard(null)}
+          title={t('Revoke reset card')}
+          desc={t('Revoke reset card #{{id}}? This cannot be undone.', {
+            id: revokeCard.id,
+          })}
+          confirmText={t('Revoke')}
+          destructive
+          handleConfirm={handleRevoke}
+          isLoading={revoking}
+        />
       )}
     </>
   )

@@ -254,6 +254,7 @@ func GetChannelsModelsMatrix(c *gin.Context) {
 		channels = append(channels, *channelMap[id])
 	}
 	common.ApiSuccess(c, channels)
+}
 
 func GetChannelDefaultBaseURLs(c *gin.Context) {
 	baseURLs := make(map[int]string)

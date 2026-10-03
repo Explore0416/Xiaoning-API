@@ -145,6 +145,41 @@ export interface SelfSubscriptionData {
 }
 
 // ============================================================================
+// Reset Card Types
+// ============================================================================
+
+export const resetCardSchema = z.object({
+  id: z.number(),
+  user_id: z.number(),
+  status: z.string(),
+  source: z.string().optional(),
+  note: z.string().optional(),
+  expires_at: z.number(),
+  used_at: z.number(),
+  created_at: z.number(),
+  updated_at: z.number(),
+})
+
+export type ResetCard = z.infer<typeof resetCardSchema>
+
+export interface ResetCardListData {
+  cards: ResetCard[]
+  available: number
+}
+
+export interface CreateResetCardsRequest {
+  count: number
+  expires_at?: number
+  note?: string
+}
+
+export interface ResetCardUseResult {
+  card_id: number
+  reset_count: number
+  subscription_ids: number[]
+}
+
+// ============================================================================
 // Dialog Types
 // ============================================================================
 

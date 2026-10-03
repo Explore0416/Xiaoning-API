@@ -51,6 +51,7 @@ import {
   updateBillingPreference,
 } from '@/features/subscriptions/api'
 import { SubscriptionPurchaseDialog } from '@/features/subscriptions/components/dialogs/subscription-purchase-dialog'
+import { ResetCardsPanel } from '@/features/subscriptions/components/reset-cards-panel'
 import { formatDuration, formatResetPeriod } from '@/features/subscriptions/lib'
 import type {
   PlanRecord,
@@ -521,6 +522,9 @@ export function SubscriptionPlansCard({
             </p>
           )}
         </div>
+
+        {/* Reset cards */}
+        <ResetCardsPanel onUsed={fetchSelfSubscription} />
 
         {/* Available plans grid */}
         {plans.length > 0 ? (

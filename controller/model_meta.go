@@ -511,24 +511,6 @@ func BatchDeleteModels(c *gin.Context) {
 	common.ApiSuccess(c, gin.H{"deleted": names, "referenced": referenced})
 }
 
-// enrichModels 批量填充附加信息：端点、渠道、分组、计费类型，避免 N+1 查询
-func enrichModels(models []*model.Model) {
-	if len(models) == 0 {
-		return
-	}
-	if removePricing && c.GetInt("role") != common.RoleRootUser {
-		c.JSON(http.StatusForbidden, gin.H{"success": false, "message": "Model pricing is managed by a super administrator."})
-		return
-	}
-	result, err := model.DeleteModelMetadata([]int{id}, removeFromChannels, removePricing)
-	if err != nil {
-		common.ApiError(c, err)
-		return
-	}
-	recordManageAudit(c, "model.delete", map[string]any{"model_ids": []int{id}, "remove_from_channels": removeFromChannels, "remove_pricing": removePricing, "updated_channels": result.UpdatedChannels})
-	common.ApiSuccess(c, result)
-}
-
 func BatchDeleteModelMeta(c *gin.Context) {
 	var request struct {
 		ModelIDs           []int `json:"model_ids"`
