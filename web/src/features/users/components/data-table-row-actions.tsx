@@ -28,6 +28,7 @@ import {
   ShieldAlert,
   Link2,
   CreditCard,
+  Ticket,
 } from 'lucide-react'
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -218,6 +219,18 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           {t('Manage Subscriptions')}
           <DropdownMenuShortcut>
             <CreditCard size={16} />
+          </DropdownMenuShortcut>
+        </DropdownMenuItem>
+
+        <DropdownMenuItem
+          onSelect={(event) => {
+            event.preventDefault()
+            setSubscriptionsDialogOpen(true)
+          }}
+        >
+          {t('Reset Cards')}
+          <DropdownMenuShortcut>
+            <Ticket size={16} />
           </DropdownMenuShortcut>
         </DropdownMenuItem>
 

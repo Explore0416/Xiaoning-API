@@ -128,13 +128,8 @@ export function ResetCardsPanel({ onUsed }: Props) {
     return <Skeleton className='h-16 w-full' />
   }
 
-  if (!data || data.cards.length === 0) {
-    return null
-  }
-
-  const availableCards = data.cards.filter(
-    (card) => card.status === 'available' && !isExpired(card)
-  )
+  const cards = data?.cards ?? []
+  const availableCount = data?.available ?? 0
 
   return (
     <>
@@ -146,8 +141,8 @@ export function ResetCardsPanel({ onUsed }: Props) {
               {t('Reset Cards')}
             </span>
             <StatusBadge
-              label={`${data.available} ${t('Available')}`}
-              variant={data.available > 0 ? 'success' : 'neutral'}
+              label={`${availableCount} ${t('Available')}`}
+              variant={availableCount > 0 ? 'success' : 'neutral'}
               copyable={false}
             />
           </div>
@@ -170,51 +165,51 @@ export function ResetCardsPanel({ onUsed }: Props) {
           )}
         </p>
 
-        <div className='mt-3 max-h-56 space-y-2 overflow-y-auto pr-1'>
-          {data.cards.map((card) => {
-            const usable = card.status === 'available' && !isExpired(card)
-
-            return (
-              <div
-                key={card.id}
-                className='bg-background flex items-center justify-between gap-3 rounded-md border p-2.5 text-xs'
-              >
-                <div className='min-w-0'>
-                  <div className='flex items-center gap-2'>
-                    <span className='font-medium'>
-                      {t('Reset Card')} #{card.id}
-                    </span>
-                    <ResetCardStatusBadge card={card} t={t} />
-                  </div>
-                  <div className='text-muted-foreground mt-1'>
-                    {card.note ? `${t('Note')}: ${card.note}` : null}
-                    {card.note ? ' · ' : null}
-                    {card.expires_at > 0
-                      ? `${t('Expires at')}: ${new Date(
-                          card.expires_at * 1000
-                        ).toLocaleString()}`
-                      : t('Never expires')}
-                  </div>
-                </div>
-                <Button
-                  size='sm'
-                  variant='outline'
-                  className='shrink-0'
-                  disabled={!usable}
-                  onClick={() => setConfirmCard(card)}
-                >
-                  <RotateCcw className='mr-1 h-3.5 w-3.5' />
-                  {t('Use')}
-                </Button>
-              </div>
-            )
-          })}
-        </div>
-
-        {availableCards.length === 0 && (
-          <p className='text-muted-foreground mt-2 text-xs'>
+        {cards.length === 0 ? (
+          <p className='text-muted-foreground mt-3 text-xs'>
             {t('No available reset cards')}
           </p>
+        ) : (
+          <div className='mt-3 max-h-56 space-y-2 overflow-y-auto pr-1'>
+            {cards.map((card) => {
+              const usable = card.status === 'available' && !isExpired(card)
+
+              return (
+                <div
+                  key={card.id}
+                  className='bg-background flex items-center justify-between gap-3 rounded-md border p-2.5 text-xs'
+                >
+                  <div className='min-w-0'>
+                    <div className='flex items-center gap-2'>
+                      <span className='font-medium'>
+                        {t('Reset Card')} #{card.id}
+                      </span>
+                      <ResetCardStatusBadge card={card} t={t} />
+                    </div>
+                    <div className='text-muted-foreground mt-1'>
+                      {card.note ? `${t('Note')}: ${card.note}` : null}
+                      {card.note ? ' · ' : null}
+                      {card.expires_at > 0
+                        ? `${t('Expires at')}: ${new Date(
+                            card.expires_at * 1000
+                          ).toLocaleString()}`
+                        : t('Never expires')}
+                    </div>
+                  </div>
+                  <Button
+                    size='sm'
+                    variant='outline'
+                    className='shrink-0'
+                    disabled={!usable}
+                    onClick={() => setConfirmCard(card)}
+                  >
+                    <RotateCcw className='mr-1 h-3.5 w-3.5' />
+                    {t('Use')}
+                  </Button>
+                </div>
+              )
+            })}
+          </div>
         )}
       </div>
 

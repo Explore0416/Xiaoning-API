@@ -336,6 +336,111 @@ export function UserSubscriptionsDialog(props: Props) {
           </SheetHeader>
 
           <div className={sideDrawerFormClassName()}>
+            {/* Reset cards */}
+            <div className='rounded-xl border p-3'>
+              <div className='flex flex-wrap items-center justify-between gap-2'>
+                <div className='flex items-center gap-2 text-sm font-medium'>
+                  <Ticket className='h-4 w-4' />
+                  {t('Reset Cards')}
+                  <StatusBadge
+                    label={`${resetAvailable} ${t('Available')}`}
+                    variant={resetAvailable > 0 ? 'success' : 'neutral'}
+                    copyable={false}
+                  />
+                </div>
+                <Button
+                  size='sm'
+                  variant='outline'
+                  onClick={() => setGrantOpen(true)}
+                  disabled={!props.user?.id}
+                >
+                  <Plus className='mr-1 h-4 w-4' />
+                  {t('Issue reset cards')}
+                </Button>
+              </div>
+
+              {resetCards.length === 0 ? (
+                <p className='text-muted-foreground mt-2 text-xs'>
+                  {t('No reset cards issued')}
+                </p>
+              ) : (
+                <div className='mt-3 max-h-56 space-y-2 overflow-y-auto pr-1'>
+                  {resetCards.map((card) => {
+                    // eslint-disable-next-line react-hooks/purity
+                    const now = Date.now() / 1000
+                    const expired = card.expires_at > 0 && card.expires_at < now
+                    const usable = card.status === 'available' && !expired
+                    let badge = (
+                      <StatusBadge
+                        label={t('Available')}
+                        variant='success'
+                        copyable={false}
+                      />
+                    )
+                    if (card.status === 'used') {
+                      badge = (
+                        <StatusBadge
+                          label={t('Used')}
+                          variant='neutral'
+                          copyable={false}
+                        />
+                      )
+                    } else if (card.status === 'revoked') {
+                      badge = (
+                        <StatusBadge
+                          label={t('Revoked')}
+                          variant='neutral'
+                          copyable={false}
+                        />
+                      )
+                    } else if (expired) {
+                      badge = (
+                        <StatusBadge
+                          label={t('Expired')}
+                          variant='warning'
+                          copyable={false}
+                        />
+                      )
+                    }
+
+                    return (
+                      <div
+                        key={card.id}
+                        className='bg-background flex items-center justify-between gap-3 rounded-md border p-2.5 text-xs'
+                      >
+                        <div className='min-w-0'>
+                          <div className='flex items-center gap-2'>
+                            <span className='font-medium'>
+                              {t('Reset Card')} #{card.id}
+                            </span>
+                            {badge}
+                          </div>
+                          <div className='text-muted-foreground mt-1'>
+                            {card.note ? `${t('Note')}: ${card.note} · ` : null}
+                            {card.expires_at > 0
+                              ? `${t('Expires at')}: ${new Date(
+                                  card.expires_at * 1000
+                                ).toLocaleString()}`
+                              : t('Never expires')}
+                          </div>
+                        </div>
+                        <Button
+                          size='sm'
+                          variant='outline'
+                          className='shrink-0'
+                          disabled={!usable}
+                          onClick={() => setRevokeCard(card)}
+                        >
+                          <Ban className='mr-1 h-3.5 w-3.5' />
+                          {t('Revoke')}
+                        </Button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
             <div className='flex gap-2'>
               <Combobox
                 options={plans.map((p) => ({
@@ -490,111 +595,6 @@ export function UserSubscriptionsDialog(props: Props) {
                 },
               ]}
             />
-
-            {/* Reset cards */}
-            <div className='rounded-xl border p-3'>
-              <div className='flex flex-wrap items-center justify-between gap-2'>
-                <div className='flex items-center gap-2 text-sm font-medium'>
-                  <Ticket className='h-4 w-4' />
-                  {t('Reset Cards')}
-                  <StatusBadge
-                    label={`${resetAvailable} ${t('Available')}`}
-                    variant={resetAvailable > 0 ? 'success' : 'neutral'}
-                    copyable={false}
-                  />
-                </div>
-                <Button
-                  size='sm'
-                  variant='outline'
-                  onClick={() => setGrantOpen(true)}
-                  disabled={!props.user?.id}
-                >
-                  <Plus className='mr-1 h-4 w-4' />
-                  {t('Issue reset cards')}
-                </Button>
-              </div>
-
-              {resetCards.length === 0 ? (
-                <p className='text-muted-foreground mt-2 text-xs'>
-                  {t('No reset cards issued')}
-                </p>
-              ) : (
-                <div className='mt-3 max-h-56 space-y-2 overflow-y-auto pr-1'>
-                  {resetCards.map((card) => {
-                    // eslint-disable-next-line react-hooks/purity
-                    const now = Date.now() / 1000
-                    const expired = card.expires_at > 0 && card.expires_at < now
-                    const usable = card.status === 'available' && !expired
-                    let badge = (
-                      <StatusBadge
-                        label={t('Available')}
-                        variant='success'
-                        copyable={false}
-                      />
-                    )
-                    if (card.status === 'used') {
-                      badge = (
-                        <StatusBadge
-                          label={t('Used')}
-                          variant='neutral'
-                          copyable={false}
-                        />
-                      )
-                    } else if (card.status === 'revoked') {
-                      badge = (
-                        <StatusBadge
-                          label={t('Revoked')}
-                          variant='neutral'
-                          copyable={false}
-                        />
-                      )
-                    } else if (expired) {
-                      badge = (
-                        <StatusBadge
-                          label={t('Expired')}
-                          variant='warning'
-                          copyable={false}
-                        />
-                      )
-                    }
-
-                    return (
-                      <div
-                        key={card.id}
-                        className='bg-background flex items-center justify-between gap-3 rounded-md border p-2.5 text-xs'
-                      >
-                        <div className='min-w-0'>
-                          <div className='flex items-center gap-2'>
-                            <span className='font-medium'>
-                              {t('Reset Card')} #{card.id}
-                            </span>
-                            {badge}
-                          </div>
-                          <div className='text-muted-foreground mt-1'>
-                            {card.note ? `${t('Note')}: ${card.note} · ` : null}
-                            {card.expires_at > 0
-                              ? `${t('Expires at')}: ${new Date(
-                                  card.expires_at * 1000
-                                ).toLocaleString()}`
-                              : t('Never expires')}
-                          </div>
-                        </div>
-                        <Button
-                          size='sm'
-                          variant='outline'
-                          className='shrink-0'
-                          disabled={!usable}
-                          onClick={() => setRevokeCard(card)}
-                        >
-                          <Ban className='mr-1 h-3.5 w-3.5' />
-                          {t('Revoke')}
-                        </Button>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
           </div>
         </SheetContent>
       </Sheet>
