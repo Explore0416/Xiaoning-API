@@ -161,13 +161,17 @@ func UseResetCard(userId int, cardId int) (*ResetCardUseResult, error) {
 			result.SubscriptionIds = append(result.SubscriptionIds, subs[i].Id)
 		}
 
-		if err := tx.Model(&ResetCard{}).
+		spent := tx.Model(&ResetCard{}).
 			Where("id = ? AND status = ?", card.Id, ResetCardStatusAvailable).
 			Updates(map[string]any{
 				"status":  ResetCardStatusUsed,
 				"used_at": now,
-			}).Error; err != nil {
-			return err
+			})
+		if spent.Error != nil {
+			return spent.Error
+		}
+		if spent.RowsAffected == 0 {
+			return errors.New("该重置卡已被使用或已作废")
 		}
 		result.ResetCount = len(subs)
 		return nil
