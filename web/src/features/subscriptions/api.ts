@@ -33,6 +33,7 @@ import type {
   ResetCardListData,
   ResetCardUseResult,
   CreateResetCardsRequest,
+  GrantAllResetCardsResult,
 } from './types'
 
 // ============================================================================
@@ -283,5 +284,15 @@ export async function adminRevokeResetCard(
   cardId: number
 ): Promise<ApiResponse> {
   const res = await api.delete(`/api/subscription/admin/reset_cards/${cardId}`)
+  return res.data
+}
+
+export async function adminCreateResetCardsForAllUsers(
+  data: CreateResetCardsRequest
+): Promise<ApiResponse<GrantAllResetCardsResult>> {
+  const res = await api.post(
+    '/api/subscription/admin/reset_cards/grant_all',
+    data
+  )
   return res.data
 }

@@ -201,6 +201,7 @@ func SetApiRouter(router *gin.Engine) {
 			// Reset cards (admin)
 			subscriptionAdminRoute.GET("/users/:id/reset_cards", controller.AdminListUserResetCards)
 			subscriptionAdminRoute.POST("/users/:id/reset_cards", controller.AdminCreateResetCards)
+			subscriptionAdminRoute.POST("/reset_cards/grant_all", controller.AdminCreateResetCardsForAllUsers)
 			subscriptionAdminRoute.DELETE("/reset_cards/:id", controller.AdminRevokeResetCard)
 		}
 

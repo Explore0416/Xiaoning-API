@@ -173,6 +173,11 @@ export interface CreateResetCardsRequest {
   note?: string
 }
 
+export interface GrantAllResetCardsResult {
+  user_count: number
+  card_count: number
+}
+
 export interface ResetCardUseResult {
   card_id: number
   reset_count: number
@@ -188,3 +193,4 @@ export type SubscriptionsDialogType =
   | 'update'
   | 'toggle-status'
   | 'reset-subscriptions'
+  | 'grant-all-reset-cards'

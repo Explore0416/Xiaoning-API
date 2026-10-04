@@ -76,6 +76,42 @@ func CreateResetCards(userId int, count int, expiresAt int64, note string) ([]Re
 	return cards, nil
 }
 
+// CreateResetCardsForAllUsers issues count cards to every enabled user.
+// It returns the number of users granted and the total number of cards created.
+func CreateResetCardsForAllUsers(count int, expiresAt int64, note string) (int, int64, error) {
+	if count <= 0 || count > 1000 {
+		return 0, 0, errors.New("发放数量应在 1-1000 之间")
+	}
+	if expiresAt > 0 && expiresAt < common.GetTimestamp() {
+		return 0, 0, errors.New("过期时间不能早于当前时间")
+	}
+	var userIds []int
+	if err := DB.Model(&User{}).
+		Where("status = ?", common.UserStatusEnabled).
+		Pluck("id", &userIds).Error; err != nil {
+		return 0, 0, err
+	}
+	if len(userIds) == 0 {
+		return 0, 0, nil
+	}
+	cards := make([]ResetCard, 0, len(userIds)*count)
+	for _, userId := range userIds {
+		for range count {
+			cards = append(cards, ResetCard{
+				UserId:    userId,
+				Status:    ResetCardStatusAvailable,
+				Source:    ResetCardSourceAdmin,
+				Note:      note,
+				ExpiresAt: expiresAt,
+			})
+		}
+	}
+	if err := DB.CreateInBatches(&cards, 100).Error; err != nil {
+		return 0, 0, err
+	}
+	return len(userIds), int64(len(cards)), nil
+}
+
 // GetUserResetCards returns every card of a user, newest first.
 func GetUserResetCards(userId int) ([]ResetCard, error) {
 	var cards []ResetCard

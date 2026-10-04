@@ -106,6 +106,32 @@ func AdminCreateResetCards(c *gin.Context) {
 	})
 }
 
+// AdminCreateResetCardsForAllUsers issues reset cards to every enabled user.
+func AdminCreateResetCardsForAllUsers(c *gin.Context) {
+	var req AdminCreateResetCardsRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ApiErrorMsg(c, "参数错误")
+		return
+	}
+	if req.Count <= 0 {
+		req.Count = 1
+	}
+	userCount, cardCount, err := model.CreateResetCardsForAllUsers(req.Count, req.ExpiresAt, req.Note)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	recordManageAudit(c, "subscription.reset_card_grant_all", map[string]any{
+		"user_count": userCount,
+		"card_count": cardCount,
+		"expires_at": req.ExpiresAt,
+	})
+	common.ApiSuccess(c, gin.H{
+		"user_count": userCount,
+		"card_count": cardCount,
+	})
+}
+
 // AdminRevokeResetCard revokes an unused reset card.
 func AdminRevokeResetCard(c *gin.Context) {
 	cardId, _ := strconv.Atoi(c.Param("id"))
