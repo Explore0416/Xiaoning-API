@@ -80,4 +80,10 @@ var channelPermissionRoutes = []permissionRoute{
 	{method: http.MethodPost, path: "/upstream_updates/detect", permission: authz.ChannelOperate, handler: controller.DetectChannelUpstreamModelUpdates},
 	{method: http.MethodPost, path: "/upstream_updates/detect_all", permission: authz.ChannelOperate, handler: controller.DetectAllChannelUpstreamModelUpdates},
 	{method: http.MethodGet, path: "/models-matrix", permission: authz.ChannelRead, handler: controller.GetChannelsModelsMatrix},
+
+	// Gin 的尾斜杠重定向会被根级通配路由（/:mode/mj）破坏，
+	// 这里显式注册无尾斜杠别名，保证 /api/channel 能直接命中。
+	{method: http.MethodGet, path: "", permission: authz.ChannelRead, handler: controller.GetAllChannels},
+	{method: http.MethodPost, path: "", permission: authz.ChannelSensitiveWrite, handler: controller.AddChannel},
+	{method: http.MethodPut, path: "", permission: authz.ChannelWrite, handler: controller.UpdateChannel},
 }

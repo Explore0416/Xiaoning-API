@@ -446,7 +446,7 @@ test('selecting a plugin opens a prefilled channel and creates its explicit bind
   await user.click(screen.getByRole('button', { name: 'Create Channel' }))
   await waitFor(() => expect(post).toHaveBeenCalled())
   const [url, payload] = post.mock.calls[0]
-  expect(url).toBe('/api/channel')
+  expect(url).toBe('/api/channel/')
   expect(payload).toMatchObject({
     mode: 'single',
     channel: {
@@ -663,7 +663,7 @@ test('creating a migrated provider uses its plugin binding instead of the legacy
   await user.click(screen.getByRole('button', { name: 'Create Channel' }))
   await waitFor(() =>
     expect(post).toHaveBeenCalledWith(
-      '/api/channel',
+      '/api/channel/',
       expect.objectContaining({
         channel: expect.objectContaining({ type: 61 }),
       }),
@@ -778,7 +778,7 @@ test.each(['create', 'edit'])(
     if (mode === 'create') {
       await waitFor(() =>
         expect(post).toHaveBeenCalledWith(
-          '/api/channel',
+          '/api/channel/',
           expect.objectContaining({
             channel: expect.objectContaining({
               type: 1,
@@ -976,7 +976,7 @@ test('loading a replacement plugin preserves an already selected legacy creation
   await user.click(screen.getByRole('button', { name: 'Create Channel' }))
   await waitFor(() =>
     expect(post).toHaveBeenCalledWith(
-      '/api/channel',
+      '/api/channel/',
       expect.objectContaining({
         channel: expect.objectContaining({ type: 55, name: 'Legacy draft' }),
       }),
@@ -1033,7 +1033,7 @@ test.each([
   await user.click(screen.getByRole('button', { name: 'Create Channel' }))
   await waitFor(() =>
     expect(post).toHaveBeenCalledWith(
-      '/api/channel',
+      '/api/channel/',
       expect.objectContaining({
         mode,
         channel: expect.objectContaining({
