@@ -238,7 +238,7 @@ export async function updateBillingPreference(
 }
 
 export async function getGroups(): Promise<ApiResponse<string[]>> {
-  const res = await api.get('/api/group')
+  const res = await api.get('/api/group/')
   return res.data
 }
 

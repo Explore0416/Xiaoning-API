@@ -89,7 +89,7 @@ export async function updateRedemptionStatus(
 
 // Delete a single redemption code
 export async function deleteRedemption(id: number): Promise<ApiResponse> {
-  const res = await api.delete(`/api/redemption/${id}/`)
+  const res = await api.delete(`/api/redemption/${id}`)
   return res.data
 }
 

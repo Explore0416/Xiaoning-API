@@ -696,6 +696,6 @@ export async function getPrefillGroups(
   message?: string
   data?: Array<{ id: number; name: string; items: string | string[] }>
 }> {
-  const res = await api.get('/api/prefill_group', { params: { type } })
+  const res = await api.get('/api/prefill_group/', { params: { type } })
   return res.data
 }

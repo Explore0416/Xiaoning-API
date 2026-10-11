@@ -12,18 +12,9 @@ import (
 )
 
 func GetAllInviteCodes(c *gin.Context) {
-	page, _ := strconv.Atoi(c.Query("page"))
-	pageSize, _ := strconv.Atoi(c.Query("page_size"))
-	if pageSize < 1 {
-		pageSize = 10
-	}
-	if pageSize > 100 {
-		pageSize = 100
-	}
-	if page < 1 {
-		page = 1
-	}
-	startIdx := (page - 1) * pageSize
+	pageInfo := common.GetPageQuery(c)
+	startIdx := pageInfo.GetStartIdx()
+	pageSize := pageInfo.GetPageSize()
 
 	codes, total, err := model.GetAllInviteCodes(startIdx, pageSize)
 	if err != nil {
@@ -41,18 +32,9 @@ func GetAllInviteCodes(c *gin.Context) {
 func SearchInviteCodes(c *gin.Context) {
 	keyword := c.Query("keyword")
 	status := c.Query("status")
-	page, _ := strconv.Atoi(c.Query("page"))
-	pageSize, _ := strconv.Atoi(c.Query("page_size"))
-	if pageSize < 1 {
-		pageSize = 10
-	}
-	if pageSize > 100 {
-		pageSize = 100
-	}
-	if page < 1 {
-		page = 1
-	}
-	startIdx := (page - 1) * pageSize
+	pageInfo := common.GetPageQuery(c)
+	startIdx := pageInfo.GetStartIdx()
+	pageSize := pageInfo.GetPageSize()
 
 	codes, total, err := model.SearchInviteCodes(keyword, status, startIdx, pageSize)
 	if err != nil {
@@ -97,6 +79,70 @@ func GenerateInviteCodes(c *gin.Context) {
 		"message": "",
 		"data":    codes,
 	})
+}
+
+func GetInviteCode(c *gin.Context) {
+	id, _ := strconv.Atoi(c.Param("id"))
+	if id <= 0 {
+		common.ApiErrorMsg(c, "无效的ID")
+		return
+	}
+	code, err := model.GetInviteCodeById(id)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	common.ApiSuccess(c, code)
+}
+
+type UpdateInviteCodeRequest struct {
+	Id          int   `json:"id"`
+	Quota       int   `json:"quota"`
+	MaxUseCount int   `json:"max_use_count"`
+	ExpiredTime int64 `json:"expired_time"`
+	Status      int   `json:"status"`
+}
+
+// UpdateInviteCode updates an invite code. With ?status_only=true only the
+// status changes; otherwise quota, max_use_count and expired_time are applied.
+func UpdateInviteCode(c *gin.Context) {
+	var req UpdateInviteCodeRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		common.ApiErrorI18n(c, i18n.MsgInvalidParams)
+		return
+	}
+	if req.Id <= 0 {
+		common.ApiErrorMsg(c, "无效的ID")
+		return
+	}
+
+	updates := map[string]any{}
+	if c.Query("status_only") == "true" {
+		if req.Status != common.InviteCodeStatusEnabled && req.Status != common.InviteCodeStatusDisabled {
+			common.ApiErrorMsg(c, "参数错误")
+			return
+		}
+		updates["status"] = req.Status
+	} else {
+		if req.Quota < 0 || req.MaxUseCount < 0 || req.ExpiredTime < 0 {
+			common.ApiErrorMsg(c, "参数错误")
+			return
+		}
+		updates["quota"] = req.Quota
+		updates["max_use_count"] = req.MaxUseCount
+		updates["expired_time"] = req.ExpiredTime
+	}
+
+	code, err := model.UpdateInviteCodeFields(req.Id, updates)
+	if err != nil {
+		common.ApiError(c, err)
+		return
+	}
+	recordManageAudit(c, "invite_code.update", map[string]interface{}{
+		"id":          req.Id,
+		"status_only": c.Query("status_only") == "true",
+	})
+	common.ApiSuccess(c, code)
 }
 
 func DeleteInviteCode(c *gin.Context) {

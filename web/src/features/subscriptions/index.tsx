@@ -41,8 +41,11 @@ function SubscriptionsContent() {
           {t('Subscription Management')}
         </SectionPageLayout.Title>
         <SectionPageLayout.Actions>
-          <div className='flex items-center gap-2'>
-            <Alert variant='default' className='hidden px-3 py-2 sm:flex'>
+          <SubscriptionsPrimaryButtons />
+        </SectionPageLayout.Actions>
+        <SectionPageLayout.Content>
+          <div className='flex h-full min-h-0 flex-col gap-4'>
+            <Alert variant='default' className='shrink-0'>
               <Info className='h-4 w-4' />
               <AlertDescription className='text-xs'>
                 {t(
@@ -50,11 +53,6 @@ function SubscriptionsContent() {
                 )}
               </AlertDescription>
             </Alert>
-            <SubscriptionsPrimaryButtons />
-          </div>
-        </SectionPageLayout.Actions>
-        <SectionPageLayout.Content>
-          <div className='flex h-full min-h-0 flex-col gap-4'>
             {!complianceConfirmed ? (
               <Alert variant='destructive' className='shrink-0'>
                 <AlertDescription>

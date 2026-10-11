@@ -89,7 +89,7 @@ export async function updateInviteCodeStatus(
 
 // Delete a single invite code
 export async function deleteInviteCode(id: number): Promise<ApiResponse> {
-  const res = await api.delete(`/api/invite_code/${id}/`)
+  const res = await api.delete(`/api/invite_code/${id}`)
   return res.data
 }
 

@@ -87,7 +87,7 @@ export async function updateApiKey(
 
 // Delete a single API key
 export async function deleteApiKey(id: number): Promise<ApiResponse> {
-  const res = await api.delete(`/api/token/${id}/`)
+  const res = await api.delete(`/api/token/${id}`)
   return res.data
 }
 

@@ -156,6 +156,24 @@ func (ic *InviteCode) Delete() error {
 	return DB.Delete(ic).Error
 }
 
+// UpdateInviteCodeFields applies the given column updates to an invite code and
+// returns the refreshed record.
+func UpdateInviteCodeFields(id int, updates map[string]any) (*InviteCode, error) {
+	if id <= 0 {
+		return nil, errors.New("id 为空！")
+	}
+	if _, err := GetInviteCodeById(id); err != nil {
+		return nil, err
+	}
+	if len(updates) == 0 {
+		return GetInviteCodeById(id)
+	}
+	if err := DB.Model(&InviteCode{}).Where("id = ?", id).Updates(updates).Error; err != nil {
+		return nil, err
+	}
+	return GetInviteCodeById(id)
+}
+
 func DeleteInviteCodeById(id int) (err error) {
 	if id == 0 {
 		return errors.New("id 为空！")

@@ -333,7 +333,9 @@ func SetApiRouter(router *gin.Engine) {
 		{
 			inviteCodeRoute.GET("/", controller.GetAllInviteCodes)
 			inviteCodeRoute.GET("/search", controller.SearchInviteCodes)
+			inviteCodeRoute.GET("/:id", controller.GetInviteCode)
 			inviteCodeRoute.POST("/", controller.GenerateInviteCodes)
+			inviteCodeRoute.PUT("/", controller.UpdateInviteCode)
 			inviteCodeRoute.DELETE("/invalid", controller.DeleteExpiredInviteCodes)
 			inviteCodeRoute.DELETE("/:id", controller.DeleteInviteCode)
 		}

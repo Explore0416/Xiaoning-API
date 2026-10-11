@@ -267,7 +267,7 @@ export async function getMissingModels(): Promise<MissingModelsResponse> {
 export async function getPrefillGroups(
   type?: 'model' | 'tag' | 'endpoint'
 ): Promise<PrefillGroupsResponse> {
-  const res = await api.get('/api/prefill_group', {
+  const res = await api.get('/api/prefill_group/', {
     params: type ? { type } : undefined,
   })
   return res.data
@@ -282,7 +282,7 @@ export async function createPrefillGroup(data: {
   items: string | string[]
   description?: string
 }): Promise<{ success: boolean; message?: string }> {
-  const res = await api.post('/api/prefill_group', data)
+  const res = await api.post('/api/prefill_group/', data)
   return res.data
 }
 
@@ -296,7 +296,7 @@ export async function updatePrefillGroup(data: {
   items?: string | string[]
   description?: string
 }): Promise<{ success: boolean; message?: string }> {
-  const res = await api.put('/api/prefill_group', data)
+  const res = await api.put('/api/prefill_group/', data)
   return res.data
 }
 
