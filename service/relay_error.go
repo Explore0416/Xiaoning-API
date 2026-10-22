@@ -1,7 +1,6 @@
 package service
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/QuantumNous/new-api/common"
@@ -65,7 +64,9 @@ func ProcessChannelError(c *gin.Context, channelError types.ChannelError, err *t
 	if err == nil {
 		return
 	}
-	logger.LogError(c, fmt.Sprintf("channel error (channel #%d, status code: %d): %s", channelError.ChannelId, err.StatusCode, common.LocalLogPreview(err.MaskSensitiveErrorWithStatusCode())))
+	// 带上 error code：上游把私有错误码放在响应体的 code 字段里（例如腾讯 LKEAP 的
+	// 20057 / 20059），只记录 message 时无法按错误码检索日志。
+	logger.LogError(c, common.LogText("channel error (channel #%d, status code: %d, error code: %s): %s", channelError.ChannelId, err.StatusCode, err.GetErrorCode(), common.LocalLogPreview(err.MaskSensitiveErrorWithStatusCode())))
 	if ShouldDisableChannel(err) && channelError.AutoBan {
 		reason := err.MaskSensitiveErrorWithStatusCode()
 		gopool.Go(func() {

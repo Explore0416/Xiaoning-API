@@ -405,6 +405,9 @@ func GetAllModels(offset int, limit int) ([]*Model, error) {
 	return models, err
 }
 
+// GetBoundChannelsByModelsMap lists the channels serving each requested model.
+// Only enabled abilities count, so a model bound solely to disabled routes
+// reports no channel rather than a route that cannot serve it.
 func GetBoundChannelsByModelsMap(modelNames []string) (map[string][]BoundChannel, error) {
 	result := make(map[string][]BoundChannel)
 	if len(modelNames) == 0 {

@@ -292,6 +292,7 @@ const SENSITIVE_FORM_FIELDS = [
   'proxy',
   'http_protocol',
   'http2_connection_shards',
+  'tls_insecure_skip_verify',
   'pass_through_body_enabled',
   'system_prompt',
   'system_prompt_override',

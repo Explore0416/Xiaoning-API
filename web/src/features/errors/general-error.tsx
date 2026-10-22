@@ -46,6 +46,28 @@ export function GeneralError({
   const { t } = useTranslation()
   const navigate = useNavigate()
   const { history } = useRouter()
+  useEffect(() => {
+    if (
+      !(error instanceof Error) ||
+      (error.name !== 'ChunkLoadError' &&
+        !/^Loading (CSS )?chunk .+ failed\./.test(error.message))
+    ) {
+      return
+    }
+
+    // Recover only when the failed route is displayed, never on intent preload.
+    // Keep the marker across reloads so a persistent failure shows this page.
+    try {
+      const key = `tanstack_router_reload:${error.message}`
+      if (sessionStorage.getItem(key)) return
+      sessionStorage.setItem(key, '1')
+    } catch {
+      // Without a persistent marker, reloading could loop indefinitely.
+      return
+    }
+    window.location.reload()
+  }, [error])
+
   const status = getHttpStatus(error)
   const isRateLimited = status === 429
 

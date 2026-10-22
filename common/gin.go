@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"maps"
 	"mime"
 	"mime/multipart"
 	"net/http"
@@ -200,17 +201,56 @@ func GetContextKeyType[T any](c *gin.Context, key constant.ContextKey) (T, bool)
 	return t, false
 }
 
+// ApiError responds with err's text. When err is or wraps a *Message, the
+// response also carries message_key and message_params for the web console.
 func ApiError(c *gin.Context, err error) {
-	// Mask database errors to prevent leaking schema details (P2-1)
-	msg := err.Error()
-	if dbRe.MatchString(msg) {
-		SysLog("database error exposed to client, masking: " + msg)
-		msg = "Internal server error"
-	}
-	c.JSON(http.StatusOK, gin.H{
+	ApiErrorStatus(c, http.StatusOK, err)
+}
+
+// ApiErrorStatus is ApiError with another HTTP status. fields adds response
+// fields such as a stable error code or data.
+func ApiErrorStatus(c *gin.Context, status int, err error, fields ...gin.H) {
+	body := gin.H{
 		"success": false,
-		"message": msg,
-	})
+		"message": maskDatabaseError(err.Error()),
+	}
+	var message *Message
+	if errors.As(err, &message) {
+		maps.Copy(body, message.Fields())
+	}
+	for _, extra := range fields {
+		maps.Copy(body, extra)
+	}
+	c.JSON(status, body)
+}
+
+// maskDatabaseError hides schema details that a raw driver error would leak to
+// the client. Applied centrally so every error response is covered, including
+// the message-key path.
+func maskDatabaseError(msg string) string {
+	if !dbRe.MatchString(msg) {
+		return msg
+	}
+	SysLog("database error exposed to client, masking: " + msg)
+	return "Internal server error"
+}
+
+// ApiErrorT responds with a web console message; key is the English source
+// text, which the web console translates with params.
+func ApiErrorT(c *gin.Context, key string, params ...map[string]any) {
+	ApiError(c, NewMessage(key, params...))
+}
+
+// ApiSuccessT is the success counterpart of ApiErrorT.
+func ApiSuccessT(c *gin.Context, key string, data any, params ...map[string]any) {
+	message := NewMessage(key, params...)
+	body := gin.H{
+		"success": true,
+		"message": message.Error(),
+		"data":    data,
+	}
+	maps.Copy(body, message.Fields())
+	c.JSON(http.StatusOK, body)
 }
 
 func ApiErrorMsg(c *gin.Context, msg string) {
