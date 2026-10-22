@@ -1,7 +1,6 @@
 package controller
 
 import (
-	"fmt"
 	"strconv"
 
 	"github.com/QuantumNous/new-api/common"
@@ -42,7 +41,7 @@ func UseResetCard(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
-	model.RecordLog(userId, model.LogTypeSystem, fmt.Sprintf("使用重置卡 #%d 重置了 %d 个订阅配额", result.CardId, result.ResetCount))
+	model.RecordLog(userId, model.LogTypeSystem, common.NewMessage("Reset card #{{card}} reset {{count}} subscription quotas", map[string]any{"card": result.CardId, "count": result.ResetCount}))
 	common.ApiSuccess(c, result)
 }
 

@@ -7525,6 +7525,7 @@
     "Use": "Use",
     "Use a reset card to reset the quota of all your active subscriptions.": "Use a reset card to reset the quota of all your active subscriptions.",
     "Use reset card": "Use reset card",
-    "Using reset card #{{id}} will reset the quota of all your active subscriptions. Continue?": "Using reset card #{{id}} will reset the quota of all your active subscriptions. Continue?"
+    "Using reset card #{{id}} will reset the quota of all your active subscriptions. Continue?": "Using reset card #{{id}} will reset the quota of all your active subscriptions. Continue?",
+    "Reset card #{{card}} reset {{count}} subscription quotas": "Карта сброса #{{card}} сбросила {{count}} квот подписки"
   }
 }

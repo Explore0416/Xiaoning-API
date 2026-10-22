@@ -7525,6 +7525,7 @@
     "Use": "使用",
     "Use a reset card to reset the quota of all your active subscriptions.": "使用重置卡可重置你全部生效中訂閱的配額。",
     "Use reset card": "使用重置卡",
-    "Using reset card #{{id}} will reset the quota of all your active subscriptions. Continue?": "使用重置卡 #{{id}} 將重置你全部生效中訂閱的配額，是否繼續？"
+    "Using reset card #{{id}} will reset the quota of all your active subscriptions. Continue?": "使用重置卡 #{{id}} 將重置你全部生效中訂閱的配額，是否繼續？",
+    "Reset card #{{card}} reset {{count}} subscription quotas": "重置卡 #{{card}} 已重置 {{count}} 個訂閱配額"
   }
 }
