@@ -305,9 +305,16 @@ func getDeepSeekBalanceUSD(response DeepSeekUsageResponse, usdExchangeRate float
 		if balance < 0 {
 			return 0, errors.New("USD balance must be non-negative")
 		}
-		return balance, nil
+		if balance > 0 {
+			return balance, nil
+		}
 	}
 	if cnyBalance == nil {
+		// An empty USD wallet is a valid balance. Only report a missing
+		// currency when the response carried neither USD nor CNY.
+		if usdBalance != nil {
+			return 0, nil
+		}
 		return 0, errors.New("currency USD or CNY not found")
 	}
 	if math.IsNaN(usdExchangeRate) || math.IsInf(usdExchangeRate, 0) {
@@ -468,6 +475,66 @@ func updateChannelSub2APIBalance(channel *model.Channel) (float64, error) {
 	return *balance, nil
 }
 
+// updateChannelNewAPIBalance reads the upstream key's remaining quota. When the
+// upstream also returns its owner's quota, the smaller of the two is what the
+// key can still spend. Quota converts to USD with the upstream's quota_per_unit.
+func updateChannelNewAPIBalance(channel *model.Channel) (float64, error) {
+	baseURL := strings.TrimRight(channel.GetBaseURL(), "/")
+	if baseURL == "" {
+		return 0, errors.New("New API channel is missing base_url")
+	}
+	body, err := GetResponseBody("GET", baseURL+"/api/usage/token/", channel, GetAuthHeader(channel.Key))
+	if err != nil {
+		return 0, err
+	}
+	var usage struct {
+		Code    bool   `json:"code"`
+		Message string `json:"message"`
+		Data    struct {
+			TotalAvailable float64 `json:"total_available"`
+			UnlimitedQuota bool    `json:"unlimited_quota"`
+			UserQuota      *struct {
+				TotalAvailable float64 `json:"total_available"`
+			} `json:"user_quota"`
+		} `json:"data"`
+	}
+	if err := common.Unmarshal(body, &usage); err != nil {
+		return 0, err
+	}
+	if !usage.Code {
+		return 0, fmt.Errorf("New API usage query failed: %s", usage.Message)
+	}
+	remaining := usage.Data.TotalAvailable
+	if usage.Data.UnlimitedQuota {
+		remaining = math.Inf(1)
+	}
+	if userQuota := usage.Data.UserQuota; userQuota != nil {
+		remaining = min(remaining, userQuota.TotalAvailable)
+	}
+	if math.IsInf(remaining, 1) {
+		return 0, common.NewMessage(`The upstream key has unlimited quota. Turn on "Allow querying user quota" for this key on the upstream to see the real balance.`)
+	}
+
+	body, err = GetResponseBody("GET", baseURL+"/api/status", channel, nil)
+	if err != nil {
+		return 0, err
+	}
+	var status struct {
+		Data struct {
+			QuotaPerUnit float64 `json:"quota_per_unit"`
+		} `json:"data"`
+	}
+	if err := common.Unmarshal(body, &status); err != nil {
+		return 0, err
+	}
+	if status.Data.QuotaPerUnit <= 0 {
+		return 0, errors.New("New API /api/status response is missing quota_per_unit")
+	}
+	balance := remaining / status.Data.QuotaPerUnit
+	channel.UpdateBalance(balance)
+	return balance, nil
+}
+
 func fetchAdvancedCustomBalance(channel *model.Channel) (channelBalanceResult, error) {
 	key := strings.TrimSpace(channel.Key)
 	info := &relaycommon.RelayInfo{
@@ -594,6 +661,8 @@ func updateStandardChannelBalance(channel *model.Channel) (float64, error) {
 		return updateChannelMoonshotBalance(channel)
 	case constant.ChannelTypeSub2API:
 		return updateChannelSub2APIBalance(channel)
+	case constant.ChannelTypeNewAPI:
+		return updateChannelNewAPIBalance(channel)
 	default:
 		return 0, common.NewMessage("Not implemented yet")
 	}

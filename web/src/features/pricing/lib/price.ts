@@ -103,7 +103,7 @@ export function formatDualCurrencyFromUSD(
  * Returns NaN when the required ratio field is missing/null so callers can
  * skip rendering that price type.
  */
-function calculateTokenPrice(
+export function calculateTokenPrice(
   model: PricingModel,
   type: PriceType,
   ratio: number

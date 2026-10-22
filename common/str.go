@@ -136,8 +136,8 @@ func MaskEmail(email string) string {
 
 // MaskSensitiveInfo moved to the conversion kit (kitutil) because the types
 // package error formatting depends on it; host callers keep this name.
-func MaskSensitiveInfo(str string) string {
-	return kitutil.MaskSensitiveInfo(str)
+func MaskSensitiveInfo(str string, upstreamURLs ...string) string {
+	return kitutil.MaskSensitiveInfo(str, upstreamURLs...)
 }
 
 // sanitizePatterns chains regex replacements to strip credentials from log messages.
