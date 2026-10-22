@@ -97,8 +97,9 @@ export async function exportLogs(
   const queryParams = buildQueryParams(
     params as unknown as Record<string, unknown>
   )
+  const exportPath = isAdmin ? '/api/log/export' : '/api/log/self/export'
   const response = await fetch(
-    `${buildApiPath('/api/log', isAdmin)}/export?${queryParams}`,
+    `${exportPath}?${queryParams}`,
     {
       credentials: 'include',
       headers: await getFreshAuthHeaders(),
