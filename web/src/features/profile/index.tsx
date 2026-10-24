@@ -25,6 +25,7 @@ import { useStatus } from '@/hooks/use-status'
 import { useAuthStore } from '@/stores/auth-store'
 
 import { CheckinCalendarCard } from './components/checkin-calendar-card'
+import { GitHubStarTaskCard } from './components/github-star-task-card'
 import { LanguagePreferencesCard } from './components/language-preferences-card'
 import { ProfileHeader } from './components/profile-header'
 import { ProfileSettingsCard } from './components/profile-settings-card'
@@ -37,6 +38,7 @@ export function Profile() {
   const permissions = useAuthStore((s) => s.auth.user?.permissions)
 
   const checkinEnabled = status?.checkin_enabled === true
+  const githubStarEnabled = status?.github_star_enabled === true
   const turnstileEnabled = !!(
     status?.turnstile_check && status?.turnstile_site_key
   )
@@ -78,6 +80,7 @@ export function Profile() {
                     turnstileSiteKey={turnstileSiteKey}
                   />
                 )}
+                {githubStarEnabled && <GitHubStarTaskCard />}
                 {canConfigureSidebar && <SidebarModulesCard />}
               </div>
             </div>

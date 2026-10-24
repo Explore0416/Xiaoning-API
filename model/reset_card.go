@@ -13,7 +13,9 @@ const (
 	ResetCardStatusUsed      = "used"
 	ResetCardStatusRevoked   = "revoked"
 
-	ResetCardSourceAdmin = "admin"
+	ResetCardSourceAdmin      = "admin"
+	ResetCardSourceRedeem     = "redeem"
+	ResetCardSourceGitHubStar = "github_star"
 )
 
 // ResetCard grants its owner one manual reset of their active subscription quota.
@@ -74,6 +76,27 @@ func CreateResetCards(userId int, count int, expiresAt int64, note string) ([]Re
 		return nil, err
 	}
 	return cards, nil
+}
+
+// createResetCardsTx issues count never-expiring cards inside an existing
+// transaction, so redemption codes and task rewards are granted atomically.
+func createResetCardsTx(tx *gorm.DB, userId int, count int, source string, note string) error {
+	if userId <= 0 {
+		return errors.New("无效的用户ID")
+	}
+	if count <= 0 || count > 1000 {
+		return errors.New("发放数量应在 1-1000 之间")
+	}
+	cards := make([]ResetCard, 0, count)
+	for range count {
+		cards = append(cards, ResetCard{
+			UserId: userId,
+			Status: ResetCardStatusAvailable,
+			Source: source,
+			Note:   note,
+		})
+	}
+	return tx.Create(&cards).Error
 }
 
 // CreateResetCardsForAllUsers issues count cards to every enabled user.

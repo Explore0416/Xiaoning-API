@@ -107,6 +107,12 @@ const defaultBillingSettings: BillingSettings = {
   'checkin_setting.enabled': false,
   'checkin_setting.min_quota': 1000,
   'checkin_setting.max_quota': 10000,
+  'github_star_setting.enabled': false,
+  'github_star_setting.repo': '',
+  'github_star_setting.reward_type': 'quota',
+  'github_star_setting.quota': 10000,
+  'github_star_setting.reset_card_count': 1,
+  'github_star_setting.token': '',
 }
 
 export function BillingSettings() {

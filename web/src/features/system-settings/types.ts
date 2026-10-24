@@ -216,6 +216,7 @@ export type ContentSettings = {
   'console_setting.announcements_enabled': boolean
   'console_setting.faq_enabled': boolean
   'console_setting.uptime_kuma_enabled': boolean
+  'console_setting.overview_card_enabled': boolean
   DataExportEnabled: boolean
   DataExportDefaultTime: string
   DataExportInterval: number
@@ -357,6 +358,12 @@ export type BillingSettings = {
   'checkin_setting.enabled': boolean
   'checkin_setting.min_quota': number
   'checkin_setting.max_quota': number
+  'github_star_setting.enabled': boolean
+  'github_star_setting.repo': string
+  'github_star_setting.reward_type': string
+  'github_star_setting.quota': number
+  'github_star_setting.reset_card_count': number
+  'github_star_setting.token': string
 }
 
 export type OperationsSettings = {

@@ -190,6 +190,9 @@ export interface SystemStatus {
   quota_remind_enabled?: boolean
   /** Site default low balance reminder threshold, in quota units */
   quota_remind_threshold?: number
+  checkin_enabled?: boolean
+  github_star_enabled?: boolean
+  overview_card_enabled?: boolean
   [key: string]: unknown
 }
 

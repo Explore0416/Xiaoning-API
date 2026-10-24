@@ -28,6 +28,7 @@ export const redemptionSchema = z.object({
   name: z.string(),
   key: z.string(),
   status: z.number(), // 1: enabled, 2: disabled, 3: used
+  type: z.string().optional(), // quota or reset_card
   quota: z.number(),
   created_time: z.number(),
   redeemed_time: z.number(),
@@ -73,6 +74,7 @@ export interface SearchRedemptionsParams {
 export interface RedemptionFormData {
   id?: number
   name: string
+  type?: string
   quota: number
   expired_time: number
   count?: number // Only for create

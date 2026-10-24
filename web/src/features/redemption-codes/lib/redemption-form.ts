@@ -34,14 +34,23 @@ import type { RedemptionFormData, Redemption } from '../types'
 // Form Schema (use getRedemptionFormSchema(t) in components for i18n messages)
 // ============================================================================
 
+export const REDEMPTION_TYPE_QUOTA = 'quota'
+export const REDEMPTION_TYPE_RESET_CARD = 'reset_card'
+
+export type RedemptionType =
+  | typeof REDEMPTION_TYPE_QUOTA
+  | typeof REDEMPTION_TYPE_RESET_CARD
+
 export function getRedemptionFormSchema(t: TFunction) {
   const msg = getRedemptionFormErrorMessages(t)
   return z.object({
+    type: z.enum([REDEMPTION_TYPE_QUOTA, REDEMPTION_TYPE_RESET_CARD]),
     name: z
       .string()
       .min(REDEMPTION_VALIDATION.NAME_MIN_LENGTH, msg.NAME_LENGTH_INVALID)
       .max(REDEMPTION_VALIDATION.NAME_MAX_LENGTH, msg.NAME_LENGTH_INVALID),
     quota_dollars: z.number().min(0, t('Quota must be a positive number')),
+    reset_card_count: z.number().min(1).max(1000).optional(),
     expired_time: z.date().optional(),
     count: z
       .number()
@@ -52,8 +61,10 @@ export function getRedemptionFormSchema(t: TFunction) {
 }
 
 export type RedemptionFormValues = {
+  type: RedemptionType
   name: string
   quota_dollars: number
+  reset_card_count?: number
   expired_time?: Date
   count?: number
 }
@@ -63,8 +74,10 @@ export type RedemptionFormValues = {
 // ============================================================================
 
 export const REDEMPTION_FORM_DEFAULT_VALUES: RedemptionFormValues = {
+  type: REDEMPTION_TYPE_QUOTA,
   name: '',
   quota_dollars: 10,
+  reset_card_count: 1,
   expired_time: undefined,
   count: 1,
 }
@@ -81,7 +94,11 @@ export function transformFormDataToPayload(
 ): RedemptionFormData {
   return {
     name: data.name,
-    quota: parseQuotaFromDollars(data.quota_dollars),
+    type: data.type,
+    quota:
+      data.type === REDEMPTION_TYPE_RESET_CARD
+        ? data.reset_card_count || 1
+        : parseQuotaFromDollars(data.quota_dollars),
     expired_time: data.expired_time
       ? Math.floor(data.expired_time.getTime() / 1000)
       : 0,
@@ -95,9 +112,19 @@ export function transformFormDataToPayload(
 export function transformRedemptionToFormDefaults(
   redemption: Redemption
 ): RedemptionFormValues {
+  const type =
+    redemption.type === REDEMPTION_TYPE_RESET_CARD
+      ? REDEMPTION_TYPE_RESET_CARD
+      : REDEMPTION_TYPE_QUOTA
   return {
+    type,
     name: redemption.name,
-    quota_dollars: quotaUnitsToEditableAmount(redemption.quota),
+    quota_dollars:
+      type === REDEMPTION_TYPE_RESET_CARD
+        ? 10
+        : quotaUnitsToEditableAmount(redemption.quota),
+    reset_card_count:
+      type === REDEMPTION_TYPE_RESET_CARD ? redemption.quota : 1,
     expired_time:
       redemption.expired_time > 0
         ? new Date(redemption.expired_time * 1000)

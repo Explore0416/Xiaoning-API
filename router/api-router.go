@@ -147,6 +147,10 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.GET("/checkin", controller.GetCheckinStatus)
 				selfRoute.POST("/checkin", middleware.TurnstileCheck(), controller.DoCheckin)
 
+				// GitHub star task routes
+				selfRoute.GET("/github_star", controller.GetGitHubStarTaskStatus)
+				selfRoute.POST("/github_star", middleware.UserCriticalRateLimit("github-star"), controller.ClaimGitHubStarReward)
+
 				// Custom OAuth bindings
 				selfRoute.GET("/oauth/bindings", controller.GetUserOAuthBindings)
 				selfRoute.DELETE("/oauth/bindings/:provider_id", controller.UnbindCustomOAuth)

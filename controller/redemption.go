@@ -84,13 +84,21 @@ func AddRedemption(c *gin.Context) {
 		common.ApiErrorT(c, "Maximum 100 redemption codes can be generated at once")
 		return
 	}
-	if redemption.Quota <= 0 {
-		common.ApiErrorT(c, "Redemption quota must be positive")
-		return
-	}
-	if err := common.ValidateWalletQuota(redemption.Quota); err != nil {
-		common.ApiError(c, err)
-		return
+	redemption.Type = normalizeRedemptionType(redemption.Type)
+	if redemption.Type == model.RedemptionTypeResetCard {
+		if redemption.Quota <= 0 || redemption.Quota > 1000 {
+			common.ApiErrorT(c, "Reset card count must be between 1-1000")
+			return
+		}
+	} else {
+		if redemption.Quota <= 0 {
+			common.ApiErrorT(c, "Redemption quota must be positive")
+			return
+		}
+		if err := common.ValidateWalletQuota(redemption.Quota); err != nil {
+			common.ApiError(c, err)
+			return
+		}
 	}
 	if err := validateExpiredTime(redemption.ExpiredTime); err != nil {
 		common.ApiError(c, err)
@@ -103,6 +111,7 @@ func AddRedemption(c *gin.Context) {
 			UserId:      c.GetInt("id"),
 			Name:        redemption.Name,
 			Key:         key,
+			Type:        redemption.Type,
 			CreatedTime: common.GetTimestamp(),
 			Quota:       redemption.Quota,
 			ExpiredTime: redemption.ExpiredTime,
@@ -117,6 +126,7 @@ func AddRedemption(c *gin.Context) {
 	}
 	recordManageAudit(c, "redemption.create", map[string]any{
 		"name":  redemption.Name,
+		"type":  redemption.Type,
 		"count": redemption.Count,
 		"quota": logger.FormatQuota(redemption.Quota),
 	})
@@ -156,13 +166,21 @@ func UpdateRedemption(c *gin.Context) {
 		return
 	}
 	if statusOnly == "" {
-		if redemption.Quota <= 0 {
-			common.ApiErrorT(c, "Redemption quota must be positive")
-			return
-		}
-		if err := common.ValidateWalletQuota(redemption.Quota); err != nil {
-			common.ApiError(c, err)
-			return
+		redemption.Type = normalizeRedemptionType(redemption.Type)
+		if redemption.Type == model.RedemptionTypeResetCard {
+			if redemption.Quota <= 0 || redemption.Quota > 1000 {
+				common.ApiErrorT(c, "Reset card count must be between 1-1000")
+				return
+			}
+		} else {
+			if redemption.Quota <= 0 {
+				common.ApiErrorT(c, "Redemption quota must be positive")
+				return
+			}
+			if err := common.ValidateWalletQuota(redemption.Quota); err != nil {
+				common.ApiError(c, err)
+				return
+			}
 		}
 		if err := validateExpiredTime(redemption.ExpiredTime); err != nil {
 			common.ApiError(c, err)
@@ -170,6 +188,7 @@ func UpdateRedemption(c *gin.Context) {
 		}
 		// If you add more fields, please also update redemption.Update()
 		cleanRedemption.Name = redemption.Name
+		cleanRedemption.Type = redemption.Type
 		cleanRedemption.Quota = redemption.Quota
 		cleanRedemption.ExpiredTime = redemption.ExpiredTime
 	}
@@ -208,6 +227,13 @@ func validateExpiredTime(expired int64) error {
 		return common.NewMessage("Expiration time cannot be earlier than current time")
 	}
 	return nil
+}
+
+func normalizeRedemptionType(value string) string {
+	if value == model.RedemptionTypeResetCard {
+		return model.RedemptionTypeResetCard
+	}
+	return model.RedemptionTypeQuota
 }
 
 func DeleteRedemptionBatch(c *gin.Context) {

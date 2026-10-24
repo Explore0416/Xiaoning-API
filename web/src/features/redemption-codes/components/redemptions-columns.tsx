@@ -159,9 +159,14 @@ export function useRedemptionsColumns(): ColumnDef<Redemption>[] {
       header: t('Quota'),
       cell: ({ row }) => {
         const quota = row.getValue('quota') as number
+        const isResetCard = row.original.type === 'reset_card'
         return (
           <StatusBadge
-            label={formatQuota(quota)}
+            label={
+              isResetCard
+                ? t('{{count}} reset cards', { count: quota })
+                : formatQuota(quota)
+            }
             variant='neutral'
             copyable={false}
             className='-ml-1.5'

@@ -28,6 +28,8 @@ export {
   getRedemptionFormSchema,
   type RedemptionFormValues,
   REDEMPTION_FORM_DEFAULT_VALUES,
+  REDEMPTION_TYPE_QUOTA,
+  REDEMPTION_TYPE_RESET_CARD,
   transformFormDataToPayload,
   transformRedemptionToFormDefaults,
 } from './redemption-form'

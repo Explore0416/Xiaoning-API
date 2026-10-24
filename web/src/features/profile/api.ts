@@ -29,6 +29,8 @@ import type {
   UpdateUserSettingsRequest,
   CheckinStatusResponse,
   CheckinResponse,
+  GitHubStarTaskStatus,
+  GitHubStarClaimResponse,
   AccountSecurityResult,
   EmailBindingFlow,
 } from './types'
@@ -303,5 +305,31 @@ export async function performCheckin(
     ? `/api/user/checkin?turnstile=${encodeURIComponent(turnstileToken)}`
     : '/api/user/checkin'
   const res = await api.post(url)
+  return res.data
+}
+
+// ============================================================================
+// GitHub Star Task APIs
+// ============================================================================
+
+/**
+ * Get the GitHub star task configuration and current claim state
+ */
+export async function getGitHubStarTaskStatus(): Promise<
+  ApiResponse<GitHubStarTaskStatus>
+> {
+  const res = await api.get('/api/user/github_star')
+  return res.data
+}
+
+/**
+ * Claim the GitHub star reward; the backend verifies the star state
+ */
+export async function claimGitHubStarReward(
+  githubUsername?: string
+): Promise<ApiResponse<GitHubStarClaimResponse>> {
+  const res = await api.post('/api/user/github_star', {
+    github_username: githubUsername || '',
+  })
   return res.data
 }

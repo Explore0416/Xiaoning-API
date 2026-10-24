@@ -25,6 +25,7 @@ import { PaymentSettingsSection } from '../integrations/payment-settings-section
 import { RatioSettingsCard } from '../models/ratio-settings-card'
 import type { BillingSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
+import { GitHubStarSettingsSection } from './github-star-settings-section'
 
 const getModelDefaults = (settings: BillingSettings) => ({
   ModelPrice: settings.ModelPrice,
@@ -203,6 +204,22 @@ const BILLING_SECTIONS = [
           enabled: settings['checkin_setting.enabled'],
           minQuota: settings['checkin_setting.min_quota'],
           maxQuota: settings['checkin_setting.max_quota'],
+        }}
+      />
+    ),
+  },
+  {
+    id: 'github-star',
+    titleKey: 'GitHub Star Task',
+    build: (settings: BillingSettings) => (
+      <GitHubStarSettingsSection
+        defaultValues={{
+          enabled: settings['github_star_setting.enabled'],
+          repo: settings['github_star_setting.repo'],
+          rewardType: settings['github_star_setting.reward_type'],
+          quota: settings['github_star_setting.quota'],
+          resetCardCount: settings['github_star_setting.reset_card_count'],
+          token: settings['github_star_setting.token'],
         }}
       />
     ),

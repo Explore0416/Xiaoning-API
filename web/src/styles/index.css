@@ -98,6 +98,84 @@ For commercial licensing, please contact support@quantumnous.com
   .json-code-editor-highlight .yace-tok--com {
     color: var(--muted-foreground);
   }
+
+  /* Black-gold API membership card shown on the dashboard overview */
+  .xn-bank-card {
+    position: relative;
+    display: flex;
+    aspect-ratio: 1.586 / 1;
+    width: 100%;
+    flex-direction: column;
+    justify-content: space-between;
+    overflow: hidden;
+    border: 1px solid #3d2f14;
+    border-radius: calc(var(--radius) + 0.5rem);
+    padding: 1.25rem;
+    color: #f2d98a;
+    background:
+      radial-gradient(120% 130% at 88% 0%, #3a2c0d 0%, transparent 55%),
+      linear-gradient(135deg, #16110a 0%, #0a0705 48%, #1b1408 100%);
+    box-shadow:
+      inset 0 1px 0 rgb(255 225 150 / 0.12),
+      inset 0 -1px 0 rgb(0 0 0 / 0.4);
+  }
+
+  .xn-bank-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(
+      115deg,
+      transparent 30%,
+      rgb(247 231 176 / 0.06) 46%,
+      transparent 60%
+    );
+  }
+
+  .xn-bank-card__brand {
+    font-family: var(--font-sans);
+    font-size: 1rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    background: linear-gradient(90deg, #f7e7b0 0%, #d4af37 55%, #f7e7b0 100%);
+    background-clip: text;
+    color: transparent;
+  }
+
+  .xn-bank-card__label {
+    color: #8a7742;
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .xn-bank-card__value {
+    margin-top: 0.125rem;
+    color: #e8d191;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+
+  .xn-bank-card__number {
+    font-family:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono',
+      monospace;
+    font-size: 1.125rem;
+    letter-spacing: 0.12em;
+    color: #f2d98a;
+    text-shadow: 0 1px 0 rgb(0 0 0 / 0.5);
+  }
+
+  .xn-bank-card__chip {
+    width: 2.5rem;
+    height: 1.875rem;
+    border: 1px solid #a8862f;
+    border-radius: 0.375rem;
+    background: linear-gradient(135deg, #f3dc9a 0%, #c9a227 45%, #f7e7b0 100%);
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.25);
+  }
 }
 
 @layer base {

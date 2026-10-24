@@ -239,3 +239,30 @@ export interface CheckinResponse {
   /** Quota awarded for this check-in */
   quota_awarded: number
 }
+
+// ============================================================================
+// GitHub Star Task Type Definitions
+// ============================================================================
+
+export interface GitHubStarTaskStatus {
+  /** Whether the GitHub star task is enabled */
+  enabled: boolean
+  /** Repository in owner/repo format */
+  repo: string
+  /** Reward type: quota or reset_card */
+  reward_type: 'quota' | 'reset_card'
+  /** Quota reward amount */
+  quota: number
+  /** Reset cards granted when reward_type is reset_card */
+  reset_card_count: number
+  /** Whether the current user has already claimed */
+  claimed: boolean
+  /** Claim timestamp */
+  claimed_at?: number
+}
+
+export interface GitHubStarClaimResponse {
+  reward_type: 'quota' | 'reset_card'
+  quota: number
+  reset_card_count: number
+}

@@ -44,13 +44,25 @@ export function useRedemption() {
       const response = await redeemTopupCode({ key: code })
 
       if (response.success && response.data) {
-        const quotaAdded = response.data
-        toast.success(
-          i18next.t('Redemption successful! Added: {{quota}}', {
-            quota: formatQuota(quotaAdded),
-          })
-        )
+        const result = response.data
+        if (result.type === 'reset_card') {
+          toast.success(
+            i18next.t(
+              'Redemption successful! Received {{count}} reset cards',
+              { count: result.reset_card_count }
+            )
+          )
+        } else {
+          toast.success(
+            i18next.t('Redemption successful! Added: {{quota}}', {
+              quota: formatQuota(result.quota),
+            })
+          )
+        }
         await getSelf()
+        if (result.type === 'reset_card') {
+          window.dispatchEvent(new Event('reset-cards:refresh'))
+        }
         return true
       }
 

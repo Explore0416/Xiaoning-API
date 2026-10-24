@@ -91,6 +91,16 @@ export function ResetCardsPanel({ onUsed }: Props) {
     init()
   }, [loadData])
 
+  useEffect(() => {
+    const refreshFromEvent = () => {
+      void loadData()
+    }
+    window.addEventListener('reset-cards:refresh', refreshFromEvent)
+    return () => {
+      window.removeEventListener('reset-cards:refresh', refreshFromEvent)
+    }
+  }, [loadData])
+
   const handleRefresh = async () => {
     setRefreshing(true)
     try {

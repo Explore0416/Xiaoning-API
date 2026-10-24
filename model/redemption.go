@@ -10,12 +10,18 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	RedemptionTypeQuota     = "quota"
+	RedemptionTypeResetCard = "reset_card"
+)
+
 type Redemption struct {
 	Id           int            `json:"id"`
 	UserId       int            `json:"user_id"`
 	Key          string         `json:"key" gorm:"type:char(32);uniqueIndex"`
 	Status       int            `json:"status" gorm:"default:1"`
 	Name         string         `json:"name" gorm:"index"`
+	Type         string         `json:"type" gorm:"type:varchar(16);default:'quota'"`
 	Quota        int            `json:"quota" gorm:"default:100"`
 	CreatedTime  int64          `json:"created_time" gorm:"bigint"`
 	RedeemedTime int64          `json:"redeemed_time" gorm:"bigint"`
@@ -23,6 +29,22 @@ type Redemption struct {
 	UsedUserId   int            `json:"used_user_id"`
 	DeletedAt    gorm.DeletedAt `gorm:"index"`
 	ExpiredTime  int64          `json:"expired_time" gorm:"bigint"` // 过期时间，0 表示不过期
+}
+
+// EffectiveType returns the stored redemption type, treating an empty value as
+// a quota code so rows created before this field existed keep working.
+func (redemption *Redemption) EffectiveType() string {
+	if redemption.Type == RedemptionTypeResetCard {
+		return RedemptionTypeResetCard
+	}
+	return RedemptionTypeQuota
+}
+
+// RedeemResult describes what a redemption code granted.
+type RedeemResult struct {
+	Type           string `json:"type"`
+	Quota          int    `json:"quota"`
+	ResetCardCount int    `json:"reset_card_count"`
 }
 
 func GetAllRedemptions(startIdx int, num int) (redemptions []*Redemption, total int64, err error) {
@@ -133,21 +155,22 @@ func GetRedemptionById(id int) (*Redemption, error) {
 	return &redemption, err
 }
 
-func Redeem(key string, userId int) (quota int, err error) {
+func Redeem(key string, userId int) (*RedeemResult, error) {
 	if key == "" {
-		return 0, errors.New("redemption code not provided")
+		return nil, errors.New("redemption code not provided")
 	}
 	if userId == 0 {
-		return 0, errors.New("invalid user id")
+		return nil, errors.New("invalid user id")
 	}
 	redemption := &Redemption{}
+	result := &RedeemResult{Type: RedemptionTypeQuota}
 
 	keyCol := "`key`"
 	if common.UsingMainDatabase(common.DatabaseTypePostgreSQL) {
 		keyCol = `"key"`
 	}
 	common.RandomSleep()
-	err = DB.Transaction(func(tx *gorm.DB) error {
+	err := DB.Transaction(func(tx *gorm.DB) error {
 		err := lockForUpdate(tx).Where(keyCol+" = ?", key).First(redemption).Error
 		if err != nil {
 			return errors.New("invalid redemption code")
@@ -159,38 +182,65 @@ func Redeem(key string, userId int) (quota int, err error) {
 			return errors.New("redemption code expired")
 		}
 		// Compare-and-swap on status: only the transaction that flips
-		// enabled -> used may credit quota, so a concurrent redeem of the
+		// enabled -> used may grant the reward, so a concurrent redeem of the
 		// same code loses here even without a row lock (e.g. on SQLite).
-		result := tx.Model(&Redemption{}).
+		updated := tx.Model(&Redemption{}).
 			Where("id = ? AND status = ?", redemption.Id, common.RedemptionCodeStatusEnabled).
 			Updates(map[string]any{
 				"redeemed_time": common.GetTimestamp(),
 				"status":        common.RedemptionCodeStatusUsed,
 				"used_user_id":  userId,
 			})
-		if result.Error != nil {
-			return result.Error
+		if updated.Error != nil {
+			return updated.Error
 		}
-		if result.RowsAffected == 0 {
+		if updated.RowsAffected == 0 {
 			return errors.New("redemption code already used")
 		}
-		return creditTopUpQuota(tx, userId, redemption.Quota, nil)
+		result.Type = redemption.EffectiveType()
+		if result.Type == RedemptionTypeResetCard {
+			if redemption.Quota <= 0 || redemption.Quota > 1000 {
+				return errors.New("invalid reset card count")
+			}
+			note := "Redemption code #" + strconv.Itoa(redemption.Id)
+			if err := createResetCardsTx(tx, userId, redemption.Quota, ResetCardSourceRedeem, note); err != nil {
+				return err
+			}
+			result.ResetCardCount = redemption.Quota
+			return nil
+		}
+		if err := creditTopUpQuota(tx, userId, redemption.Quota, nil); err != nil {
+			return err
+		}
+		result.Quota = redemption.Quota
+		return nil
 	})
 	if err != nil {
 		common.SysError(common.LogText("redemption failed: %s", err.Error()))
-		return 0, ErrRedeemFailed
+		return nil, ErrRedeemFailed
 	}
-	syncCreditUserQuotaCache(userId, redemption.Quota, common.LogText("redemption"))
-	RecordLog(userId, LogTypeTopup, common.NewMessage("Topped up {{quota}} with a redemption code, code ID {{id}}", map[string]any{"quota": logger.FormatQuota(redemption.Quota), "id": redemption.Id}))
-	return redemption.Quota, nil
+	if result.Type == RedemptionTypeResetCard {
+		RecordLog(userId, LogTypeSystem, common.NewMessage("Received {{count}} reset cards with a redemption code, code ID {{id}}", map[string]any{"count": result.ResetCardCount, "id": redemption.Id}))
+		return result, nil
+	}
+	syncCreditUserQuotaCache(userId, result.Quota, common.LogText("redemption"))
+	RecordLog(userId, LogTypeTopup, common.NewMessage("Topped up {{quota}} with a redemption code, code ID {{id}}", map[string]any{"quota": logger.FormatQuota(result.Quota), "id": redemption.Id}))
+	return result, nil
 }
 
 func (redemption *Redemption) Insert() error {
-	if redemption.Quota <= 0 {
-		return errors.New("redemption quota must be positive")
-	}
-	if err := common.ValidateWalletQuota(redemption.Quota); err != nil {
-		return err
+	redemption.Type = redemption.EffectiveType()
+	if redemption.Type == RedemptionTypeResetCard {
+		if redemption.Quota <= 0 || redemption.Quota > 1000 {
+			return errors.New("reset card count must be between 1 and 1000")
+		}
+	} else {
+		if redemption.Quota <= 0 {
+			return errors.New("redemption quota must be positive")
+		}
+		if err := common.ValidateWalletQuota(redemption.Quota); err != nil {
+			return err
+		}
 	}
 	var err error
 	err = DB.Create(redemption).Error
@@ -204,14 +254,21 @@ func (redemption *Redemption) SelectUpdate() error {
 
 // Update Make sure your token's fields is completed, because this will update non-zero values
 func (redemption *Redemption) Update() error {
-	if redemption.Quota <= 0 {
-		return errors.New("redemption quota must be positive")
-	}
-	if err := common.ValidateWalletQuota(redemption.Quota); err != nil {
-		return err
+	redemption.Type = redemption.EffectiveType()
+	if redemption.Type == RedemptionTypeResetCard {
+		if redemption.Quota <= 0 || redemption.Quota > 1000 {
+			return errors.New("reset card count must be between 1 and 1000")
+		}
+	} else {
+		if redemption.Quota <= 0 {
+			return errors.New("redemption quota must be positive")
+		}
+		if err := common.ValidateWalletQuota(redemption.Quota); err != nil {
+			return err
+		}
 	}
 	var err error
-	err = DB.Model(redemption).Select("name", "status", "quota", "redeemed_time", "expired_time").Updates(redemption).Error
+	err = DB.Model(redemption).Select("name", "type", "status", "quota", "redeemed_time", "expired_time").Updates(redemption).Error
 	return err
 }
 

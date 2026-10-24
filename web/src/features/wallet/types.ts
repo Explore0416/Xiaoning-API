@@ -33,7 +33,7 @@ export interface ApiResponse<T = unknown> {
  * Standard API response types
  */
 export type TopupInfoResponse = ApiResponse<TopupInfo>
-export type RedemptionResponse = ApiResponse<number>
+export type RedemptionResponse = ApiResponse<RedemptionResult>
 export type AmountResponse = ApiResponse<string>
 export type PaymentResponse = ApiResponse<Record<string, unknown>> & {
   url?: string
@@ -174,6 +174,18 @@ export interface PresetAmount {
 export interface RedemptionRequest {
   /** Redemption code key */
   key: string
+}
+
+/**
+ * Redemption result: quota credit or reset cards
+ */
+export interface RedemptionResult {
+  /** Reward type: quota or reset_card */
+  type: 'quota' | 'reset_card'
+  /** Quota added (quota type) */
+  quota: number
+  /** Reset cards granted (reset_card type) */
+  reset_card_count: number
 }
 
 /**

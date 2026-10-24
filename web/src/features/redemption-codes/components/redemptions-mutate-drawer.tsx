@@ -42,6 +42,14 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
+import {
   Sheet,
   SheetClose,
   SheetContent,
@@ -69,6 +77,8 @@ import {
   getRedemptionFormSchema,
   type RedemptionFormValues,
   REDEMPTION_FORM_DEFAULT_VALUES,
+  REDEMPTION_TYPE_QUOTA,
+  REDEMPTION_TYPE_RESET_CARD,
   transformFormDataToPayload,
   transformRedemptionToFormDefaults,
 } from '../lib'
@@ -109,6 +119,7 @@ export function RedemptionsMutateDrawer({
     resolver: zodResolver(getRedemptionFormSchema(t)),
     defaultValues: REDEMPTION_FORM_DEFAULT_VALUES,
   })
+  const isResetCardType = form.watch('type') === REDEMPTION_TYPE_RESET_CARD
 
   // Load existing data when updating
   useEffect(() => {
@@ -176,9 +187,12 @@ export function RedemptionsMutateDrawer({
       const basePayload = transformFormDataToPayload(data)
 
       if (isUpdate && currentRow && loadedRedemption) {
-        const quota = form.getFieldState('quota_dollars').isDirty
-          ? basePayload.quota
-          : loadedRedemption.quota
+        const typeDirty = form.getFieldState('type').isDirty
+        const quotaDirty =
+          form.getFieldState('quota_dollars').isDirty ||
+          form.getFieldState('reset_card_count').isDirty
+        const quota =
+          typeDirty || quotaDirty ? basePayload.quota : loadedRedemption.quota
         const result = await updateRedemption({
           ...basePayload,
           quota,
@@ -207,9 +221,14 @@ export function RedemptionsMutateDrawer({
             setCreatedCodes({
               keys: result.data,
               name: basePayload.name,
-              quota: formatQuotaWithCurrency(basePayload.quota, {
-                abbreviate: false,
-              }),
+              quota:
+                basePayload.type === REDEMPTION_TYPE_RESET_CARD
+                  ? t('{{count}} reset cards', {
+                      count: basePayload.quota,
+                    })
+                  : formatQuotaWithCurrency(basePayload.quota, {
+                      abbreviate: false,
+                    }),
             })
           }
           onOpenChange(false)
@@ -229,8 +248,12 @@ export function RedemptionsMutateDrawer({
     if (!isUpdate) {
       const name = form.getValues('name')
       if (!name?.trim()) {
-        const quota = parseQuotaFromDollars(form.getValues('quota_dollars'))
-        form.setValue('name', formatQuota(quota), { shouldValidate: true })
+        if (form.getValues('type') === REDEMPTION_TYPE_RESET_CARD) {
+          form.setValue('name', t('Reset cards'), { shouldValidate: true })
+        } else {
+          const quota = parseQuotaFromDollars(form.getValues('quota_dollars'))
+          form.setValue('name', formatQuota(quota), { shouldValidate: true })
+        }
       }
     }
 
@@ -300,6 +323,52 @@ export function RedemptionsMutateDrawer({
                 <SideDrawerSection>
                   <FormField
                     control={form.control}
+                    name='type'
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>{t('Redemption Type')}</FormLabel>
+                        <Select
+                          items={[
+                            {
+                              value: REDEMPTION_TYPE_QUOTA,
+                              label: t('Quota'),
+                            },
+                            {
+                              value: REDEMPTION_TYPE_RESET_CARD,
+                              label: t('Reset Card'),
+                            },
+                          ]}
+                          value={field.value}
+                          onValueChange={field.onChange}
+                        >
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder={t('Select type')} />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent alignItemWithTrigger={false}>
+                            <SelectGroup>
+                              <SelectItem value={REDEMPTION_TYPE_QUOTA}>
+                                {t('Quota')}
+                              </SelectItem>
+                              <SelectItem value={REDEMPTION_TYPE_RESET_CARD}>
+                                {t('Reset Card')}
+                              </SelectItem>
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          {t(
+                            'Choose whether this code grants quota or reset cards'
+                          )}
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
                     name='name'
                     render={({ field }) => (
                       <FormItem>
@@ -315,36 +384,70 @@ export function RedemptionsMutateDrawer({
                     )}
                   />
 
-                  <FormField
-                    control={form.control}
-                    name='quota_dollars'
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>{quotaLabel}</FormLabel>
-                        <FormControl>
-                          <Input
-                            {...field}
-                            type='number'
-                            step={quotaStep}
-                            placeholder={quotaPlaceholder}
-                            onChange={(e) =>
-                              field.onChange(
-                                Number.parseFloat(e.target.value) || 0
-                              )
-                            }
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          {tokensOnly
-                            ? t('Enter the quota amount in tokens')
-                            : t('Enter the quota amount in {{currency}}', {
-                                currency: currencyLabel,
-                              })}
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+                  {isResetCardType ? (
+                    <FormField
+                      control={form.control}
+                      name='reset_card_count'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{t('Reset Card Count')}</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type='number'
+                              min='1'
+                              max='1000'
+                              placeholder={t(
+                                'Number of reset cards per code'
+                              )}
+                              onChange={(e) =>
+                                field.onChange(
+                                  Number.parseInt(e.target.value, 10) || 1
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {t(
+                              'Each code grants this many reset cards (1-1000)'
+                            )}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  ) : (
+                    <FormField
+                      control={form.control}
+                      name='quota_dollars'
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>{quotaLabel}</FormLabel>
+                          <FormControl>
+                            <Input
+                              {...field}
+                              type='number'
+                              step={quotaStep}
+                              placeholder={quotaPlaceholder}
+                              onChange={(e) =>
+                                field.onChange(
+                                  Number.parseFloat(e.target.value) || 0
+                                )
+                              }
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            {tokensOnly
+                              ? t('Enter the quota amount in tokens')
+                              : t('Enter the quota amount in {{currency}}', {
+                                  currency: currencyLabel,
+                                })}
+                          </FormDescription>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  )}
 
                   <FormField
                     control={form.control}
