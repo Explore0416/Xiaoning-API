@@ -97,7 +97,7 @@ it('keeps unsuccessful business responses resolved and silent until a caller han
     headers: {},
     config,
   })
-  const response = await api.patch('/api/option/model_pricing', {})
+  const response = await api.put('/api/option/model_pricing', {})
   expect(response.data).toEqual(payload)
   expect(notify).not.toHaveBeenCalled()
   handleServerError(response.data)

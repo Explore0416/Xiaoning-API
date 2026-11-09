@@ -162,7 +162,7 @@ it('previews legacy conversion in the selected currency and applies only after c
         : { effective, cache_write_mode: 'none' },
     },
   }))
-  const save = vi.spyOn(api, 'patch')
+  const save = vi.spyOn(api, 'put')
   const editor = renderEditor({ cacheRatio: '0' })
   await selectCurrency('Site currency (CNY)')
   await userEvent

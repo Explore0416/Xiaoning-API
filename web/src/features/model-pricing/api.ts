@@ -157,7 +157,7 @@ export async function invalidateModelPricing(client: QueryClient) {
 
 export async function saveModelPricing(changes: ModelPricingChange[]) {
   if (!changes.length) return
-  const res = await api.patch('/api/option/model_pricing', { changes })
+  const res = await api.put('/api/option/model_pricing', { changes })
   if (!res.data.success) {
     throw createServerError(res.data, t('Failed to save model pricing'))
   }

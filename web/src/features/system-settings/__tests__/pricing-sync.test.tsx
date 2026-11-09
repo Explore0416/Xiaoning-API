@@ -367,7 +367,7 @@ describe('pricing synchronization', () => {
       },
     })
     const patch = vi
-      .spyOn(api, 'patch')
+      .spyOn(api, 'put')
       .mockResolvedValueOnce({
         data: {
           success: false,

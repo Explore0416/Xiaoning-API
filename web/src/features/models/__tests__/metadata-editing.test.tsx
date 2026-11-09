@@ -95,8 +95,7 @@ describe('model pricing entry', () => {
       return { data: { success: true, data: { items: [] } } }
     })
     const post = vi.spyOn(api, 'post')
-    const put = vi.spyOn(api, 'put')
-    const patch = vi.spyOn(api, 'patch').mockImplementation(async () => {
+    const put = vi.spyOn(api, 'put').mockImplementation(async () => {
       storedPrice = 0
       return { data: { success: true } }
     })
@@ -119,7 +118,7 @@ describe('model pricing entry', () => {
     await user.type(price, '0')
     await user.click(screen.getByRole('button', { name: 'Save model prices' }))
     await waitFor(() =>
-      expect(patch).toHaveBeenCalledWith('/api/option/model_pricing', {
+      expect(put).toHaveBeenCalledWith('/api/option/model_pricing', {
         changes: [
           {
             model_name: 'channel-only',
@@ -130,7 +129,7 @@ describe('model pricing entry', () => {
         ],
       })
     )
-    expect(put).not.toHaveBeenCalled()
+    expect(post).not.toHaveBeenCalled()
     await user.click(screen.getByRole('tab', { name: 'Channels and groups' }))
     expect(
       screen.getByText(
@@ -479,18 +478,22 @@ describe('metadata editing', () => {
       }
       return { data: { success: true, data: [], vendors: [] } }
     })
-    const put = vi
-      .spyOn(api, 'put')
-      .mockResolvedValue({ data: { success: true, data: model } })
-    const patch = vi
-      .spyOn(api, 'patch')
-      .mockResolvedValueOnce({
-        data: {
-          success: false,
-          message: 'Model pricing changed; reload before saving',
-        },
-      })
-      .mockResolvedValue({ data: { success: true } })
+    let pricingSaveCount = 0
+    const put = vi.spyOn(api, 'put').mockImplementation(async (url) => {
+      if (url === '/api/option/model_pricing') {
+        pricingSaveCount += 1
+        if (pricingSaveCount === 1) {
+          return {
+            data: {
+              success: false,
+              message: 'Model pricing changed; reload before saving',
+            },
+          }
+        }
+        return { data: { success: true } }
+      }
+      return { data: { success: true, data: model } }
+    })
     const client = new QueryClient({
       defaultOptions: {
         queries: { retry: false },
@@ -522,7 +525,7 @@ describe('metadata editing', () => {
     expect(screen.getByPlaceholderText('0.01')).toHaveValue('0')
     await user.click(screen.getByRole('button', { name: 'Save model prices' }))
     await waitFor(() =>
-      expect(patch).toHaveBeenCalledWith('/api/option/model_pricing', {
+      expect(put).toHaveBeenCalledWith('/api/option/model_pricing', {
         changes: [
           {
             model_name: 'example-model',
@@ -545,7 +548,7 @@ describe('metadata editing', () => {
     await user.type(screen.getByPlaceholderText('0.01'), '0')
     await user.click(screen.getByRole('button', { name: 'Save model prices' }))
     await waitFor(() =>
-      expect(patch).toHaveBeenLastCalledWith('/api/option/model_pricing', {
+      expect(put).toHaveBeenLastCalledWith('/api/option/model_pricing', {
         changes: [
           {
             model_name: 'example-model',
@@ -556,7 +559,9 @@ describe('metadata editing', () => {
         ],
       })
     )
-    expect(put).not.toHaveBeenCalled()
+    expect(
+      put.mock.calls.every(([url]) => url === '/api/option/model_pricing')
+    ).toBe(true)
     expect(
       get.mock.calls.some(([url]) => url === '/api/option/model_pricing')
     ).toBe(true)

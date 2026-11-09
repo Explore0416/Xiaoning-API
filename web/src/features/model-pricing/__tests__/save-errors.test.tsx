@@ -93,7 +93,7 @@ it.each([200, 400])(
         }
       }
       if (
-        config.method === 'patch' &&
+        config.method === 'put' &&
         config.url === '/api/option/model_pricing'
       ) {
         requests.push(config.data)

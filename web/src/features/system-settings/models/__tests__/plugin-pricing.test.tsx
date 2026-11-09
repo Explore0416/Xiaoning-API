@@ -118,7 +118,7 @@ it('keeps provider drafts across tabs and saves nested expressions with the mode
     return { data: { success: true, data: {} } }
   })
   let finishSave: (() => void) | undefined
-  const save = vi.spyOn(api, 'patch').mockImplementation(
+  const save = vi.spyOn(api, 'put').mockImplementation(
     () =>
       new Promise((resolve) => {
         finishSave = () => resolve({ data: { success: true } })
